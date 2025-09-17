@@ -1,7 +1,9 @@
 package com.spatium.temibridge.ui
 
 import android.app.Activity
+import android.content.Context
 import android.content.Intent
+import android.media.AudioManager
 import android.net.Uri
 import android.os.Bundle
 import com.robotemi.sdk.Robot
@@ -48,7 +50,7 @@ class IntentEntryActivity : Activity() {
                 val text = i.getStringExtra("text").orEmpty()
                 if (text.isNotBlank()) robot.speak(TtsRequest.create(text, false))
             }
-            "com.spatium.temibridge.ACTION_FOLLOW_ME" -> robot.followMe()
+            "com.spatium.temibridge.ACTION_FOLLOW_ME" -> robot.beWithMe()
             "com.spatium.temibridge.ACTION_STOP" -> robot.stopMovement()
             "com.spatium.temibridge.ACTION_HEAD_TILT" -> {
                 val angle = i.getIntExtra("angle", 0) // aprox. -25..25
@@ -56,7 +58,11 @@ class IntentEntryActivity : Activity() {
             }
             "com.spatium.temibridge.ACTION_VOLUME" -> {
                 val level = i.getIntExtra("level", 5) // 0..10
-                robot.setVolume(level)
+                val audio = getSystemService(Context.AUDIO_SERVICE) as AudioManager
+                val max = audio.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
+                val clamped = level.coerceIn(0, 10)
+                val target = (clamped * max) / 10
+                audio.setStreamVolume(AudioManager.STREAM_MUSIC, target, 0)
             }
         }
     }
