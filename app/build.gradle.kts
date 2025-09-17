@@ -40,6 +40,6 @@ dependencies {
     implementation("androidx.appcompat:appcompat:1.7.0")
     implementation("com.google.android.material:material:1.12.0")
 
-    // Temi SDK (ajustamos si tu versión difiere)
-    implementation("com.robotemi:sdk:1.121.0")
+    // Temi SDK (use a version published on Maven Central)
+    implementation("com.robotemi:sdk:1.131.4")
 }
