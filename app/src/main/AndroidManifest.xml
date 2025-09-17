@@ -1,15 +1,36 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools">
+<manifest package="com.spatium.temibridge"
+    xmlns:android="http://schemas.android.com/apk/res/android">
 
     <application
-        android:allowBackup="true"
-        android:dataExtractionRules="@xml/data_extraction_rules"
-        android:fullBackupContent="@xml/backup_rules"
-        android:icon="@mipmap/ic_launcher"
-        android:label="@string/app_name"
-        android:roundIcon="@mipmap/ic_launcher_round"
-        android:supportsRtl="true"
-        android:theme="@style/Theme.TemiBridge" />
+        android:label="Temi Bridge"
+        android:theme="@style/Theme.TemiBridge">
 
+        <activity
+            android:name=".ui.IntentEntryActivity"
+            android:exported="true"
+            android:launchMode="singleTop"
+            android:theme="@style/Theme.Transparent">
+
+            <!-- Deep link: mytemi://go?place=Lobby | mytemi://say?text=Hola -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <category android:name="android.intent.category.BROWSABLE"/>
+                <data android:scheme="mytemi"/>
+            </intent-filter>
+
+            <!-- Acciones explícitas para Despia -->
+            <intent-filter>
+                <action android:name="com.spatium.temibridge.ACTION_GO_TO"/>
+                <action android:name="com.spatium.temibridge.ACTION_SAY"/>
+                <action android:name="com.spatium.temibridge.ACTION_FOLLOW_ME"/>
+                <action android:name="com.spatium.temibridge.ACTION_STOP"/>
+                <action android:name="com.spatium.temibridge.ACTION_HEAD_TILT"/>
+                <action android:name="com.spatium.temibridge.ACTION_VOLUME"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+            </intent-filter>
+        </activity>
+
+    </application>
 </manifest>
