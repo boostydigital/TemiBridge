@@ -44,7 +44,12 @@ class MainActivity : AppCompatActivity() {
         val bg = findViewById<ImageView>(R.id.bgImage)
         bg.load("https://cdn.prod.website-files.com/6892254c55b94994927b7f75/68b5ad5d069da781c2a4e992_GastroBarRD.jpg") {
             crossfade(true)
+            placeholder(android.R.color.black)
+            error(android.R.color.darker_gray)
         }
+
+        // Debug visual confirmation (remove later if you want):
+        // Toast.makeText(this, "UI cargada", Toast.LENGTH_SHORT).show()
 
         findViewById<android.view.View>(R.id.btnScan).setOnClickListener {
             ensureCameraAndScan()
