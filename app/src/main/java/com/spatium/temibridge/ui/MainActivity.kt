@@ -6,6 +6,7 @@ import android.content.pm.PackageManager
 import android.os.Bundle
 import android.widget.ImageView
 import android.widget.Toast
+import android.util.Log
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
@@ -39,6 +40,7 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
+        Log.d("TemiBridge", "MainActivity.onCreate - setContentView OK")
 
         // Load background image with dark overlay via Coil
         val bg = findViewById<ImageView>(R.id.bgImage)
@@ -48,13 +50,15 @@ class MainActivity : AppCompatActivity() {
             error(android.R.color.darker_gray)
         }
 
-        // Debug visual confirmation (remove later if you want):
-        // Toast.makeText(this, "UI cargada", Toast.LENGTH_SHORT).show()
+        // Confirmación visual de depuración
+        Toast.makeText(this, "MainActivity cargada", Toast.LENGTH_SHORT).show()
 
         findViewById<android.view.View>(R.id.btnScan).setOnClickListener {
+            Log.d("TemiBridge", "btnScan clicked")
             ensureCameraAndScan()
         }
         findViewById<android.view.View>(R.id.btnTour).setOnClickListener {
+            Log.d("TemiBridge", "btnTour clicked")
             startTour("Spatium_Visita")
         }
     }
