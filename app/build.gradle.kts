@@ -51,6 +51,7 @@ dependencies {
 
     // Image loading for background
     implementation("io.coil-kt:coil:2.6.0")
+    implementation("io.coil-kt:coil-network-okhttp:2.6.0")
 
     // Test dependencies
     testImplementation("junit:junit:4.13.2")

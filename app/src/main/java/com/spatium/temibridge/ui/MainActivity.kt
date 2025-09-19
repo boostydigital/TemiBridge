@@ -19,7 +19,9 @@ import com.spatium.temibridge.R
 
 class MainActivity : AppCompatActivity() {
 
-    private val robot by lazy { Robot.getInstance() }
+    private val robot: Robot? by lazy {
+        runCatching { Robot.getInstance() }.getOrNull()
+    }
 
     private val qrLauncher = registerForActivityResult(ScanContract()) { result ->
         if (result.contents != null) {
@@ -87,15 +89,23 @@ class MainActivity : AppCompatActivity() {
         }
 
         val saludo = "Hola ${name.split(' ', limit = 2).firstOrNull() ?: name}, Bienvenido a Spatium, Por favor sígueme para guiarte a tu destino"
-        robot.speak(TtsRequest.create(saludo, false))
+        if (robot == null) {
+            Toast.makeText(this, "Robot SDK no disponible", Toast.LENGTH_LONG).show()
+            return
+        }
+        robot?.speak(TtsRequest.create(saludo, false))
         // Ejecutar Go To al salón
-        robot.goTo(salon)
+        robot?.goTo(salon)
     }
 
     private fun startTour(identifier: String) {
         if (identifier.isNotBlank()) {
-            robot.startDefaultNlu(identifier)
-            robot.speak(TtsRequest.create("Iniciando tour $identifier", false))
+            if (robot == null) {
+                Toast.makeText(this, "Robot SDK no disponible", Toast.LENGTH_LONG).show()
+                return
+            }
+            robot?.startDefaultNlu(identifier)
+            robot?.speak(TtsRequest.create("Iniciando tour $identifier", false))
         }
     }
 }
