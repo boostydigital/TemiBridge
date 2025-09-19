@@ -6,6 +6,9 @@ import android.os.Bundle
 import android.widget.ImageView
 import android.widget.Toast
 import android.util.Log
+import android.view.animation.AccelerateDecelerateInterpolator
+import android.view.animation.DecelerateInterpolator
+import android.view.View
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
@@ -24,6 +27,47 @@ class MainActivity : AppCompatActivity() {
         } else {
             Toast.makeText(this, "Escaneo cancelado", Toast.LENGTH_SHORT).show()
         }
+
+    private fun animateCardIn(view: View, delay: Long) {
+        view.alpha = 0f
+        view.translationY = 28f
+        view.scaleX = 0.97f
+        view.scaleY = 0.97f
+        view.animate()
+            .alpha(1f)
+            .translationY(0f)
+            .scaleX(1f)
+            .scaleY(1f)
+            .setStartDelay(delay)
+            .setDuration(450)
+            .setInterpolator(DecelerateInterpolator())
+            .start()
+    }
+
+    private fun startKenBurns(image: ImageView) {
+        image.post {
+            image.pivotX = image.width / 2f
+            image.pivotY = image.height / 2f
+            image.scaleX = 1.0f
+            image.scaleY = 1.0f
+            image.animate()
+                .scaleX(1.05f)
+                .scaleY(1.05f)
+                .setDuration(14000)
+                .setInterpolator(AccelerateDecelerateInterpolator())
+                .withEndAction {
+                    // Revertir suave para loop sutil
+                    image.animate()
+                        .scaleX(1.0f)
+                        .scaleY(1.0f)
+                        .setDuration(14000)
+                        .setInterpolator(AccelerateDecelerateInterpolator())
+                        .withEndAction { startKenBurns(image) }
+                        .start()
+                }
+                .start()
+        }
+    }
     }
 
     private val requestCameraPermission =
@@ -44,8 +88,36 @@ class MainActivity : AppCompatActivity() {
             error(android.R.color.darker_gray)
         }
 
+        // Load Spatium logo in header
+        val headerLogo = findViewById<ImageView>(R.id.logo)
+        headerLogo.load("https://cdn.prod.website-files.com/6892254c55b94994927b7f75/68938a95d4da97a6a402f2bd_Spatium-logo-vertical.avif") {
+            crossfade(true)
+            placeholder(android.R.color.transparent)
+            error(android.R.color.transparent)
+        }
+        // Animación de entrada del logo (fade + scale)
+        headerLogo.alpha = 0f
+        headerLogo.scaleX = 0.85f
+        headerLogo.scaleY = 0.85f
+        headerLogo.animate()
+            .alpha(1f)
+            .scaleX(1f)
+            .scaleY(1f)
+            .setDuration(650)
+            .setInterpolator(AccelerateDecelerateInterpolator())
+            .start()
+
         // Confirmación visual de depuración
         Toast.makeText(this, "MainActivity cargada", Toast.LENGTH_SHORT).show()
+
+        // Animar tarjetas (entrada con fade + slide + scale)
+        val cardScan = findViewById<View>(R.id.btnScan)
+        val cardTour = findViewById<View>(R.id.btnTour)
+        animateCardIn(cardScan, delay = 50L)
+        animateCardIn(cardTour, delay = 180L)
+
+        // Efecto Ken Burns sutil al fondo
+        startKenBurns(bg)
 
         findViewById<android.view.View>(R.id.btnScan).setOnClickListener {
             Log.d("TemiBridge", "btnScan clicked")
