@@ -40,9 +40,17 @@ dependencies {
     implementation("androidx.core:core-ktx:1.13.1")
     implementation("androidx.appcompat:appcompat:1.7.0")
     implementation("com.google.android.material:material:1.12.0")
+    implementation("androidx.constraintlayout:constraintlayout:2.1.4")
 
     // Temi SDK (use a version published on Maven Central)
     implementation("com.robotemi:sdk:1.131.4")
+
+    // QR scanning (ZXing Embedded)
+    implementation("com.journeyapps:zxing-android-embedded:4.3.0")
+    implementation("com.google.zxing:core:3.5.2")
+
+    // Image loading for background
+    implementation("io.coil-kt:coil:2.6.0")
 
     // Test dependencies
     testImplementation("junit:junit:4.13.2")

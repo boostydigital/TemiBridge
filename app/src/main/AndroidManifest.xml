@@ -2,22 +2,28 @@
 <manifest package="com.spatium.temibridge"
     xmlns:android="http://schemas.android.com/apk/res/android">
 
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-permission android:name="android.permission.INTERNET" />
+
     <application
         android:label="Temi Bridge"
         android:theme="@style/Theme.TemiBridge">
+
+        <activity
+            android:name=".ui.MainActivity"
+            android:exported="true"
+            android:theme="@style/Theme.TemiBridge">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
 
         <activity
             android:name=".ui.IntentEntryActivity"
             android:exported="true"
             android:launchMode="singleTop"
             android:theme="@style/Theme.Transparent">
-
-            <!-- Launcher support so Android Studio can run the app -->
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
-
             <!-- Deep link: mytemi://go?place=Lobby | mytemi://say?text=Hola -->
             <intent-filter>
                 <action android:name="android.intent.action.VIEW"/>
