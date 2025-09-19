@@ -27,6 +27,7 @@ class MainActivity : AppCompatActivity() {
         } else {
             Toast.makeText(this, "Escaneo cancelado", Toast.LENGTH_SHORT).show()
         }
+    }
 
     private fun animateCardIn(view: View, delay: Long) {
         view.alpha = 0f
@@ -67,7 +68,6 @@ class MainActivity : AppCompatActivity() {
                 }
                 .start()
         }
-    }
     }
 
     private val requestCameraPermission =
