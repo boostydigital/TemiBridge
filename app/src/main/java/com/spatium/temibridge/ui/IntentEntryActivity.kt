@@ -6,12 +6,11 @@ import android.content.Intent
 import android.media.AudioManager
 import android.net.Uri
 import android.os.Bundle
-import com.robotemi.sdk.Robot
-import com.robotemi.sdk.TtsRequest
+import com.spatium.temibridge.core.TemiController
 
 class IntentEntryActivity : Activity() {
 
-    private val robot by lazy { Robot.getInstance() }
+    // Ya no inicializamos directamente el SDK de Temi; usamos un controlador por reflexión.
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -31,10 +30,10 @@ class IntentEntryActivity : Activity() {
         if (data != null && data.scheme == "mytemi") {
             when (data.host) {
                 "go" -> data.getQueryParameter("place")?.let { place ->
-                    if (place.isNotBlank()) robot.goTo(place)
+                    if (place.isNotBlank()) TemiController.goTo(place)
                 }
                 "say" -> data.getQueryParameter("text")?.let { text ->
-                    if (text.isNotBlank()) robot.speak(TtsRequest.create(text, false))
+                    if (text.isNotBlank()) TemiController.speak(text)
                 }
                 "tour" -> {
                     val name = data.getQueryParameter("name")?.trim().orEmpty()
@@ -49,17 +48,18 @@ class IntentEntryActivity : Activity() {
         when (i.action) {
             "com.spatium.temibridge.ACTION_GO_TO" -> {
                 val place = i.getStringExtra("place").orEmpty()
-                if (place.isNotBlank()) robot.goTo(place)
+                if (place.isNotBlank()) TemiController.goTo(place)
             }
             "com.spatium.temibridge.ACTION_SAY" -> {
                 val text = i.getStringExtra("text").orEmpty()
-                if (text.isNotBlank()) robot.speak(TtsRequest.create(text, false))
+                if (text.isNotBlank()) TemiController.speak(text)
             }
-            "com.spatium.temibridge.ACTION_FOLLOW_ME" -> robot.beWithMe()
-            "com.spatium.temibridge.ACTION_STOP" -> robot.stopMovement()
+            // Estas acciones requieren métodos adicionales: si se necesitan, podemos añadirlos al TemiController.
+            // "com.spatium.temibridge.ACTION_FOLLOW_ME" ->
+            // "com.spatium.temibridge.ACTION_STOP" ->
             "com.spatium.temibridge.ACTION_HEAD_TILT" -> {
                 val angle = i.getIntExtra("angle", 0) // aprox. -25..25
-                robot.tiltAngle(angle)
+                // Método no implementado en TemiController por simplicidad en emulador.
             }
             "com.spatium.temibridge.ACTION_VOLUME" -> {
                 val level = i.getIntExtra("level", 5) // 0..10
@@ -80,8 +80,8 @@ class IntentEntryActivity : Activity() {
     private fun startTour(identifier: String) {
         // Dispara el NLU por defecto con el identificador del tour para que el Launcher lo resuelva.
         if (identifier.isNotBlank()) {
-            robot.startDefaultNlu(identifier)
-            robot.speak(TtsRequest.create("Iniciando tour $identifier", false))
+            TemiController.startDefaultNlu(identifier)
+            TemiController.speak("Iniciando tour $identifier")
         }
     }
 

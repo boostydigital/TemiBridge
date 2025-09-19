@@ -24,8 +24,12 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            buildConfigField("boolean", "USE_FAKE_ROBOT", "false")
         }
-        debug { isMinifyEnabled = false }
+        debug {
+            isMinifyEnabled = false
+            buildConfigField("boolean", "USE_FAKE_ROBOT", "true")
+        }
     }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
@@ -42,8 +46,8 @@ dependencies {
     implementation("com.google.android.material:material:1.12.0")
     implementation("androidx.constraintlayout:constraintlayout:2.1.4")
 
-    // Temi SDK (use a version published on Maven Central)
-    implementation("com.robotemi:sdk:1.131.4")
+    // Temi SDK solo en release para evitar auto-inicialización en emulador
+    releaseImplementation("com.robotemi:sdk:1.131.4")
 
     // QR scanning (ZXing Embedded)
     implementation("com.journeyapps:zxing-android-embedded:4.3.0")

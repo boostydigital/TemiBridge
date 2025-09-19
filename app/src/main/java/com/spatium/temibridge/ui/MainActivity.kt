@@ -1,7 +1,6 @@
 package com.spatium.temibridge.ui
 
 import android.Manifest
-import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Bundle
 import android.widget.ImageView
@@ -14,15 +13,10 @@ import androidx.core.content.ContextCompat
 import coil.load
 import com.journeyapps.barcodescanner.ScanContract
 import com.journeyapps.barcodescanner.ScanOptions
-import com.robotemi.sdk.Robot
-import com.robotemi.sdk.TtsRequest
 import com.spatium.temibridge.R
+import com.spatium.temibridge.core.TemiController
 
 class MainActivity : AppCompatActivity() {
-
-    private val robot: Robot? by lazy {
-        runCatching { Robot.getInstance() }.getOrNull()
-    }
 
     private val qrLauncher = registerForActivityResult(ScanContract()) { result ->
         if (result.contents != null) {
@@ -98,23 +92,14 @@ class MainActivity : AppCompatActivity() {
         }
 
         val saludo = "Hola ${name.split(' ', limit = 2).firstOrNull() ?: name}, Bienvenido a Spatium, Por favor sígueme para guiarte a tu destino"
-        if (robot == null) {
-            Toast.makeText(this, "Robot SDK no disponible", Toast.LENGTH_LONG).show()
-            return
-        }
-        robot?.speak(TtsRequest.create(saludo, false))
-        // Ejecutar Go To al salón
-        robot?.goTo(salon)
+        TemiController.speak(saludo)
+        TemiController.goTo(salon)
     }
 
     private fun startTour(identifier: String) {
         if (identifier.isNotBlank()) {
-            if (robot == null) {
-                Toast.makeText(this, "Robot SDK no disponible", Toast.LENGTH_LONG).show()
-                return
-            }
-            robot?.startDefaultNlu(identifier)
-            robot?.speak(TtsRequest.create("Iniciando tour $identifier", false))
+            TemiController.startDefaultNlu(identifier)
+            TemiController.speak("Iniciando tour $identifier")
         }
     }
 }
