@@ -11,10 +11,10 @@
         android:layout_width="0dp"
         android:layout_height="0dp"
         android:scaleType="centerCrop"
-        app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent" />
+        app:layout_constraintTop_toTopOf="parent" />
 
     <!-- Dark overlay -->
     <View
@@ -22,35 +22,35 @@
         android:layout_width="0dp"
         android:layout_height="0dp"
         android:background="#B3000000"
-        app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent" />
+        app:layout_constraintTop_toTopOf="parent" />
 
     <!-- Logo -->
     <ImageView
         android:id="@+id/logo"
         android:layout_width="100dp"
         android:layout_height="40dp"
-        android:src="@mipmap/ic_launcher"
+        android:layout_marginTop="24dp"
         android:background="@android:color/transparent"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
+        android:src="@mipmap/ic_launcher"
         app:layout_constraintEnd_toEndOf="parent"
-        android:layout_marginTop="24dp" />
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
 
     <!-- Cards container in a scroll view to guarantee visibility on all screens -->
     <androidx.core.widget.NestedScrollView
         android:id="@+id/scroll"
         android:layout_width="0dp"
         android:layout_height="0dp"
-        android:fillViewport="true"
-        app:layout_constraintTop_toBottomOf="@id/logo"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintBottom_toBottomOf="parent"
+        android:layout_marginBottom="16dp"
         android:layout_marginTop="16dp"
-        android:layout_marginBottom="16dp">
+        android:fillViewport="true"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/logo">
 
         <LinearLayout
             android:id="@+id/cardsContainer"
@@ -59,65 +59,64 @@
             android:orientation="vertical"
             android:padding="16dp">
 
-        <!-- Card: Scan QR -->
-        <LinearLayout
-            android:id="@+id/btnScan"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:background="@drawable/rounded_dark_card"
-            android:orientation="vertical"
-            android:padding="20dp"
-            android:minHeight="160dp"
-            android:gravity="center"
-            android:elevation="6dp"
-            android:layout_marginBottom="16dp">
-
-            <TextView
-                android:layout_width="wrap_content"
+            <!-- Card: Scan QR -->
+            <LinearLayout
+                android:id="@+id/btnScan"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Escanear QR"
-                android:textColor="@android:color/white"
-                android:textStyle="bold"
-                android:textSize="20sp" />
+                android:layout_marginBottom="16dp"
+                android:background="@drawable/rounded_dark_card"
+                android:elevation="6dp"
+                android:gravity="center"
+                android:minHeight="160dp"
+                android:orientation="vertical"
+                android:padding="20dp">
 
-            <TextView
-                android:layout_width="wrap_content"
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Escanear QR"
+                    android:textColor="@android:color/white"
+                    android:textSize="20sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="6dp"
+                    android:text="Apunta la cámara al código"
+                    android:textColor="#D0FFFFFF"
+                    android:textSize="14sp" />
+            </LinearLayout>
+
+            <!-- Card: Tour -->
+            <LinearLayout
+                android:id="@+id/btnTour"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Apunta la cámara al código"
-                android:textColor="#D0FFFFFF"
-                android:textSize="14sp"
-                android:layout_marginTop="6dp" />
-        </LinearLayout>
+                android:background="@drawable/rounded_gradient_tour"
+                android:elevation="6dp"
+                android:gravity="center"
+                android:minHeight="160dp"
+                android:orientation="vertical"
+                android:padding="20dp">
 
-        <!-- Card: Tour -->
-        <LinearLayout
-            android:id="@+id/btnTour"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:background="@drawable/rounded_gradient_tour"
-            android:orientation="vertical"
-            android:padding="20dp"
-            android:minHeight="160dp"
-            android:gravity="center"
-            android:elevation="6dp">
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Iniciar un Tour en Spatium"
+                    android:textColor="@android:color/white"
+                    android:textSize="20sp"
+                    android:textStyle="bold" />
 
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Iniciar un Tour en Spatium"
-                android:textColor="@android:color/white"
-                android:textStyle="bold"
-                android:textSize="20sp" />
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Explora la experiencia"
-                android:textColor="#D0FFFFFF"
-                android:textSize="14sp"
-                android:layout_marginTop="6dp" />
-        </LinearLayout>
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="6dp"
+                    android:text="Explora la experiencia"
+                    android:textColor="#D0FFFFFF"
+                    android:textSize="14sp" />
+            </LinearLayout>
         </LinearLayout>
     </androidx.core.widget.NestedScrollView>
-
 </androidx.constraintlayout.widget.ConstraintLayout>
