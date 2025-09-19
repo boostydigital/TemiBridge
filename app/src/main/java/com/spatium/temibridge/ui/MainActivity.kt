@@ -11,7 +11,8 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import coil.load
-import com.google.zxing.integration.android.IntentIntegrator
+import com.journeyapps.barcodescanner.ScanContract
+import com.journeyapps.barcodescanner.ScanOptions
 import com.robotemi.sdk.Robot
 import com.robotemi.sdk.TtsRequest
 import com.spatium.temibridge.R
@@ -19,6 +20,14 @@ import com.spatium.temibridge.R
 class MainActivity : AppCompatActivity() {
 
     private val robot by lazy { Robot.getInstance() }
+
+    private val qrLauncher = registerForActivityResult(ScanContract()) { result ->
+        if (result.contents != null) {
+            handleQrContent(result.contents!!)
+        } else {
+            Toast.makeText(this, "Escaneo cancelado", Toast.LENGTH_SHORT).show()
+        }
+    }
 
     private val requestCameraPermission =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
@@ -53,26 +62,12 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun startQrScan() {
-        IntentIntegrator(this).apply {
-            setDesiredBarcodeFormats(IntentIntegrator.QR_CODE)
-            setPrompt("Apunta la cámara al código")
-            setBeepEnabled(false)
-            setOrientationLocked(false)
-            initiateScan()
-        }
-    }
-
-    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
-        val result = IntentIntegrator.parseActivityResult(requestCode, resultCode, data)
-        if (result != null) {
-            if (result.contents != null) {
-                handleQrContent(result.contents)
-            } else {
-                Toast.makeText(this, "Escaneo cancelado", Toast.LENGTH_SHORT).show()
-            }
-            return
-        }
-        super.onActivityResult(requestCode, resultCode, data)
+        val options = ScanOptions()
+            .setDesiredBarcodeFormats(ScanOptions.QR_CODE)
+            .setPrompt("Apunta la cámara al código")
+            .setBeepEnabled(false)
+            .setOrientationLocked(false)
+        qrLauncher.launch(options)
     }
 
     private fun handleQrContent(content: String) {
