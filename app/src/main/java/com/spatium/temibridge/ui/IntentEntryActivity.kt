@@ -8,6 +8,7 @@ import android.net.Uri
 import android.os.Bundle
 import com.robotemi.sdk.Robot
 import com.robotemi.sdk.TtsRequest
+import com.robotemi.sdk.constants.Page
 
 class IntentEntryActivity : Activity() {
 
@@ -35,6 +36,11 @@ class IntentEntryActivity : Activity() {
                 }
                 "say" -> data.getQueryParameter("text")?.let { text ->
                     if (text.isNotBlank()) robot.speak(TtsRequest.create(text, false))
+                }
+                "tour" -> {
+                    val name = data.getQueryParameter("name")?.trim().orEmpty()
+                    val tourId = data.getQueryParameter("tourId")?.trim().orEmpty()
+                    startTour(name.ifBlank { tourId })
                 }
             }
             return
@@ -64,6 +70,21 @@ class IntentEntryActivity : Activity() {
                 val target = (clamped * max) / 10
                 audio.setStreamVolume(AudioManager.STREAM_MUSIC, target, 0)
             }
+            "com.spatium.temibridge.ACTION_TOUR_START" -> {
+                val name = i.getStringExtra("name").orEmpty().trim()
+                val tourId = i.getStringExtra("tourId").orEmpty().trim()
+                startTour(name.ifBlank { tourId })
+            }
+        }
+    }
+
+    private fun startTour(identifier: String) {
+        // Heurística: abre la página de Tours/Sequences para que Temi prepare el entorno
+        // y, si hay identificador, dispara el NLU por defecto con ese texto para que el Launcher lo resuelva.
+        robot.startPage(Page.TOUR_GUIDE)
+        if (identifier.isNotBlank()) {
+            robot.startDefaultNlu(identifier)
+            robot.speak(TtsRequest.create("Iniciando tour $identifier", false))
         }
     }
 }

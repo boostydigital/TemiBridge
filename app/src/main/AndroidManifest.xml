@@ -34,6 +34,7 @@
                 <action android:name="com.spatium.temibridge.ACTION_STOP"/>
                 <action android:name="com.spatium.temibridge.ACTION_HEAD_TILT"/>
                 <action android:name="com.spatium.temibridge.ACTION_VOLUME"/>
+                <action android:name="com.spatium.temibridge.ACTION_TOUR_START"/>
                 <category android:name="android.intent.category.DEFAULT"/>
             </intent-filter>
         </activity>
