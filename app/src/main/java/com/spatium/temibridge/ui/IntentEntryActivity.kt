@@ -16,13 +16,13 @@ class IntentEntryActivity : Activity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         handleIntent(intent)
-        finish()
+        goHome()
     }
 
     override fun onNewIntent(intent: Intent?) {
         super.onNewIntent(intent)
         intent?.let { handleIntent(it) }
-        finish()
+        goHome()
     }
 
     private fun handleIntent(i: Intent) {
@@ -83,5 +83,15 @@ class IntentEntryActivity : Activity() {
             robot.startDefaultNlu(identifier)
             robot.speak(TtsRequest.create("Iniciando tour $identifier", false))
         }
+    }
+
+    private fun goHome() {
+        // Lleva/trae al frente la MainActivity para que la app siga abierta.
+        val home = Intent(this, MainActivity::class.java).apply {
+            addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+        }
+        startActivity(home)
+        // Cerramos solo esta activity "puente" (transparente) para no contaminar el back stack.
+        finish()
     }
 }
