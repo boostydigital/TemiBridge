@@ -8,7 +8,6 @@ import android.net.Uri
 import android.os.Bundle
 import com.robotemi.sdk.Robot
 import com.robotemi.sdk.TtsRequest
-import com.robotemi.sdk.constants.Page
 
 class IntentEntryActivity : Activity() {
 
@@ -79,9 +78,7 @@ class IntentEntryActivity : Activity() {
     }
 
     private fun startTour(identifier: String) {
-        // Heurística: abre la página de Tours/Sequences para que Temi prepare el entorno
-        // y, si hay identificador, dispara el NLU por defecto con ese texto para que el Launcher lo resuelva.
-        robot.startPage(Page.TOUR_GUIDE)
+        // Dispara el NLU por defecto con el identificador del tour para que el Launcher lo resuelva.
         if (identifier.isNotBlank()) {
             robot.startDefaultNlu(identifier)
             robot.speak(TtsRequest.create("Iniciando tour $identifier", false))
