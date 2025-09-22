@@ -29,14 +29,10 @@ class IntentEntryActivity : Activity() {
         val data: Uri? = i.data
         if (data != null && data.scheme == "mytemi") {
             when (data.host) {
-                // Reinterpretar 'go' como ejecutar una SEQUENCE de Temi Center usando el nombre en 'place'
+                // Restaurar comportamiento: 'go' navega al lugar usando goTo(place)
                 "go" -> data.getQueryParameter("place")?.let { place ->
                     if (place.isNotBlank()) {
-                        val started = TemiController.playSequenceByName(place)
-                        if (!started) {
-                            // Fallback opcional: pronunciar aviso
-                            TemiController.speak("No encontré la secuencia $place")
-                        }
+                        TemiController.goTo(place)
                     }
                 }
                 "say" -> data.getQueryParameter("text")?.let { text ->

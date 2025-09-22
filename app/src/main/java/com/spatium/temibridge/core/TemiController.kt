@@ -1,9 +1,15 @@
 package com.spatium.temibridge.core
 
 import android.util.Log
+import java.lang.reflect.InvocationHandler
+import java.lang.reflect.Proxy
 
 object TemiController {
     private const val TAG = "TemiController"
+
+    // One-time arrival callback handling
+    private var pendingArrival: (() -> Unit)? = null
+    private var goToListenerProxy: Any? = null
 
     private fun robotInstance(): Any? = try {
         val cls = Class.forName("com.robotemi.sdk.Robot")
@@ -12,6 +18,46 @@ object TemiController {
     } catch (t: Throwable) {
         Log.w(TAG, "Robot SDK no disponible: ${t.message}")
         null
+    }
+
+    /**
+     * Registra un callback que se ejecuta UNA sola vez cuando Temi reporta estado COMPLETE
+     * tras un goTo. Implementado por reflexión para no acoplar en compilación.
+     */
+    fun setArrivalCallbackOnce(callback: () -> Unit) {
+        pendingArrival = callback
+        ensureGoToListener()
+    }
+
+    private fun ensureGoToListener(): Boolean {
+        val robot = robotInstance() ?: return false
+        return try {
+            val listenerCls = Class.forName("com.robotemi.sdk.listeners.OnGoToLocationStatusChangedListener")
+            if (goToListenerProxy == null) {
+                goToListenerProxy = Proxy.newProxyInstance(
+                    listenerCls.classLoader,
+                    arrayOf(listenerCls),
+                    InvocationHandler { _, method, args ->
+                        try {
+                            if (method.name == "onGoToLocationStatusChanged" && args != null && args.size >= 2) {
+                                val status = args[1]
+                                if (status?.toString()?.equals("COMPLETE", ignoreCase = true) == true) {
+                                    pendingArrival?.invoke()
+                                    pendingArrival = null
+                                }
+                            }
+                        } catch (_: Throwable) {}
+                        null
+                    }
+                )
+                val addMethod = robot.javaClass.getMethod("addOnGoToLocationStatusChangedListener", listenerCls)
+                addMethod.invoke(robot, goToListenerProxy)
+            }
+            true
+        } catch (t: Throwable) {
+            Log.w(TAG, "No pude registrar listener goTo: ${t.message}")
+            false
+        }
     }
 
     // --- Sequences (temi Center) ---

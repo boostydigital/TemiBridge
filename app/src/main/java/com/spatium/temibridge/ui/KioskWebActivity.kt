@@ -63,8 +63,8 @@ class KioskWebActivity : AppCompatActivity() {
             }
         }
 
-        // Programar cierre en 5 minutos (300000 ms)
-        handler.postDelayed(autoClose, 300_000)
+        // Programar cierre en 2 minuto (120_000 ms)
+        handler.postDelayed(autoClose, 120_000)
 
         // Manejo de back usando OnBackPressedDispatcher (evita API deprecada)
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {

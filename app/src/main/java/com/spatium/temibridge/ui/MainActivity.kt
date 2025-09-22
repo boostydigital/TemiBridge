@@ -186,9 +186,22 @@ class MainActivity : AppCompatActivity() {
                             val place = decodeParam(uri.getQueryParameter("place")).trim()
                             val recepcion = decodeParam(uri.getQueryParameter("recepcion"))
                             val telefono = decodeParam(uri.getQueryParameter("telefono"))
+                            val recBool = recepcion.equals("true", ignoreCase = true)
                             if (place.isNotBlank()) {
-                                val ok = TemiController.playSequenceByName(place)
-                                if (!ok) Toast.makeText(this, "No encontré la secuencia: $place", Toast.LENGTH_LONG).show()
+                                // Si NO es recepción, al llegar anuncia y luego va a "entrada" tras 10s
+                                if (!recBool) {
+                                    TemiController.setArrivalCallbackOnce {
+                                        // Garantizar ejecución en hilo principal
+                                        Handler(Looper.getMainLooper()).post {
+                                            TemiController.speak("Hemos llegado a tu destino, tu anfitrión te atenderá. Gracias")
+                                            Handler(Looper.getMainLooper()).postDelayed({
+                                                TemiController.goTo("entrada")
+                                            }, 10_000)
+                                        }
+                                    }
+                                }
+                                // Volver al comportamiento anterior: navegar al lugar usando goTo
+                                TemiController.goTo(place)
                             } else Toast.makeText(this, "QR inválido: falta place", Toast.LENGTH_LONG).show()
                             postWebhookAndMaybeOpen(recepcion, telefono)
                             return
@@ -230,6 +243,18 @@ class MainActivity : AppCompatActivity() {
 
         val saludo = "Hola ${name.split(' ', limit = 2).firstOrNull() ?: name}, Bienvenido a Spatium, Por favor sígueme para guiarte a tu destino"
         TemiController.speak(saludo)
+        // Si NO es recepción, al llegar anuncia y luego va a "entrada" tras 10s
+        val recBoolLegacy = recepcion?.equals("true", ignoreCase = true) ?: false
+        if (!recBoolLegacy) {
+            TemiController.setArrivalCallbackOnce {
+                Handler(Looper.getMainLooper()).post {
+                    TemiController.speak("Hemos llegado a tu destino, tu anfitrión te atenderá. Gracias")
+                    Handler(Looper.getMainLooper()).postDelayed({
+                        TemiController.goTo("entrada")
+                    }, 10_000)
+                }
+            }
+        }
         TemiController.goTo(salon)
         postWebhookAndMaybeOpen(recepcion, telefono)
     }
@@ -292,7 +317,7 @@ class MainActivity : AppCompatActivity() {
                 } catch (t: Throwable) {
                     Log.w("TemiBridge", "Abrir KioskWebActivity fallo: ${t.message}")
                 }
-            }, 20_000)
+            }, 5_000)
         }
     }
 
