@@ -236,8 +236,8 @@ class MainActivity : AppCompatActivity() {
 
     // Decodifica parámetros una o más veces si vienen doblemente codificados ("%2520" => "%20" => " ")
     private fun decodeParam(raw: String?): String {
-        if (raw.isNullOrEmpty()) return raw ?: ""
-        var prev = raw
+        if (raw.isNullOrEmpty()) return ""
+        var prev: String = raw
         var curr: String
         repeat(3) { // hasta 3 pasadas por seguridad
             curr = try {
