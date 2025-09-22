@@ -98,11 +98,13 @@ object TemiController {
         }
     }
 
-    private fun safeInvokeString(instance: Any?, methodName: String): String? = try {
+    private fun safeInvokeString(instance: Any?, methodName: String): String? {
         if (instance == null) return null
-        val m = instance.javaClass.getMethod(methodName)
-        (m.invoke(instance) as? CharSequence)?.toString()
-    } catch (_: Throwable) {
-        null
+        return try {
+            val m = instance.javaClass.getMethod(methodName)
+            (m.invoke(instance) as? CharSequence)?.toString()
+        } catch (_: Throwable) {
+            null
+        }
     }
 }
