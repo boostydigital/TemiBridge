@@ -10,6 +10,7 @@ object TemiController {
     // One-time arrival callback handling
     private var pendingArrival: (() -> Unit)? = null
     private var goToListenerProxy: Any? = null
+    private var lastTarget: String? = null
 
     private fun robotInstance(): Any? = try {
         val cls = Class.forName("com.robotemi.sdk.Robot")
@@ -29,6 +30,10 @@ object TemiController {
         ensureGoToListener()
     }
 
+    fun clearArrivalCallback() {
+        pendingArrival = null
+    }
+
     private fun ensureGoToListener(): Boolean {
         val robot = robotInstance() ?: return false
         return try {
@@ -40,7 +45,9 @@ object TemiController {
                     InvocationHandler { _, method, args ->
                         try {
                             if (method.name == "onGoToLocationStatusChanged" && args != null && args.size >= 2) {
+                                val location = args[0]
                                 val status = args[1]
+                                Log.d(TAG, "goTo status: ${'$'}{status?.toString()} at ${'$'}location target=${'$'}lastTarget")
                                 if (status?.toString()?.equals("COMPLETE", ignoreCase = true) == true) {
                                     pendingArrival?.invoke()
                                     pendingArrival = null
@@ -181,6 +188,8 @@ object TemiController {
     fun goTo(place: String) {
         val robot = robotInstance() ?: return
         try {
+            ensureGoToListener()
+            lastTarget = place
             val goTo = robot.javaClass.getMethod("goTo", String::class.java)
             goTo.invoke(robot, place)
         } catch (t: Throwable) {
