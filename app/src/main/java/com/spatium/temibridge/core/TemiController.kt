@@ -15,6 +15,22 @@ object TemiController {
     }
 
     // --- Sequences (temi Center) ---
+    fun requestSequencePermission(): Boolean {
+        val robot = robotInstance() ?: return false
+        return try {
+            val permClass = Class.forName("com.robotemi.sdk.Permission")
+            val seqField = permClass.getField("SEQUENCE")
+            val seqValue = seqField.get(null)
+            val permsArray = java.lang.reflect.Array.newInstance(permClass, 1)
+            java.lang.reflect.Array.set(permsArray, 0, seqValue)
+            val request = robot.javaClass.getMethod("requestPermissions", java.lang.reflect.Array.newInstance(permClass, 0)::class.java)
+            request.invoke(robot, permsArray)
+            true
+        } catch (t: Throwable) {
+            Log.w(TAG, "requestSequencePermission fallo: ${t.message}")
+            false
+        }
+    }
     fun playSequenceById(sequenceId: String): Boolean {
         val robot = robotInstance() ?: return false
         return try {

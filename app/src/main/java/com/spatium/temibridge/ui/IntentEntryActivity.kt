@@ -56,8 +56,21 @@ class IntentEntryActivity : Activity() {
                         TemiController.speak(text)
                     }
                     if (place.isNotBlank()) {
-                        TemiController.goTo(place)
+                        TemiController.playSequenceByName(place)
                     }
+                }
+                // Ejecutar una sequence por nombre explícito: mytemi://sequence?name=Open_Space
+                "sequence" -> {
+                    val name = data.getQueryParameter("name")?.trim().orEmpty()
+                    if (name.isNotBlank()) {
+                        val ok = TemiController.playSequenceByName(name)
+                        if (!ok) TemiController.speak("No encontré la secuencia $name")
+                    }
+                }
+                // Solicitar permiso de Sequence al robot: mytemi://sequence-permission
+                "sequence-permission" -> {
+                    val granted = TemiController.requestSequencePermission()
+                    if (granted) TemiController.speak("Permiso de secuencias solicitado")
                 }
             }
             return
