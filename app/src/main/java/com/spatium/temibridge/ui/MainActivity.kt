@@ -2,6 +2,7 @@ package com.spatium.temibridge.ui
 
 import android.Manifest
 import android.content.pm.PackageManager
+import android.net.Uri
 import android.os.Bundle
 import android.widget.ImageView
 import android.widget.Toast
@@ -148,7 +149,45 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun handleQrContent(content: String) {
-        // Expected format: name=María González;salon=Salon_Duarte
+        // 1) Nuevo formato soportado: deep link mytemi://...
+        //    Ej: mytemi://welcome?text=Hola%20Mario...&place=Salon_Duarte
+        if (content.startsWith("mytemi://", ignoreCase = true)) {
+            runCatching { Uri.parse(content) }.onSuccess { uri ->
+                if (uri != null && uri.scheme == "mytemi") {
+                    when (uri.host) {
+                        "welcome" -> {
+                            val text = uri.getQueryParameter("text").orEmpty().trim()
+                            val place = uri.getQueryParameter("place").orEmpty().trim()
+                            if (text.isNotBlank()) TemiController.speak(text)
+                            if (place.isNotBlank()) TemiController.goTo(place)
+                            return
+                        }
+                        "say" -> {
+                            val text = uri.getQueryParameter("text").orEmpty().trim()
+                            if (text.isNotBlank()) TemiController.speak(text) else Toast.makeText(this, "QR inválido: falta text", Toast.LENGTH_LONG).show()
+                            return
+                        }
+                        "go" -> {
+                            val place = uri.getQueryParameter("place").orEmpty().trim()
+                            if (place.isNotBlank()) TemiController.goTo(place) else Toast.makeText(this, "QR inválido: falta place", Toast.LENGTH_LONG).show()
+                            return
+                        }
+                        "tour" -> {
+                            val name = uri.getQueryParameter("name").orEmpty().trim()
+                            val tourId = uri.getQueryParameter("tourId").orEmpty().trim()
+                            val identifier = if (name.isNotBlank()) name else tourId
+                            if (identifier.isNotBlank()) startTour(identifier) else Toast.makeText(this, "QR inválido: falta name o tourId", Toast.LENGTH_LONG).show()
+                            return
+                        }
+                    }
+                }
+            }
+            Toast.makeText(this, "QR inválido. Deep link no reconocido", Toast.LENGTH_LONG).show()
+            return
+        }
+
+        // 2) Formato legacy compatible: texto plano key=value;key=value
+        //    Expected format: name=María González;salon=Salon_Duarte
         val map = content.split(';')
             .mapNotNull { pair ->
                 val idx = pair.indexOf('=')
