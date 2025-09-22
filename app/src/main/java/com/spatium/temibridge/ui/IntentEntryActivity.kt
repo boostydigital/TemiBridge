@@ -6,6 +6,9 @@ import android.content.Intent
 import android.media.AudioManager
 import android.net.Uri
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
+import android.util.Log
 import com.spatium.temibridge.core.TemiController
 
 class IntentEntryActivity : Activity() {
@@ -16,6 +19,23 @@ class IntentEntryActivity : Activity() {
         super.onCreate(savedInstanceState)
         handleIntent(intent)
         goHome()
+    }
+
+    // Decodificador robusto (hasta 3 pasadas) similar al de MainActivity
+    private fun decodeParam(raw: String?): String {
+        if (raw.isNullOrEmpty()) return ""
+        var prev: String = raw
+        var curr: String
+        repeat(3) {
+            curr = try {
+                java.net.URLDecoder.decode(prev, java.nio.charset.StandardCharsets.UTF_8.name())
+            } catch (_: Throwable) {
+                prev
+            }
+            if (curr == prev) return curr
+            prev = curr
+        }
+        return prev
     }
 
     override fun onNewIntent(intent: Intent?) {
@@ -46,13 +66,39 @@ class IntentEntryActivity : Activity() {
                 // Accion combinada: decir un saludo y luego ir a un lugar con un solo QR.
                 // Ejemplo: mytemi://welcome?text=Hola%20David%2C%20bienvenido%20al%20Gastrobar&place=Gastrobar
                 "welcome" -> {
-                    val text = data.getQueryParameter("text")?.trim().orEmpty()
-                    val place = data.getQueryParameter("place")?.trim().orEmpty()
+                    val text = decodeParam(data.getQueryParameter("text")).trim()
+                    val place = decodeParam(data.getQueryParameter("place")).trim()
+                    val recepcion = decodeParam(data.getQueryParameter("recepcion"))
+                    val recBool = recepcion.equals("true", ignoreCase = true)
                     if (text.isNotBlank()) {
                         TemiController.speak(text)
                     }
                     if (place.isNotBlank()) {
-                        TemiController.playSequenceByName(place)
+                        if (!recBool) {
+                            TemiController.setArrivalCallbackOnce {
+                                Handler(Looper.getMainLooper()).post {
+                                    TemiController.speak("Hemos llegado a tu destino, tu anfitrión te atenderá. Gracias")
+                                    Handler(Looper.getMainLooper()).postDelayed({
+                                        TemiController.goTo("entrada")
+                                    }, 10_000)
+                                }
+                            }
+                        } else {
+                            // Si es recepción, abrir KioskWebActivity a los 5s como en MainActivity
+                            Handler(Looper.getMainLooper()).postDelayed({
+                                try {
+                                    val url = "https://spatium-desk.lovable.app/pedidos-publicos?ubicacion=Recepcion"
+                                    val intent = Intent(this, KioskWebActivity::class.java).apply {
+                                        putExtra(KioskWebActivity.EXTRA_URL, url)
+                                        addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+                                    }
+                                    startActivity(intent)
+                                } catch (t: Throwable) {
+                                    Log.w("TemiBridge", "Abrir KioskWebActivity fallo: ${t.message}")
+                                }
+                            }, 5_000)
+                        }
+                        TemiController.goTo(place)
                     }
                 }
                 // Ejecutar una sequence por nombre explícito: mytemi://sequence?name=Open_Space
