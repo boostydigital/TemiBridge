@@ -84,6 +84,14 @@ class IntentEntryActivity : Activity() {
                         TemiController.speak("Secuencias disponibles: $say")
                     }
                 }
+                // Controlar secuencia en reproducción: mytemi://sequence-control?action=next|pause|play|previous|stop
+                "sequence-control" -> {
+                    val action = data.getQueryParameter("action")?.trim().orEmpty()
+                    if (action.isNotBlank()) {
+                        val ok = TemiController.controlSequence(action)
+                        if (!ok) TemiController.speak("No pude enviar comando de secuencia: $action")
+                    }
+                }
             }
             return
         }

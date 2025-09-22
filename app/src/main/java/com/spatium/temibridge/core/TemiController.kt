@@ -23,7 +23,9 @@ object TemiController {
             val seqValue = seqField.get(null)
             val permsArray = java.lang.reflect.Array.newInstance(permClass, 1)
             java.lang.reflect.Array.set(permsArray, 0, seqValue)
-            val request = robot.javaClass.getMethod("requestPermissions", java.lang.reflect.Array.newInstance(permClass, 0)::class.java)
+            // Obtener la clase de array de Permission adecuadamente para la firma vararg
+            val permArrayClass = java.lang.reflect.Array.newInstance(permClass, 0).javaClass
+            val request = robot.javaClass.getMethod("requestPermissions", permArrayClass)
             request.invoke(robot, permsArray)
             true
         } catch (t: Throwable) {
@@ -34,6 +36,8 @@ object TemiController {
 
     fun listSequenceNames(): List<String> {
         val robot = robotInstance() ?: return emptyList()
+        // Intenta solicitar permiso antes de leer
+        requestSequencePermission()
         return try {
             val getAllSequences = robot.javaClass.getMethod("getAllSequences")
             val sequences = getAllSequences.invoke(robot) as? List<*>
@@ -61,6 +65,8 @@ object TemiController {
     fun playSequenceByName(name: String): Boolean {
         val robot = robotInstance() ?: return false
         return try {
+            // Asegura permisos antes de consultar
+            requestSequencePermission()
             val getAllSequences = robot.javaClass.getMethod("getAllSequences")
             val sequences = getAllSequences.invoke(robot) as? List<*>
             if (sequences.isNullOrEmpty()) {
@@ -82,6 +88,26 @@ object TemiController {
             playSequenceById(matchedId)
         } catch (t: Throwable) {
             Log.w(TAG, "playSequenceByName fallo: ${t.message}")
+            false
+        }
+    }
+
+    fun controlSequence(action: String): Boolean {
+        val robot = robotInstance() ?: return false
+        return try {
+            requestSequencePermission()
+            val enumCls = Class.forName("com.robotemi.sdk.sequence.SequenceCommand")
+            val values = enumCls.getMethod("values").invoke(null) as Array<*>
+            val target = values.firstOrNull { it.toString().equals(action, ignoreCase = true) }
+                ?: run {
+                    Log.w(TAG, "SequenceCommand no válido: $action")
+                    return false
+                }
+            val method = robot.javaClass.getMethod("controlSequence", enumCls)
+            method.invoke(robot, target)
+            true
+        } catch (t: Throwable) {
+            Log.w(TAG, "controlSequence fallo: ${t.message}")
             false
         }
     }
