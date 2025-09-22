@@ -12,7 +12,7 @@
         <!-- Temi SDK metadata -->
         <meta-data
             android:name="com.robotemi.sdk.metadata.SKILL"
-            android:value="@string/app_name" />
+            android:value="Temi Bridge" />
 
         <meta-data
             android:name="com.robotemi.sdk.metadata.KIOSK"
