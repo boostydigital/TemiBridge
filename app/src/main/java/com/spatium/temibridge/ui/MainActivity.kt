@@ -186,7 +186,10 @@ class MainActivity : AppCompatActivity() {
                             val place = decodeParam(uri.getQueryParameter("place")).trim()
                             val recepcion = decodeParam(uri.getQueryParameter("recepcion"))
                             val telefono = decodeParam(uri.getQueryParameter("telefono"))
-                            if (place.isNotBlank()) TemiController.goTo(place) else Toast.makeText(this, "QR inválido: falta place", Toast.LENGTH_LONG).show()
+                            if (place.isNotBlank()) {
+                                val ok = TemiController.playSequenceByName(place)
+                                if (!ok) Toast.makeText(this, "No encontré la secuencia: $place", Toast.LENGTH_LONG).show()
+                            } else Toast.makeText(this, "QR inválido: falta place", Toast.LENGTH_LONG).show()
                             postWebhookAndMaybeOpen(recepcion, telefono)
                             return
                         }

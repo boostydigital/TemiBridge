@@ -14,6 +14,49 @@ object TemiController {
         null
     }
 
+    // --- Sequences (temi Center) ---
+    fun playSequenceById(sequenceId: String): Boolean {
+        val robot = robotInstance() ?: return false
+        return try {
+            val playSequence = robot.javaClass.getMethod("playSequence", String::class.java)
+            val result = playSequence.invoke(robot, sequenceId) as? Int
+            val ok = (result == 0)
+            if (!ok) Log.w(TAG, "playSequence result: $result for id=$sequenceId")
+            ok
+        } catch (t: Throwable) {
+            Log.w(TAG, "playSequenceById fallo: ${t.message}")
+            false
+        }
+    }
+
+    fun playSequenceByName(name: String): Boolean {
+        val robot = robotInstance() ?: return false
+        return try {
+            val getAllSequences = robot.javaClass.getMethod("getAllSequences")
+            val sequences = getAllSequences.invoke(robot) as? List<*>
+            if (sequences.isNullOrEmpty()) {
+                Log.w(TAG, "getAllSequences vacío o null")
+                return false
+            }
+            var matchedId: String? = null
+            for (s in sequences) {
+                val sName = safeInvokeString(s, "getName")
+                if (sName != null && sName.equals(name, ignoreCase = true)) {
+                    matchedId = safeInvokeString(s, "getId")
+                    break
+                }
+            }
+            if (matchedId.isNullOrBlank()) {
+                Log.w(TAG, "Sequence no encontrada por nombre: $name")
+                return false
+            }
+            playSequenceById(matchedId)
+        } catch (t: Throwable) {
+            Log.w(TAG, "playSequenceByName fallo: ${t.message}")
+            false
+        }
+    }
+
     private fun ttsRequest(text: String): Any? = try {
         val cls = Class.forName("com.robotemi.sdk.TtsRequest")
         val create = cls.getMethod("create", String::class.java, Boolean::class.javaPrimitiveType)
