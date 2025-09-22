@@ -53,4 +53,56 @@ object TemiController {
             Log.w(TAG, "startDefaultNlu fallo: ${t.message}")
         }
     }
+
+    // --- Tours (temi Center) ---
+    // SDK docs expose: getAllTours(): List<TourModel> and playTour(tourId: String): Int (0 ok)
+    fun playTourById(tourId: String): Boolean {
+        val robot = robotInstance() ?: return false
+        return try {
+            val playTour = robot.javaClass.getMethod("playTour", String::class.java)
+            val result = playTour.invoke(robot, tourId) as? Int
+            val ok = (result == 0)
+            if (!ok) Log.w(TAG, "playTour result: $result for id=$tourId")
+            ok
+        } catch (t: Throwable) {
+            Log.w(TAG, "playTourById fallo: ${t.message}")
+            false
+        }
+    }
+
+    fun playTourByName(name: String): Boolean {
+        val robot = robotInstance() ?: return false
+        return try {
+            val getAllTours = robot.javaClass.getMethod("getAllTours")
+            val tours = getAllTours.invoke(robot) as? List<*>
+            if (tours.isNullOrEmpty()) {
+                Log.w(TAG, "getAllTours vacío o null")
+                return false
+            }
+            var matchedId: String? = null
+            for (t in tours) {
+                val tName = safeInvokeString(t, "getName")
+                if (tName != null && tName.equals(name, ignoreCase = true)) {
+                    matchedId = safeInvokeString(t, "getId")
+                    break
+                }
+            }
+            if (matchedId.isNullOrBlank()) {
+                Log.w(TAG, "Tour no encontrado por nombre: $name")
+                return false
+            }
+            playTourById(matchedId)
+        } catch (t: Throwable) {
+            Log.w(TAG, "playTourByName fallo: ${t.message}")
+            false
+        }
+    }
+
+    private fun safeInvokeString(instance: Any?, methodName: String): String? = try {
+        if (instance == null) return null
+        val m = instance.javaClass.getMethod(methodName)
+        (m.invoke(instance) as? CharSequence)?.toString()
+    } catch (_: Throwable) {
+        null
+    }
 }

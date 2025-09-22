@@ -49,9 +49,10 @@ dependencies {
     implementation("com.google.android.material:material:1.12.0")
     implementation("androidx.constraintlayout:constraintlayout:2.1.4")
 
-    // Temi SDK disponible también en debug para pruebas en robot
-    releaseImplementation("com.robotemi:sdk:1.131.4")
-    debugImplementation("com.robotemi:sdk:1.131.4")
+    // Temi SDK disponible también en debug para pruebas en robot.
+    // Requiere >= 1.132.0 para métodos de Tours (getAllTours / playTour)
+    releaseImplementation("com.robotemi:sdk:1.132.0")
+    debugImplementation("com.robotemi:sdk:1.132.0")
 
     // QR scanning (ZXing Embedded)
     implementation("com.journeyapps:zxing-android-embedded:4.3.0")
@@ -59,6 +60,12 @@ dependencies {
 
     // Image loading for background
     implementation("io.coil-kt:coil:2.6.0")
+
+    // HTTP client for webhooks
+    implementation("com.squareup.okhttp3:okhttp:4.12.0")
+
+    // Coroutines for background work (webhook posting, timers)
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.1")
 
     // Test dependencies
     testImplementation("junit:junit:4.13.2")

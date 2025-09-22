@@ -90,10 +90,17 @@ class IntentEntryActivity : Activity() {
     }
 
     private fun startTour(identifier: String) {
-        // Dispara el NLU por defecto con el identificador del tour para que el Launcher lo resuelva.
+        // Intenta iniciar Tour de Temi Center por nombre (o id). Si no, fallback al NLU.
         if (identifier.isNotBlank()) {
-            TemiController.startDefaultNlu(identifier)
-            TemiController.speak("Iniciando tour $identifier")
+            val started = TemiController.playTourByName(identifier)
+                || TemiController.playTourById(identifier)
+            if (started) {
+                TemiController.speak("Iniciando tour $identifier")
+            } else {
+                // Fallback para compatibilidad
+                TemiController.startDefaultNlu(identifier)
+                TemiController.speak("Iniciando tour $identifier")
+            }
         }
     }
 

@@ -2,8 +2,11 @@ package com.spatium.temibridge.ui
 
 import android.Manifest
 import android.content.pm.PackageManager
+import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.widget.ImageView
 import android.widget.Toast
 import android.util.Log
@@ -19,6 +22,10 @@ import com.journeyapps.barcodescanner.ScanContract
 import com.journeyapps.barcodescanner.ScanOptions
 import com.spatium.temibridge.R
 import com.spatium.temibridge.core.TemiController
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import okhttp3.RequestBody.Companion.toRequestBody
 
 class MainActivity : AppCompatActivity() {
 
@@ -158,25 +165,37 @@ class MainActivity : AppCompatActivity() {
                         "welcome" -> {
                             val text = uri.getQueryParameter("text").orEmpty().trim()
                             val place = uri.getQueryParameter("place").orEmpty().trim()
+                            val recepcion = uri.getQueryParameter("recepcion")
+                            val telefono = uri.getQueryParameter("telefono")
                             if (text.isNotBlank()) TemiController.speak(text)
                             if (place.isNotBlank()) TemiController.goTo(place)
+                            postWebhookAndMaybeOpen(recepcion, telefono)
                             return
                         }
                         "say" -> {
                             val text = uri.getQueryParameter("text").orEmpty().trim()
+                            val recepcion = uri.getQueryParameter("recepcion")
+                            val telefono = uri.getQueryParameter("telefono")
                             if (text.isNotBlank()) TemiController.speak(text) else Toast.makeText(this, "QR inválido: falta text", Toast.LENGTH_LONG).show()
+                            postWebhookAndMaybeOpen(recepcion, telefono)
                             return
                         }
                         "go" -> {
                             val place = uri.getQueryParameter("place").orEmpty().trim()
+                            val recepcion = uri.getQueryParameter("recepcion")
+                            val telefono = uri.getQueryParameter("telefono")
                             if (place.isNotBlank()) TemiController.goTo(place) else Toast.makeText(this, "QR inválido: falta place", Toast.LENGTH_LONG).show()
+                            postWebhookAndMaybeOpen(recepcion, telefono)
                             return
                         }
                         "tour" -> {
                             val name = uri.getQueryParameter("name").orEmpty().trim()
                             val tourId = uri.getQueryParameter("tourId").orEmpty().trim()
+                            val recepcion = uri.getQueryParameter("recepcion")
+                            val telefono = uri.getQueryParameter("telefono")
                             val identifier = if (name.isNotBlank()) name else tourId
                             if (identifier.isNotBlank()) startTour(identifier) else Toast.makeText(this, "QR inválido: falta name o tourId", Toast.LENGTH_LONG).show()
+                            postWebhookAndMaybeOpen(recepcion, telefono)
                             return
                         }
                     }
@@ -197,6 +216,8 @@ class MainActivity : AppCompatActivity() {
 
         val name = map["name"].orEmpty()
         val salon = map["salon"].orEmpty()
+        val recepcion = map["recepcion"]
+        val telefono = map["telefono"]
         if (name.isBlank() || salon.isBlank()) {
             Toast.makeText(this, "QR inválido. Formato esperado name=...;salon=...", Toast.LENGTH_LONG).show()
             return
@@ -205,6 +226,51 @@ class MainActivity : AppCompatActivity() {
         val saludo = "Hola ${name.split(' ', limit = 2).firstOrNull() ?: name}, Bienvenido a Spatium, Por favor sígueme para guiarte a tu destino"
         TemiController.speak(saludo)
         TemiController.goTo(salon)
+        postWebhookAndMaybeOpen(recepcion, telefono)
+    }
+
+    // --- Webhook + flujo de recepción ---
+    private val httpClient by lazy { OkHttpClient() }
+
+    private fun postWebhookAndMaybeOpen(recepcion: String?, telefono: String?) {
+        // Construir JSON simple con las variables si están presentes
+        val recBool = recepcion?.equals("true", ignoreCase = true) ?: false
+        val sb = StringBuilder().append('{')
+        sb.append("\"recepcion\":").append(if (recBool) "true" else "false")
+        if (!telefono.isNullOrBlank()) {
+            sb.append(',').append("\"telefono\":\"").append(telefono).append('\"')
+        }
+        sb.append('}')
+
+        val mediaType = "application/json; charset=utf-8".toMediaType()
+        val body = sb.toString().toRequestBody(mediaType)
+        val req = Request.Builder()
+            .url("https://hook.us1.make.com/rpr19yvr51pufln58pwln4rdgz0dl6hq")
+            .post(body)
+            .build()
+        httpClient.newCall(req).enqueue(object : okhttp3.Callback {
+            override fun onFailure(call: okhttp3.Call, e: java.io.IOException) {
+                Log.w("TemiBridge", "Webhook fallo: ${e.message}")
+            }
+            override fun onResponse(call: okhttp3.Call, response: okhttp3.Response) {
+                response.close()
+                Log.d("TemiBridge", "Webhook enviado: ${response.code}")
+            }
+        })
+
+        if (recBool) {
+            Handler(Looper.getMainLooper()).postDelayed({
+                try {
+                    val url = "https://spatium-desk.lovable.app/pedidos-publicos?ubicacion=Recepcion"
+                    val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url)).apply {
+                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    }
+                    startActivity(intent)
+                } catch (t: Throwable) {
+                    Log.w("TemiBridge", "Abrir URL fallo: ${t.message}")
+                }
+            }, 20_000)
+        }
     }
 
     private fun startTour(identifier: String) {
