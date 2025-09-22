@@ -13,6 +13,8 @@ import android.util.Log
 import android.view.animation.AccelerateDecelerateInterpolator
 import android.view.animation.DecelerateInterpolator
 import android.view.View
+import java.net.URLDecoder
+import java.nio.charset.StandardCharsets
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
@@ -163,36 +165,36 @@ class MainActivity : AppCompatActivity() {
                 if (uri != null && uri.scheme == "mytemi") {
                     when (uri.host) {
                         "welcome" -> {
-                            val text = uri.getQueryParameter("text").orEmpty().trim()
-                            val place = uri.getQueryParameter("place").orEmpty().trim()
-                            val recepcion = uri.getQueryParameter("recepcion")
-                            val telefono = uri.getQueryParameter("telefono")
+                            val text = decodeParam(uri.getQueryParameter("text")).trim()
+                            val place = decodeParam(uri.getQueryParameter("place")).trim()
+                            val recepcion = decodeParam(uri.getQueryParameter("recepcion"))
+                            val telefono = decodeParam(uri.getQueryParameter("telefono"))
                             if (text.isNotBlank()) TemiController.speak(text)
                             if (place.isNotBlank()) TemiController.goTo(place)
                             postWebhookAndMaybeOpen(recepcion, telefono)
                             return
                         }
                         "say" -> {
-                            val text = uri.getQueryParameter("text").orEmpty().trim()
-                            val recepcion = uri.getQueryParameter("recepcion")
-                            val telefono = uri.getQueryParameter("telefono")
+                            val text = decodeParam(uri.getQueryParameter("text")).trim()
+                            val recepcion = decodeParam(uri.getQueryParameter("recepcion"))
+                            val telefono = decodeParam(uri.getQueryParameter("telefono"))
                             if (text.isNotBlank()) TemiController.speak(text) else Toast.makeText(this, "QR inválido: falta text", Toast.LENGTH_LONG).show()
                             postWebhookAndMaybeOpen(recepcion, telefono)
                             return
                         }
                         "go" -> {
-                            val place = uri.getQueryParameter("place").orEmpty().trim()
-                            val recepcion = uri.getQueryParameter("recepcion")
-                            val telefono = uri.getQueryParameter("telefono")
+                            val place = decodeParam(uri.getQueryParameter("place")).trim()
+                            val recepcion = decodeParam(uri.getQueryParameter("recepcion"))
+                            val telefono = decodeParam(uri.getQueryParameter("telefono"))
                             if (place.isNotBlank()) TemiController.goTo(place) else Toast.makeText(this, "QR inválido: falta place", Toast.LENGTH_LONG).show()
                             postWebhookAndMaybeOpen(recepcion, telefono)
                             return
                         }
                         "tour" -> {
-                            val name = uri.getQueryParameter("name").orEmpty().trim()
-                            val tourId = uri.getQueryParameter("tourId").orEmpty().trim()
-                            val recepcion = uri.getQueryParameter("recepcion")
-                            val telefono = uri.getQueryParameter("telefono")
+                            val name = decodeParam(uri.getQueryParameter("name")).trim()
+                            val tourId = decodeParam(uri.getQueryParameter("tourId")).trim()
+                            val recepcion = decodeParam(uri.getQueryParameter("recepcion"))
+                            val telefono = decodeParam(uri.getQueryParameter("telefono"))
                             val identifier = if (name.isNotBlank()) name else tourId
                             if (identifier.isNotBlank()) startTour(identifier) else Toast.makeText(this, "QR inválido: falta name o tourId", Toast.LENGTH_LONG).show()
                             postWebhookAndMaybeOpen(recepcion, telefono)
@@ -232,6 +234,23 @@ class MainActivity : AppCompatActivity() {
     // --- Webhook + flujo de recepción ---
     private val httpClient by lazy { OkHttpClient() }
 
+    // Decodifica parámetros una o más veces si vienen doblemente codificados ("%2520" => "%20" => " ")
+    private fun decodeParam(raw: String?): String {
+        if (raw.isNullOrEmpty()) return raw ?: ""
+        var prev = raw
+        var curr: String
+        repeat(3) { // hasta 3 pasadas por seguridad
+            curr = try {
+                URLDecoder.decode(prev, StandardCharsets.UTF_8.name())
+            } catch (_: Throwable) {
+                prev
+            }
+            if (curr == prev) return curr
+            prev = curr
+        }
+        return prev
+    }
+
     private fun postWebhookAndMaybeOpen(recepcion: String?, telefono: String?) {
         // Construir JSON simple con las variables si están presentes
         val recBool = recepcion?.equals("true", ignoreCase = true) ?: false
@@ -262,12 +281,13 @@ class MainActivity : AppCompatActivity() {
             Handler(Looper.getMainLooper()).postDelayed({
                 try {
                     val url = "https://spatium-desk.lovable.app/pedidos-publicos?ubicacion=Recepcion"
-                    val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url)).apply {
-                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    val intent = Intent(this, KioskWebActivity::class.java).apply {
+                        putExtra(KioskWebActivity.EXTRA_URL, url)
+                        addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
                     }
                     startActivity(intent)
                 } catch (t: Throwable) {
-                    Log.w("TemiBridge", "Abrir URL fallo: ${t.message}")
+                    Log.w("TemiBridge", "Abrir KioskWebActivity fallo: ${t.message}")
                 }
             }, 20_000)
         }
