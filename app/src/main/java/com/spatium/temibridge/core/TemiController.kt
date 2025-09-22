@@ -31,6 +31,19 @@ object TemiController {
             false
         }
     }
+
+    fun listSequenceNames(): List<String> {
+        val robot = robotInstance() ?: return emptyList()
+        return try {
+            val getAllSequences = robot.javaClass.getMethod("getAllSequences")
+            val sequences = getAllSequences.invoke(robot) as? List<*>
+            if (sequences.isNullOrEmpty()) return emptyList()
+            sequences.mapNotNull { s -> safeInvokeString(s, "getName") }
+        } catch (t: Throwable) {
+            Log.w(TAG, "listSequenceNames fallo: ${t.message}")
+            emptyList()
+        }
+    }
     fun playSequenceById(sequenceId: String): Boolean {
         val robot = robotInstance() ?: return false
         return try {

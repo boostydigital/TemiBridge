@@ -72,6 +72,18 @@ class IntentEntryActivity : Activity() {
                     val granted = TemiController.requestSequencePermission()
                     if (granted) TemiController.speak("Permiso de secuencias solicitado")
                 }
+                // Listar secuencias visibles en el robot: mytemi://sequence-list
+                "sequence-list" -> {
+                    val names = TemiController.listSequenceNames()
+                    if (names.isEmpty()) {
+                        TemiController.speak("No hay secuencias disponibles o permiso no concedido")
+                    } else {
+                        val joined = names.joinToString(", ")
+                        android.util.Log.d("TemiBridge", "Sequences: $joined")
+                        val say = if (joined.length > 120) names.take(5).joinToString(", ") else joined
+                        TemiController.speak("Secuencias disponibles: $say")
+                    }
+                }
             }
             return
         }
