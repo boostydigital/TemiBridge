@@ -40,6 +40,18 @@ class IntentEntryActivity : Activity() {
                     val tourId = data.getQueryParameter("tourId")?.trim().orEmpty()
                     startTour(name.ifBlank { tourId })
                 }
+                // Accion combinada: decir un saludo y luego ir a un lugar con un solo QR.
+                // Ejemplo: mytemi://welcome?text=Hola%20David%2C%20bienvenido%20al%20Gastrobar&place=Gastrobar
+                "welcome" -> {
+                    val text = data.getQueryParameter("text")?.trim().orEmpty()
+                    val place = data.getQueryParameter("place")?.trim().orEmpty()
+                    if (text.isNotBlank()) {
+                        TemiController.speak(text)
+                    }
+                    if (place.isNotBlank()) {
+                        TemiController.goTo(place)
+                    }
+                }
             }
             return
         }
