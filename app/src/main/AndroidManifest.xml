@@ -9,6 +9,15 @@
         android:label="Temi Bridge"
         android:theme="@style/Theme.TemiBridge">
 
+        <!-- Temi SDK metadata -->
+        <meta-data
+            android:name="com.robotemi.sdk.metadata.SKILL"
+            android:value="@string/app_name" />
+
+        <meta-data
+            android:name="com.robotemi.sdk.metadata.KIOSK"
+            android:value="TRUE" />
+
         <activity
             android:name=".ui.SplashActivity"
             android:exported="true"
