@@ -26,8 +26,10 @@ object TemiController {
      * tras un goTo. Implementado por reflexión para no acoplar en compilación.
      */
     fun setArrivalCallbackOnce(callback: () -> Unit) {
+        Log.d(TAG, "setArrivalCallbackOnce llamado")
         pendingArrival = callback
-        ensureGoToListener()
+        val ok = ensureGoToListener()
+        Log.d(TAG, "ensureGoToListener resultado=$ok")
     }
 
     fun clearArrivalCallback() {
@@ -47,10 +49,17 @@ object TemiController {
                             if (method.name == "onGoToLocationStatusChanged" && args != null && args.size >= 2) {
                                 val location = args[0]
                                 val status = args[1]
-                                Log.d(TAG, "goTo status: ${'$'}{status?.toString()} at ${'$'}location target=${'$'}lastTarget")
-                                if (status?.toString()?.equals("COMPLETE", ignoreCase = true) == true) {
-                                    pendingArrival?.invoke()
-                                    pendingArrival = null
+                                val desc = if (args.size >= 3) args[2] else null
+                                val statusStr = status?.toString()
+                                Log.d(TAG, "onGoToLocationStatusChanged loc=$location status=$statusStr desc=$desc target=$lastTarget pending=${pendingArrival != null}")
+                                if (statusStr?.equals("COMPLETE", ignoreCase = true) == true) {
+                                    if (pendingArrival != null) {
+                                        Log.d(TAG, "Invocando pendingArrival por COMPLETE")
+                                        pendingArrival?.invoke()
+                                        pendingArrival = null
+                                    } else {
+                                        Log.d(TAG, "No hay pendingArrival al completar")
+                                    }
                                 }
                             }
                         } catch (_: Throwable) {}
@@ -59,6 +68,7 @@ object TemiController {
                 )
                 val addMethod = robot.javaClass.getMethod("addOnGoToLocationStatusChangedListener", listenerCls)
                 addMethod.invoke(robot, goToListenerProxy)
+                Log.d(TAG, "Listener de goTo registrado")
             }
             true
         } catch (t: Throwable) {
@@ -188,7 +198,8 @@ object TemiController {
     fun goTo(place: String) {
         val robot = robotInstance() ?: return
         try {
-            ensureGoToListener()
+            val ok = ensureGoToListener()
+            Log.d(TAG, "goTo llamado place=$place listenerOk=$ok")
             lastTarget = place
             val goTo = robot.javaClass.getMethod("goTo", String::class.java)
             goTo.invoke(robot, place)

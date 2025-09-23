@@ -190,17 +190,21 @@ class MainActivity : AppCompatActivity() {
                             if (place.isNotBlank()) {
                                 // Si NO es recepción, al llegar anuncia y luego va a "entrada" tras 10s
                                 if (!recBool) {
+                                    Log.d("TemiBridge", "[GO] recepcion=false: programando arrival callback para place=$place")
                                     TemiController.setArrivalCallbackOnce {
                                         // Garantizar ejecución en hilo principal
                                         Handler(Looper.getMainLooper()).post {
+                                            Log.d("TemiBridge", "[GO] arrival callback ejecutado: anunciando llegada y preparando retorno a entrada")
                                             TemiController.speak("Hemos llegado a tu destino, tu anfitrión te atenderá. Gracias")
                                             Handler(Looper.getMainLooper()).postDelayed({
+                                                Log.d("TemiBridge", "[GO] 10s transcurridos: ejecutando goTo('entrada')")
                                                 TemiController.goTo("entrada")
                                             }, 10_000)
                                         }
                                     }
                                 }
                                 // Volver al comportamiento anterior: navegar al lugar usando goTo
+                                Log.d("TemiBridge", "[GO] Llamando goTo(place=$place) recBool=$recBool")
                                 TemiController.goTo(place)
                             } else Toast.makeText(this, "QR inválido: falta place", Toast.LENGTH_LONG).show()
                             postWebhookAndMaybeOpen(recepcion, telefono)
@@ -223,40 +227,9 @@ class MainActivity : AppCompatActivity() {
             return
         }
 
-        // 2) Formato legacy compatible: texto plano key=value;key=value
-        //    Expected format: name=María González;salon=Salon_Duarte
-        val map = content.split(';')
-            .mapNotNull { pair ->
-                val idx = pair.indexOf('=')
-                if (idx <= 0) null else pair.substring(0, idx).trim().lowercase() to pair.substring(idx + 1).trim()
-            }
-            .toMap()
-
-        val name = map["name"].orEmpty()
-        val salon = map["salon"].orEmpty()
-        val recepcion = map["recepcion"]
-        val telefono = map["telefono"]
-        if (name.isBlank() || salon.isBlank()) {
-            Toast.makeText(this, "QR inválido. Formato esperado name=...;salon=...", Toast.LENGTH_LONG).show()
-            return
-        }
-
-        val saludo = "Hola ${name.split(' ', limit = 2).firstOrNull() ?: name}, Bienvenido a Spatium, Por favor sígueme para guiarte a tu destino"
-        TemiController.speak(saludo)
-        // Si NO es recepción, al llegar anuncia y luego va a "entrada" tras 10s
-        val recBoolLegacy = recepcion?.equals("true", ignoreCase = true) ?: false
-        if (!recBoolLegacy) {
-            TemiController.setArrivalCallbackOnce {
-                Handler(Looper.getMainLooper()).post {
-                    TemiController.speak("Hemos llegado a tu destino, tu anfitrión te atenderá. Gracias")
-                    Handler(Looper.getMainLooper()).postDelayed({
-                        TemiController.goTo("entrada")
-                    }, 10_000)
-                }
-            }
-        }
-        TemiController.goTo(salon)
-        postWebhookAndMaybeOpen(recepcion, telefono)
+        // Formato legacy eliminado: ahora solo se aceptan deep links mytemi://...
+        Toast.makeText(this, "QR inválido. Formato no soportado", Toast.LENGTH_LONG).show()
+        return
     }
 
     // --- Webhook + flujo de recepción ---
