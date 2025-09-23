@@ -62,6 +62,16 @@ class IntentEntryActivity : Activity() {
                                         TemiController.goTo("entrada")
                                     }, 10_000)
                                 }
+                // Estado del permiso (voz): mytemi://sequence-permission-status
+                "sequence-permission-status" -> {
+                    val granted = TemiController.hasSequencePermission()
+                    if (granted) {
+                        TemiController.speak("Permiso de secuencias: concedido")
+                    } else {
+                        TemiController.speak("Permiso de secuencias: no concedido")
+                    }
+                    Handler(Looper.getMainLooper()).postDelayed({ goHome() }, 2000)
+                }
                             }
                         }
                         TemiController.goTo(place)
@@ -77,16 +87,21 @@ class IntentEntryActivity : Activity() {
                 }
                 // Solicitar permiso de sequences explícitamente
                 "sequence-permission" -> {
-                    val ok = TemiController.requestSequencePermission()
-                    if (ok) {
-                        TemiController.speak("Solicitando permiso de secuencias. Por favor, acepta en pantalla")
-                        // Mantener esta activity en primer plano unos segundos para que el diálogo pueda mostrarse
-                        Handler(Looper.getMainLooper()).postDelayed({
-                            goHome()
-                        }, 6000)
+                    if (TemiController.hasSequencePermission()) {
+                        TemiController.speak("El permiso de secuencias ya está concedido")
+                        Handler(Looper.getMainLooper()).postDelayed({ goHome() }, 2000)
                     } else {
-                        TemiController.speak("No pude solicitar el permiso de secuencias")
-                        goHome()
+                        val ok = TemiController.requestSequencePermission()
+                        if (ok) {
+                            TemiController.speak("Solicitando permiso de secuencias. Por favor, acepta en pantalla")
+                            // Mantener esta activity en primer plano unos segundos para que el diálogo pueda mostrarse
+                            Handler(Looper.getMainLooper()).postDelayed({
+                                goHome()
+                            }, 6000)
+                        } else {
+                            TemiController.speak("No pude solicitar el permiso de secuencias")
+                            goHome()
+                        }
                     }
                 }
                 // Listar sequences disponibles en el robot, gestionando permiso si falta

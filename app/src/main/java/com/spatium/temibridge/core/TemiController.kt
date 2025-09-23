@@ -90,9 +90,16 @@ object TemiController {
             val seq = permCls.getField("SEQUENCE").get(null)
             val check = robot.javaClass.getMethod("checkSelfPermission", permCls)
             val res = check.invoke(robot, seq)
-            val grantStatusCls = Class.forName("com.robotemi.sdk.Permission\$GrantStatus")
-            val granted = grantStatusCls.getField("GRANTED").get(null)
-            val isGranted = res == granted
+            val isGranted = when (res) {
+                is java.lang.Boolean -> res.booleanValue()
+                is java.lang.Integer -> res.toInt() != 0
+                else -> {
+                    // Enum GrantStatus comparison
+                    val grantStatusCls = Class.forName("com.robotemi.sdk.Permission\$GrantStatus")
+                    val granted = grantStatusCls.getField("GRANTED").get(null)
+                    res == granted
+                }
+            }
             Log.d(TAG, "hasSequencePermission(direct)=$isGranted")
             return isGranted
         } catch (_: Throwable) { /* fallback abajo */ }
@@ -106,7 +113,11 @@ object TemiController {
             val grantStatusClass = Class.forName("com.robotemi.sdk.Permission\$GrantStatus")
             val grantedConst = grantStatusClass.getField("GRANTED").get(null)
             val res = checkMethod.invoke(robot, seqValue)
-            val granted = res == grantedConst
+            val granted = when (res) {
+                is java.lang.Boolean -> res.booleanValue()
+                is java.lang.Integer -> res.toInt() != 0
+                else -> (res == grantedConst)
+            }
             Log.d(TAG, "hasSequencePermission(reflection)=$granted")
             granted
         } catch (t: Throwable) {
