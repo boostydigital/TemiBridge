@@ -146,6 +146,23 @@ class IntentEntryActivity : Activity() {
                     }
                     goHome()
                 }
+                // Reproducir una sequence por nombre explícito (atajo): mytemi://sequence-play?name=Open_Space
+                "sequence-play" -> {
+                    val name = data.getQueryParameter("name")?.trim().orEmpty()
+                    if (name.isNotBlank()) {
+                        if (TemiController.hasSequencePermission()) {
+                            val ok = TemiController.playSequenceByName(name)
+                            if (!ok) TemiController.speak("No encontré la secuencia $name")
+                        } else {
+                            val okReq = TemiController.requestSequencePermission()
+                            val msg = if (okReq) "Permiso de secuencias requerido. Acepta en pantalla y vuelve a intentarlo" else "No se pudo solicitar el permiso de secuencias"
+                            TemiController.speak(msg)
+                        }
+                    } else {
+                        TemiController.speak("Falta el nombre de la secuencia")
+                    }
+                    goHome()
+                }
                 // Ejecutar una sequence por nombre explícito: mytemi://sequence?name=Open_Space
                 "sequence" -> {
                     val name = data.getQueryParameter("name")?.trim().orEmpty()

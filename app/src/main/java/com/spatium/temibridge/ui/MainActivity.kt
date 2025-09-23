@@ -13,6 +13,8 @@ import android.util.Log
 import android.view.animation.AccelerateDecelerateInterpolator
 import android.view.animation.DecelerateInterpolator
 import android.view.View
+import android.widget.EditText
+import androidx.appcompat.app.AlertDialog
 import java.net.URLDecoder
 import java.nio.charset.StandardCharsets
 import androidx.activity.result.contract.ActivityResultContracts
@@ -136,6 +138,28 @@ class MainActivity : AppCompatActivity() {
         findViewById<android.view.View>(R.id.btnTour).setOnClickListener {
             Log.d("TemiBridge", "btnTour clicked")
             startTour("Spatium_Visita")
+        }
+        // Probar reproducir una Sequence por nombre usando deep link mytemi://sequence-play?name=...
+        findViewById<android.view.View>(R.id.btnSeqPlay).setOnClickListener {
+            Log.d("TemiBridge", "btnSeqPlay clicked")
+            val input = EditText(this)
+            input.hint = "NombreDeLaSecuencia"
+            AlertDialog.Builder(this)
+                .setTitle("Reproducir Sequence")
+                .setMessage("Introduce el nombre exacto de la secuencia guardada en el Temi")
+                .setView(input)
+                .setPositiveButton("Reproducir") { _, _ ->
+                    val name = input.text.toString().trim()
+                    if (name.isNotEmpty()) {
+                        val uri = Uri.parse("mytemi://sequence-play?name=" + Uri.encode(name))
+                        val intent = Intent(Intent.ACTION_VIEW, uri)
+                        startActivity(intent)
+                    } else {
+                        Toast.makeText(this, "Debes escribir un nombre", Toast.LENGTH_SHORT).show()
+                    }
+                }
+                .setNegativeButton("Cancelar", null)
+                .show()
         }
     }
 
