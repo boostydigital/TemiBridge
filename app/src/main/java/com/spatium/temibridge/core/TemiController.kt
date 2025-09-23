@@ -46,20 +46,19 @@ object TemiController {
                     arrayOf(listenerCls),
                     InvocationHandler { _, method, args ->
                         try {
-                            if (method.name == "onGoToLocationStatusChanged" && args != null && args.size >= 2) {
+                            if (method.name == "onGoToLocationStatusChanged" && args != null && args.size >= 3) {
                                 val location = args[0]
-                                val status = args[1]
-                                val desc = if (args.size >= 3) args[2] else null
-                                val statusStr = status?.toString()
-                                Log.d(TAG, "onGoToLocationStatusChanged loc=$location status=$statusStr desc=$desc target=$lastTarget pending=${pendingArrival != null}")
-                                if (statusStr?.equals("COMPLETE", ignoreCase = true) == true) {
-                                    if (pendingArrival != null) {
-                                        Log.d(TAG, "Invocando pendingArrival por COMPLETE")
-                                        pendingArrival?.invoke()
-                                        pendingArrival = null
-                                    } else {
-                                        Log.d(TAG, "No hay pendingArrival al completar")
-                                    }
+                                val statusStr = args[1]?.toString() ?: ""
+                                val descId = when (val v = args[2]) {
+                                    is Int -> v
+                                    is java.lang.Integer -> v.toInt()
+                                    else -> -1
+                                }
+                                Log.d(TAG, "goTo status: ${'$'}statusStr (descId=${'$'}descId) at ${'$'}location target=${'$'}lastTarget")
+                                val isComplete = descId == 500 || statusStr.equals("Complete", ignoreCase = true)
+                                if (isComplete) {
+                                    pendingArrival?.invoke()
+                                    pendingArrival = null
                                 }
                             }
                         } catch (_: Throwable) {}

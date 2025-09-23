@@ -50,9 +50,9 @@ dependencies {
     implementation("androidx.constraintlayout:constraintlayout:2.1.4")
 
     // Temi SDK disponible también en debug para pruebas en robot.
-    // Requiere >= 1.132.0 para métodos de Tours (getAllTours / playTour)
-    releaseImplementation("com.robotemi:sdk:1.132.0")
-    debugImplementation("com.robotemi:sdk:1.132.0")
+    // Actualizado a 1.136.0
+    releaseImplementation("com.robotemi:sdk:1.136.0")
+    debugImplementation("com.robotemi:sdk:1.136.0")
 
     // QR scanning (ZXing Embedded)
     implementation("com.journeyapps:zxing-android-embedded:4.3.0")
