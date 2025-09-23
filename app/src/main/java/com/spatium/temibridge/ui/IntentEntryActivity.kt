@@ -50,8 +50,22 @@ class IntentEntryActivity : Activity() {
         if (data != null && data.scheme == "mytemi") {
             when (data.host) {
                 // Restaurar comportamiento: 'go' navega al lugar usando goTo(place)
-                "go" -> data.getQueryParameter("place")?.let { place ->
+                // y si recepcion=false, al llegar anuncia y luego va a "entrada" tras 10s
+                "go" -> {
+                    val place = decodeParam(data.getQueryParameter("place")).trim()
+                    val recepcion = decodeParam(data.getQueryParameter("recepcion"))
+                    val recBool = recepcion.equals("true", ignoreCase = true)
                     if (place.isNotBlank()) {
+                        if (!recBool) {
+                            TemiController.setArrivalCallbackOnce {
+                                Handler(Looper.getMainLooper()).post {
+                                    TemiController.speak("Hemos llegado a tu destino, tu anfitrión te atenderá. Gracias")
+                                    Handler(Looper.getMainLooper()).postDelayed({
+                                        TemiController.goTo("entrada")
+                                    }, 10_000)
+                                }
+                            }
+                        }
                         TemiController.goTo(place)
                     }
                 }
