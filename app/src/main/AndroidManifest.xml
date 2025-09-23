@@ -15,6 +15,11 @@
             android:name="com.robotemi.sdk.metadata.SKILL"
             android:value="Temi Bridge" />
 
+        <!-- Declare Temi capabilities this app requires so they appear in robot permissions UI -->
+        <meta-data
+            android:name="com.robotemi.sdk.metadata.PERMISSIONS"
+            android:value="com.robotemi.permission.sequence" />
+
         <meta-data
             android:name="com.robotemi.sdk.metadata.KIOSK"
             android:value="TRUE" />
