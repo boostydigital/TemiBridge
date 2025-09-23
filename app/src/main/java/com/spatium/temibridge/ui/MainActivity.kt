@@ -141,25 +141,22 @@ class MainActivity : AppCompatActivity() {
         }
         // Probar reproducir una Sequence por nombre usando deep link mytemi://sequence-play?name=...
         findViewById<android.view.View>(R.id.btnSeqPlay).setOnClickListener {
-            Log.d("TemiBridge", "btnSeqPlay clicked")
-            val input = EditText(this)
-            input.hint = "NombreDeLaSecuencia"
-            AlertDialog.Builder(this)
-                .setTitle("Reproducir Sequence")
-                .setMessage("Introduce el nombre exacto de la secuencia guardada en el Temi")
-                .setView(input)
-                .setPositiveButton("Reproducir") { _, _ ->
-                    val name = input.text.toString().trim()
-                    if (name.isNotEmpty()) {
-                        val uri = Uri.parse("mytemi://sequence-play?name=" + Uri.encode(name))
-                        val intent = Intent(Intent.ACTION_VIEW, uri)
-                        startActivity(intent)
-                    } else {
-                        Toast.makeText(this, "Debes escribir un nombre", Toast.LENGTH_SHORT).show()
-                    }
+            Log.d("TemiBridge", "btnSeqPlay clicked -> abrir pedidos-publicos (ubicacion mas cercana)")
+            try {
+                // Intentar obtener la ubicacion mas cercana desde el SDK de Temi
+                val nearest = com.spatium.temibridge.core.TemiController.getNearestSavedLocationName()
+                val base = "https://spatium-desk.lovable.app/pedidos-publicos"
+                val url = if (!nearest.isNullOrBlank()) {
+                    base + "?ubicacion=" + java.net.URLEncoder.encode(nearest, java.nio.charset.StandardCharsets.UTF_8.name())
+                } else base
+                val intent = Intent(this, KioskWebActivity::class.java).apply {
+                    putExtra(KioskWebActivity.EXTRA_URL, url)
+                    addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
                 }
-                .setNegativeButton("Cancelar", null)
-                .show()
+                startActivity(intent)
+            } catch (t: Throwable) {
+                Log.w("TemiBridge", "Abrir KioskWebActivity fallo: ${t.message}")
+            }
         }
     }
 

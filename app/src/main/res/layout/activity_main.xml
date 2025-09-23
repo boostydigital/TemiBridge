@@ -160,7 +160,7 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Probar Sequence"
+                        android:text="Pedir cafe, agua o te"
                         android:textColor="@android:color/white"
                         android:textSize="20sp"
                         android:textStyle="bold" />
@@ -169,7 +169,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="6dp"
-                        android:text="Reproducir por nombre usando mytemi://sequence-play"
+                        android:text="Abrir página de pedidos"
                         android:textColor="#D0FFFFFF"
                         android:textSize="14sp" />
                 </LinearLayout>

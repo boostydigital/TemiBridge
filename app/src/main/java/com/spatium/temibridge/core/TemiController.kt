@@ -3,6 +3,7 @@ package com.spatium.temibridge.core
 import android.util.Log
 import java.lang.reflect.InvocationHandler
 import java.lang.reflect.Proxy
+import kotlin.math.hypot
 
 object TemiController {
     private const val TAG = "TemiController"
@@ -74,6 +75,108 @@ object TemiController {
             Log.w(TAG, "No pude registrar listener goTo: ${t.message}")
             false
         }
+    }
+
+    // --- Locations & nearest selection ---
+    private data class Pose(val x: Double, val y: Double)
+
+    private fun getCurrentPose(): Pose? {
+        val robot = robotInstance() ?: return null
+        return try {
+            // Try common signatures: getCurrentPosition() or getPosition()
+            val m = runCatching { robot.javaClass.getMethod("getCurrentPosition") }.getOrNull()
+                ?: runCatching { robot.javaClass.getMethod("getPosition") }.getOrNull()
+            val pos = m?.invoke(robot) ?: return null
+            val x = safeInvokeDouble(pos, "getX") ?: return null
+            val y = safeInvokeDouble(pos, "getY") ?: return null
+            Pose(x, y)
+        } catch (t: Throwable) {
+            Log.w(TAG, "getCurrentPose fallo: ${t.message}")
+            null
+        }
+    }
+
+    private data class LocationInfo(val name: String, val x: Double?, val y: Double?)
+
+    private fun getSavedLocations(): List<LocationInfo> {
+        val robot = robotInstance() ?: return emptyList()
+        return try {
+            // First, get list of names
+            val namesAny = runCatching { robot.javaClass.getMethod("getAllLocations").invoke(robot) }.getOrNull()
+                ?: runCatching { robot.javaClass.getMethod("getLocations").invoke(robot) }.getOrNull()
+            val names = (namesAny as? List<*>)?.mapNotNull { it?.toString()?.trim() }?.filter { it.isNotEmpty() }
+                ?: emptyList()
+
+            if (names.isEmpty()) return emptyList()
+
+            // Try to obtain coordinates per name via getLocationPosition(name) if available
+            val posMethod = runCatching { robot.javaClass.getMethod("getLocationPosition", String::class.java) }.getOrNull()
+            if (posMethod != null) {
+                names.map { n ->
+                    val pos = runCatching { posMethod.invoke(robot, n) }.getOrNull()
+                    val x = safeInvokeDouble(pos, "getX")
+                    val y = safeInvokeDouble(pos, "getY")
+                    LocationInfo(n, x, y)
+                }
+            } else {
+                // Coordinates not available via SDK; return names only
+                names.map { n -> LocationInfo(n, null, null) }
+            }
+        } catch (t: Throwable) {
+            Log.w(TAG, "getSavedLocations fallo: ${t.message}")
+            emptyList()
+        }
+    }
+
+    private fun safeInvokeDouble(instance: Any?, methodName: String): Double? {
+        if (instance == null) return null
+        return try {
+            val m = instance.javaClass.getMethod(methodName)
+            when (val v = m.invoke(instance)) {
+                is Double -> v
+                is java.lang.Double -> v.toDouble()
+                is Float -> v.toDouble()
+                is java.lang.Float -> v.toDouble()
+                is Number -> v.toDouble()
+                else -> null
+            }
+        } catch (_: Throwable) {
+            null
+        }
+    }
+
+    /**
+     * Intenta determinar la ubicación guardada más cercana al robot.
+     * Requiere permiso de navegación implícito y que el SDK exponga posición/ubicaciones.
+     * Si no hay coordenadas disponibles, devuelve null.
+     */
+    fun getNearestSavedLocationName(): String? {
+        val pose = getCurrentPose() ?: run {
+            Log.w(TAG, "getNearestSavedLocationName: sin pose actual")
+            return null
+        }
+        val locs = getSavedLocations()
+        if (locs.isEmpty()) return null
+
+        var bestName: String? = null
+        var bestDist = Double.MAX_VALUE
+        for (loc in locs) {
+            val lx = loc.x
+            val ly = loc.y
+            if (lx != null && ly != null) {
+                val d = hypot(lx - pose.x, ly - pose.y)
+                if (d < bestDist) {
+                    bestDist = d
+                    bestName = loc.name
+                }
+            }
+        }
+        if (bestName == null) {
+            Log.w(TAG, "No hay coordenadas de ubicaciones; no se puede calcular la más cercana")
+        } else {
+            Log.d(TAG, "Ubicación más cercana: $bestName (dist=${bestDist})")
+        }
+        return bestName
     }
 
     // --- Sequences (temi Center) ---
