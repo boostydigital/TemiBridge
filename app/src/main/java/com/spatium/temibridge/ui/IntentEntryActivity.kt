@@ -62,16 +62,6 @@ class IntentEntryActivity : Activity() {
                                         TemiController.goTo("entrada")
                                     }, 10_000)
                                 }
-                // Estado del permiso (voz): mytemi://sequence-permission-status
-                "sequence-permission-status" -> {
-                    val granted = TemiController.hasSequencePermission()
-                    if (granted) {
-                        TemiController.speak("Permiso de secuencias: concedido")
-                    } else {
-                        TemiController.speak("Permiso de secuencias: no concedido")
-                    }
-                    Handler(Looper.getMainLooper()).postDelayed({ goHome() }, 2000)
-                }
                             }
                         }
                         TemiController.goTo(place)
