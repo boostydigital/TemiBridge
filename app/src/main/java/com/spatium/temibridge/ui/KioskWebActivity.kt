@@ -63,6 +63,21 @@ class KioskWebActivity : AppCompatActivity() {
             }
         }
 
+        // Back button overlay handler: volver en el WebView o cerrar actividad
+        findViewById<android.view.View>(R.id.btnBack)?.setOnClickListener {
+            val wv = webView
+            if (wv != null && wv.canGoBack()) {
+                wv.goBack()
+            } else {
+                // Volver a MainActivity
+                val intent = Intent(this, MainActivity::class.java).apply {
+                    addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+                }
+                startActivity(intent)
+                finish()
+            }
+        }
+
         // Programar cierre en 2 minuto (120_000 ms)
         handler.postDelayed(autoClose, 120_000)
 
@@ -72,7 +87,7 @@ class KioskWebActivity : AppCompatActivity() {
                 if (webView?.canGoBack() == true) {
                     webView?.goBack()
                 } else {
-                    // Ignorar back para modo quiosco
+                    // Ignorar botón físico; se usa el botón visual de la UI
                 }
             }
         })

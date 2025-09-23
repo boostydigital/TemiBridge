@@ -9,4 +9,24 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent" />
 
+    <!-- Back button overlay -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:padding="12dp"
+        android:gravity="start|center_vertical">
+
+        <ImageButton
+            android:id="@+id/btnBack"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:background="@android:color/transparent"
+            android:contentDescription="Volver"
+            android:padding="6dp"
+            android:src="@android:drawable/ic_media_previous"
+            android:tint="#FFFFFFFF"/>
+
+    </LinearLayout>
+
 </FrameLayout>
