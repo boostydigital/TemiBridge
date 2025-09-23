@@ -77,6 +77,28 @@ object TemiController {
     }
 
     // --- Sequences (temi Center) ---
+    /**
+     * Verifica si el permiso SEQUENCE está concedido para nuestra app.
+     */
+    fun hasSequencePermission(): Boolean {
+        val robot = robotInstance() ?: return false
+        return try {
+            val permClass = Class.forName("com.robotemi.sdk.Permission")
+            val seqField = permClass.getField("SEQUENCE")
+            val seqValue = seqField.get(null)
+            val checkMethod = robot.javaClass.getMethod("checkSelfPermission", permClass)
+            val grantStatusClass = Class.forName("com.robotemi.sdk.Permission\$GrantStatus")
+            val grantedConst = grantStatusClass.getField("GRANTED").get(null)
+            val res = checkMethod.invoke(robot, seqValue)
+            val granted = res == grantedConst
+            Log.d(TAG, "hasSequencePermission=$granted")
+            granted
+        } catch (t: Throwable) {
+            Log.w(TAG, "hasSequencePermission fallo: ${t.message}")
+            false
+        }
+    }
+
     fun requestSequencePermission(): Boolean {
         val robot = robotInstance() ?: return false
         return try {
@@ -86,9 +108,9 @@ object TemiController {
             val permsArray = java.lang.reflect.Array.newInstance(permClass, 1)
             java.lang.reflect.Array.set(permsArray, 0, seqValue)
             // Obtener la clase de array de Permission adecuadamente para la firma vararg
-            val permArrayClass = java.lang.reflect.Array.newInstance(permClass, 0).javaClass
-            val request = robot.javaClass.getMethod("requestPermissions", permArrayClass)
-            request.invoke(robot, permsArray)
+            val request = robot.javaClass.getMethod("requestPermissions", permsArray.javaClass, Int::class.javaPrimitiveType)
+            request.invoke(robot, permsArray, 1001)
+            Log.d(TAG, "requestSequencePermission enviado")
             true
         } catch (t: Throwable) {
             Log.w(TAG, "requestSequencePermission fallo: ${t.message}")
@@ -215,6 +237,45 @@ object TemiController {
         } catch (t: Throwable) {
             Log.w(TAG, "startDefaultNlu fallo: ${t.message}")
         }
+    }
+
+    /**
+     * Devuelve la lista de nombres de todas las sequences disponibles en el robot.
+     * Intenta tanto la firma sin parámetros como la firma con lista vacía (según versión SDK).
+     */
+    fun getAllSequenceNames(): List<String> {
+        val robot = robotInstance() ?: return emptyList()
+        return try {
+            // Intentar método sin parámetros: getAllSequences()
+            val mNoArgs = runCatching { robot.javaClass.getMethod("getAllSequences") }.getOrNull()
+            val sequencesAny: Any? = if (mNoArgs != null) {
+                mNoArgs.invoke(robot)
+            } else {
+                // Intentar método con un parámetro List (filtros vacíos)
+                val listCls = List::class.java
+                val mWithList = robot.javaClass.getMethod("getAllSequences", listCls)
+                mWithList.invoke(robot, emptyList<Any>())
+            }
+            val list = sequencesAny as? List<*> ?: return emptyList()
+            // Mapear a nombre mediante reflexión (propiedad 'name')
+            list.mapNotNull { item ->
+                try {
+                    val nameField = item?.javaClass?.getMethod("getName")
+                    (nameField?.invoke(item) as? String)?.trim()?.takeIf { it.isNotEmpty() }
+                } catch (_: Throwable) {
+                    null
+                }
+            }
+        } catch (t: Throwable) {
+            Log.w(TAG, "getAllSequenceNames fallo: ${t.message}")
+            emptyList()
+        }
+    }
+
+    fun logAndSpeakSequenceNames() {
+        val names = getAllSequenceNames()
+        Log.d(TAG, "Sequences disponibles: ${names.joinToString()}")
+        speak("Sequences disponibles: ${names.joinToString()}")
     }
 
     // --- Tours (temi Center) ---

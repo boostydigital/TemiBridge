@@ -77,6 +77,28 @@ class IntentEntryActivity : Activity() {
                     val tourId = data.getQueryParameter("tourId")?.trim().orEmpty()
                     startTour(name.ifBlank { tourId })
                 }
+                // Solicitar permiso de sequences explícitamente
+                "sequence-permission" -> {
+                    val ok = TemiController.requestSequencePermission()
+                    if (ok) {
+                        TemiController.speak("Solicitando permiso de secuencias. Por favor, acepta en pantalla")
+                    } else {
+                        TemiController.speak("No pude solicitar el permiso de secuencias")
+                    }
+                }
+                // Listar sequences disponibles en el robot, gestionando permiso si falta
+                "sequence-list" -> {
+                    if (TemiController.hasSequencePermission()) {
+                        TemiController.logAndSpeakSequenceNames()
+                    } else {
+                        val ok = TemiController.requestSequencePermission()
+                        if (ok) {
+                            TemiController.speak("Permiso de secuencias requerido. Acepta en pantalla y vuelve a intentarlo")
+                        } else {
+                            TemiController.speak("No se pudo solicitar el permiso de secuencias")
+                        }
+                    }
+                }
                 // Accion combinada: decir un saludo y luego ir a un lugar con un solo QR.
                 // Ejemplo: mytemi://welcome?text=Hola%20David%2C%20bienvenido%20al%20Gastrobar&place=Gastrobar
                 "welcome" -> {
