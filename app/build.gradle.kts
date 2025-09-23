@@ -5,12 +5,12 @@ plugins {
 
 android {
     namespace = "com.spatium.temibridge"
-    compileSdk = 34
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "com.spatium.temibridge"
         minSdk = 26
-        targetSdk = 34
+        targetSdk = 36
         versionCode = 1
         versionName = "1.0"
         vectorDrawables.useSupportLibrary = true
@@ -41,7 +41,6 @@ android {
     buildFeatures {
         buildConfig = true
     }
-    buildToolsVersion = "36.0.0"
 }
 
 dependencies {
@@ -49,10 +48,6 @@ dependencies {
     implementation("androidx.appcompat:appcompat:1.7.0")
     implementation("com.google.android.material:material:1.12.0")
     implementation("androidx.constraintlayout:constraintlayout:2.1.4")
-    implementation(libs.androidx.core.ktx)
-    implementation(libs.appcompat)
-    implementation(libs.material)
-    implementation(libs.androidx.constraintlayout)
 
     // Temi SDK disponible también en debug para pruebas en robot.
     // Actualizado a 1.136.0
