@@ -81,6 +81,22 @@ object TemiController {
      * Verifica si el permiso SEQUENCE está concedido para nuestra app.
      */
     fun hasSequencePermission(): Boolean {
+        // Intentar vía SDK directo
+        try {
+            val robotCls = Class.forName("com.robotemi.sdk.Robot")
+            val getInst = robotCls.getMethod("getInstance")
+            val robot = getInst.invoke(null)
+            val permCls = Class.forName("com.robotemi.sdk.Permission")
+            val seq = permCls.getField("SEQUENCE").get(null)
+            val check = robot.javaClass.getMethod("checkSelfPermission", permCls)
+            val res = check.invoke(robot, seq)
+            val grantStatusCls = Class.forName("com.robotemi.sdk.Permission\$GrantStatus")
+            val granted = grantStatusCls.getField("GRANTED").get(null)
+            val isGranted = res == granted
+            Log.d(TAG, "hasSequencePermission(direct)=$isGranted")
+            return isGranted
+        } catch (_: Throwable) { /* fallback abajo */ }
+
         val robot = robotInstance() ?: return false
         return try {
             val permClass = Class.forName("com.robotemi.sdk.Permission")
@@ -91,7 +107,7 @@ object TemiController {
             val grantedConst = grantStatusClass.getField("GRANTED").get(null)
             val res = checkMethod.invoke(robot, seqValue)
             val granted = res == grantedConst
-            Log.d(TAG, "hasSequencePermission=$granted")
+            Log.d(TAG, "hasSequencePermission(reflection)=$granted")
             granted
         } catch (t: Throwable) {
             Log.w(TAG, "hasSequencePermission fallo: ${t.message}")
@@ -100,6 +116,26 @@ object TemiController {
     }
 
     fun requestSequencePermission(): Boolean {
+        // Si ya está concedido, no solicitar de nuevo
+        if (hasSequencePermission()) {
+            Log.d(TAG, "requestSequencePermission: ya concedido")
+            return true
+        }
+        // Intento directo SDK
+        try {
+            val robotCls = Class.forName("com.robotemi.sdk.Robot")
+            val getInst = robotCls.getMethod("getInstance")
+            val robot = getInst.invoke(null)
+            val permCls = Class.forName("com.robotemi.sdk.Permission")
+            val seq = permCls.getField("SEQUENCE").get(null)
+            val arr = java.lang.reflect.Array.newInstance(permCls, 1)
+            java.lang.reflect.Array.set(arr, 0, seq)
+            val request = robot.javaClass.getMethod("requestPermissions", arr.javaClass, Int::class.javaPrimitiveType)
+            request.invoke(robot, arr, 1001)
+            Log.d(TAG, "requestSequencePermission enviado (direct)")
+            return true
+        } catch (_: Throwable) { /* fallback abajo */ }
+
         val robot = robotInstance() ?: return false
         return try {
             val permClass = Class.forName("com.robotemi.sdk.Permission")
@@ -110,7 +146,7 @@ object TemiController {
             // Obtener la clase de array de Permission adecuadamente para la firma vararg
             val request = robot.javaClass.getMethod("requestPermissions", permsArray.javaClass, Int::class.javaPrimitiveType)
             request.invoke(robot, permsArray, 1001)
-            Log.d(TAG, "requestSequencePermission enviado")
+            Log.d(TAG, "requestSequencePermission enviado (reflection)")
             true
         } catch (t: Throwable) {
             Log.w(TAG, "requestSequencePermission fallo: ${t.message}")
@@ -119,9 +155,11 @@ object TemiController {
     }
 
     fun listSequenceNames(): List<String> {
+        if (!hasSequencePermission()) {
+            Log.w(TAG, "listSequenceNames: permiso SEQUENCE no concedido")
+            return emptyList()
+        }
         val robot = robotInstance() ?: return emptyList()
-        // Intenta solicitar permiso antes de leer
-        requestSequencePermission()
         return try {
             val getAllSequences = robot.javaClass.getMethod("getAllSequences")
             val sequences = getAllSequences.invoke(robot) as? List<*>
@@ -148,9 +186,11 @@ object TemiController {
 
     fun playSequenceByName(name: String): Boolean {
         val robot = robotInstance() ?: return false
+        if (!hasSequencePermission()) {
+            Log.w(TAG, "playSequenceByName: permiso SEQUENCE no concedido")
+            return false
+        }
         return try {
-            // Asegura permisos antes de consultar
-            requestSequencePermission()
             val getAllSequences = robot.javaClass.getMethod("getAllSequences")
             val sequences = getAllSequences.invoke(robot) as? List<*>
             if (sequences.isNullOrEmpty()) {
@@ -178,8 +218,11 @@ object TemiController {
 
     fun controlSequence(action: String): Boolean {
         val robot = robotInstance() ?: return false
+        if (!hasSequencePermission()) {
+            Log.w(TAG, "controlSequence: permiso SEQUENCE no concedido")
+            return false
+        }
         return try {
-            requestSequencePermission()
             val enumCls = Class.forName("com.robotemi.sdk.sequence.SequenceCommand")
             val values = enumCls.getMethod("values").invoke(null) as Array<*>
             val target = values.firstOrNull { it.toString().equals(action, ignoreCase = true) }
