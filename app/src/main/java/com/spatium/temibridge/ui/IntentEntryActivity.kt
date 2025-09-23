@@ -18,7 +18,6 @@ class IntentEntryActivity : Activity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         handleIntent(intent)
-        goHome()
     }
 
     // Decodificador robusto (hasta 3 pasadas) similar al de MainActivity
@@ -41,7 +40,6 @@ class IntentEntryActivity : Activity() {
     override fun onNewIntent(intent: Intent?) {
         super.onNewIntent(intent)
         intent?.let { handleIntent(it) }
-        goHome()
     }
 
     private fun handleIntent(i: Intent) {
@@ -82,20 +80,30 @@ class IntentEntryActivity : Activity() {
                     val ok = TemiController.requestSequencePermission()
                     if (ok) {
                         TemiController.speak("Solicitando permiso de secuencias. Por favor, acepta en pantalla")
+                        // Mantener esta activity en primer plano unos segundos para que el diálogo pueda mostrarse
+                        Handler(Looper.getMainLooper()).postDelayed({
+                            goHome()
+                        }, 6000)
                     } else {
                         TemiController.speak("No pude solicitar el permiso de secuencias")
+                        goHome()
                     }
                 }
                 // Listar sequences disponibles en el robot, gestionando permiso si falta
                 "sequence-list" -> {
                     if (TemiController.hasSequencePermission()) {
                         TemiController.logAndSpeakSequenceNames()
+                        goHome()
                     } else {
                         val ok = TemiController.requestSequencePermission()
                         if (ok) {
                             TemiController.speak("Permiso de secuencias requerido. Acepta en pantalla y vuelve a intentarlo")
+                            Handler(Looper.getMainLooper()).postDelayed({
+                                goHome()
+                            }, 6000)
                         } else {
                             TemiController.speak("No se pudo solicitar el permiso de secuencias")
+                            goHome()
                         }
                     }
                 }
@@ -136,6 +144,7 @@ class IntentEntryActivity : Activity() {
                         }
                         TemiController.goTo(place)
                     }
+                    goHome()
                 }
                 // Ejecutar una sequence por nombre explícito: mytemi://sequence?name=Open_Space
                 "sequence" -> {
@@ -144,6 +153,7 @@ class IntentEntryActivity : Activity() {
                         val ok = TemiController.playSequenceByName(name)
                         if (!ok) TemiController.speak("No encontré la secuencia $name")
                     }
+                    goHome()
                 }
                 // Controlar secuencia en reproducción: mytemi://sequence-control?action=next|pause|play|previous|stop
                 "sequence-control" -> {
@@ -152,6 +162,7 @@ class IntentEntryActivity : Activity() {
                         val ok = TemiController.controlSequence(action)
                         if (!ok) TemiController.speak("No pude enviar comando de secuencia: $action")
                     }
+                    goHome()
                 }
             }
             return
