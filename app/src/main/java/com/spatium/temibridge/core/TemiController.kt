@@ -1,4 +1,4 @@
-package com.spatium.temibridge.core
+﻿package com.spatium.temibridge.core
 
 import android.app.Activity
 import android.util.Log
@@ -25,7 +25,7 @@ object TemiController {
 
     /**
      * Registra un callback que se ejecuta UNA sola vez cuando Temi reporta estado COMPLETE
-     * tras un goTo. Implementado por reflexión para no acoplar en compilación.
+     * tras un goTo. Implementado por reflexiÃ³n para no acoplar en compilaciÃ³n.
      */
     fun setArrivalCallbackOnce(callback: () -> Unit) {
         Log.d(TAG, "setArrivalCallbackOnce llamado")
@@ -147,8 +147,8 @@ object TemiController {
     }
 
     /**
-     * Intenta determinar la ubicación guardada más cercana al robot.
-     * Requiere permiso de navegación implícito y que el SDK exponga posición/ubicaciones.
+     * Intenta determinar la ubicaciÃ³n guardada mÃ¡s cercana al robot.
+     * Requiere permiso de navegaciÃ³n implÃ­cito y que el SDK exponga posiciÃ³n/ubicaciones.
      * Si no hay coordenadas disponibles, devuelve null.
      */
     fun getNearestSavedLocationName(): String? {
@@ -173,19 +173,19 @@ object TemiController {
             }
         }
         if (bestName == null) {
-            Log.w(TAG, "No hay coordenadas de ubicaciones; no se puede calcular la más cercana")
+            Log.w(TAG, "No hay coordenadas de ubicaciones; no se puede calcular la mÃ¡s cercana")
         } else {
-            Log.d(TAG, "Ubicación más cercana: $bestName (dist=${bestDist})")
+            Log.d(TAG, "UbicaciÃ³n mÃ¡s cercana: $bestName (dist=${bestDist})")
         }
         return bestName
     }
 
     // --- Sequences (temi Center) ---
     /**
-     * Verifica si el permiso SEQUENCE está concedido para nuestra app.
+     * Verifica si el permiso SEQUENCE estÃ¡ concedido para nuestra app.
      */
     fun hasSequencePermission(): Boolean {
-        // Intentar vía SDK directo
+        // Intentar vÃ­a SDK directo
         try {
             val robotCls = Class.forName("com.robotemi.sdk.Robot")
             val getInst = robotCls.getMethod("getInstance")
@@ -231,7 +231,7 @@ object TemiController {
     }
 
     fun requestSequencePermission(): Boolean {
-        // Si ya está concedido, no solicitar de nuevo
+        // Si ya estÃ¡ concedido, no solicitar de nuevo
         if (hasSequencePermission()) {
             Log.d(TAG, "requestSequencePermission: ya concedido")
             return true
@@ -309,7 +309,7 @@ object TemiController {
             val getAllSequences = robot.javaClass.getMethod("getAllSequences")
             val sequences = getAllSequences.invoke(robot) as? List<*>
             if (sequences.isNullOrEmpty()) {
-                Log.w(TAG, "getAllSequences vacío o null")
+                Log.w(TAG, "getAllSequences vacÃ­o o null")
                 return false
             }
             var matchedId: String? = null
@@ -342,7 +342,7 @@ object TemiController {
             val values = enumCls.getMethod("values").invoke(null) as Array<*>
             val target = values.firstOrNull { it.toString().equals(action, ignoreCase = true) }
                 ?: run {
-                    Log.w(TAG, "SequenceCommand no válido: $action")
+                    Log.w(TAG, "SequenceCommand no vÃ¡lido: $action")
                     return false
                 }
             val method = robot.javaClass.getMethod("controlSequence", enumCls)
@@ -399,23 +399,23 @@ object TemiController {
 
     /**
      * Devuelve la lista de nombres de todas las sequences disponibles en el robot.
-     * Intenta tanto la firma sin parámetros como la firma con lista vacía (según versión SDK).
+     * Intenta tanto la firma sin parÃ¡metros como la firma con lista vacÃ­a (segÃºn versiÃ³n SDK).
      */
     fun getAllSequenceNames(): List<String> {
         val robot = robotInstance() ?: return emptyList()
         return try {
-            // Intentar método sin parámetros: getAllSequences()
+            // Intentar mÃ©todo sin parÃ¡metros: getAllSequences()
             val mNoArgs = runCatching { robot.javaClass.getMethod("getAllSequences") }.getOrNull()
             val sequencesAny: Any? = if (mNoArgs != null) {
                 mNoArgs.invoke(robot)
             } else {
-                // Intentar método con un parámetro List (filtros vacíos)
+                // Intentar mÃ©todo con un parÃ¡metro List (filtros vacÃ­os)
                 val listCls = List::class.java
                 val mWithList = robot.javaClass.getMethod("getAllSequences", listCls)
                 mWithList.invoke(robot, emptyList<Any>())
             }
             val list = sequencesAny as? List<*> ?: return emptyList()
-            // Mapear a nombre mediante reflexión (propiedad 'name')
+            // Mapear a nombre mediante reflexiÃ³n (propiedad 'name')
             list.mapNotNull { item ->
                 try {
                     val nameField = item?.javaClass?.getMethod("getName")
@@ -458,7 +458,7 @@ object TemiController {
             val getAllTours = robot.javaClass.getMethod("getAllTours")
             val tours = getAllTours.invoke(robot) as? List<*>
             if (tours.isNullOrEmpty()) {
-                Log.w(TAG, "getAllTours vacío o null")
+                Log.w(TAG, "getAllTours vacÃ­o o null")
                 return false
             }
             var matchedId: String? = null
@@ -490,7 +490,7 @@ object TemiController {
         }
     }
 
-    // Overload que acepta una Activity para mostrar correctamente el diálogo de permisos en Temi
+    // Overload que acepta una Activity para mostrar correctamente el diÃ¡logo de permisos en Temi
     fun requestSequencePermission(activity: Activity): Boolean {
         if (hasSequencePermission()) {
             Log.d(TAG, "requestSequencePermission(activity): ya concedido")
@@ -501,51 +501,97 @@ object TemiController {
             val permClass = Class.forName("com.robotemi.sdk.Permission")
             val seqField = permClass.getField("SEQUENCE")
             val seqValue = seqField.get(null)
+
+            // Construir argumentos auxiliares
             val permsArray = java.lang.reflect.Array.newInstance(permClass, 1)
             java.lang.reflect.Array.set(permsArray, 0, seqValue)
 
-            // Intentar varias firmas
-            val mWithActNoCode = runCatching {
-                robot.javaClass.getMethod("requestPermissions", Activity::class.java, permsArray.javaClass)
-            }.getOrNull()
-            if (mWithActNoCode != null) {
-                mWithActNoCode.invoke(robot, activity, permsArray)
-                Log.d(TAG, "requestSequencePermission enviado (Activity, sin requestCode)")
+            // Buscamos cualquier mÃ©todo cuyo nombre empiece por requestPermission y que acepte
+            // Activity opcionalmente y Permission (singular) o Permission[] y opcional requestCode / listener.
+            val methods = robot.javaClass.methods.filter { it.name.startsWith("requestPermission") }
+                .ifEmpty { robot.javaClass.methods.filter { it.name.startsWith("requestPermissions") } }
+
+            for (m in methods) {
+                try {
+                    val params = m.parameterTypes
+                    if (params.isEmpty()) continue
+                    val args = arrayOfNulls<Any>(params.size)
+                    var filled = true
+                    for ((idx, p) in params.withIndex()) {
+                        when {
+                            Activity::class.java.isAssignableFrom(p) -> args[idx] = activity
+                            p.isArray && p.componentType?.name?.contains("Permission") == true -> args[idx] = permsArray
+                            p.name.contains("Permission") -> args[idx] = seqValue
+                            (p == Int::class.javaPrimitiveType) || (p == Integer::class.java) -> args[idx] = 1001
+                            p.name.contains("Listener", ignoreCase = true) || p.name.contains("Callback", ignoreCase = true) -> {
+                                // Crear un proxy vacÃ­o que simplemente loguea
+                                val proxy = java.lang.reflect.Proxy.newProxyInstance(
+                                    p.classLoader,
+                                    arrayOf(p)
+                                ) { _, _, _ -> null }
+                                args[idx] = proxy
+                            }
+                            else -> {
+                                filled = false
+                                break
+                            }
+                        }
+                    }
+                    if (!filled) continue
+                    m.isAccessible = true
+                    m.invoke(robot, *args)
+                    Log.d(TAG, "requestSequencePermission enviado mediante ${m.name} con firma ${params.joinToString { it.simpleName }}")
+                    return true
+                } catch (_: Throwable) {
+                    // probar siguiente
+                }
+            }
+
+            // Fallback a firmas conocidas especÃ­ficas
+            runCatching {
+                val known = robot.javaClass.getMethod("requestPermissions", Activity::class.java, permsArray.javaClass)
+                known.invoke(robot, activity, permsArray)
+                Log.d(TAG, "requestSequencePermission enviado (fallback Activity+Array)")
                 return true
             }
 
-            val mWithActAndCode = runCatching {
-                robot.javaClass.getMethod("requestPermissions", Activity::class.java, permsArray.javaClass, Int::class.javaPrimitiveType)
-            }.getOrNull()
-            if (mWithActAndCode != null) {
-                mWithActAndCode.invoke(robot, activity, permsArray, 1001)
-                Log.d(TAG, "requestSequencePermission enviado (Activity, con requestCode)")
-                return true
-            }
-
-            val mNoActWithCode = runCatching {
-                robot.javaClass.getMethod("requestPermissions", permsArray.javaClass, Int::class.javaPrimitiveType)
-            }.getOrNull()
-            if (mNoActWithCode != null) {
-                mNoActWithCode.invoke(robot, permsArray, 1001)
-                Log.d(TAG, "requestSequencePermission enviado (sin Activity, con requestCode)")
-                return true
-            }
-
-            val mNoActNoCode = runCatching {
-                robot.javaClass.getMethod("requestPermissions", permsArray.javaClass)
-            }.getOrNull()
-            if (mNoActNoCode != null) {
-                mNoActNoCode.invoke(robot, permsArray)
-                Log.d(TAG, "requestSequencePermission enviado (sin Activity, sin requestCode)")
-                return true
-            }
-
-            Log.w(TAG, "No se encontró método requestPermissions compatible")
+            Log.w(TAG, "No se encontrÃ³ mÃ©todo requestPermission(s) compatible")
             false
         } catch (t: Throwable) {
             Log.w(TAG, "requestSequencePermission(activity) fallo: ${t.message}")
             false
         }
     }
+
+    // Compat check for SEQUENCE permission using various SDK signatures.
+    fun isSequencePermissionGranted(): Boolean {
+        return try {
+            val robot = robotInstance() ?: return false
+            val permCls = Class.forName("com.robotemi.sdk.Permission")
+            val seq = permCls.getField("SEQUENCE").get(null)
+            val check = runCatching { robot.javaClass.getMethod("checkSelfPermission", permCls) }.getOrNull()
+                ?: runCatching { robot.javaClass.getMethod("hasPermission", permCls) }.getOrNull()
+            if (check != null) {
+                val res = check.invoke(robot, seq)
+                return when (res) {
+                    is java.lang.Boolean -> res.booleanValue()
+                    is java.lang.Integer -> res.toInt() != 0
+                    else -> {
+                        val grantStatusCls = runCatching { Class.forName("com.robotemi.sdk.Permission\$GrantStatus") }.getOrNull()
+                        val granted = runCatching { grantStatusCls?.getField("GRANTED")?.get(null) }.getOrNull()
+                        granted != null && res == granted
+                    }
+                }
+            }
+            val getGranted = robot.javaClass.methods.firstOrNull { it.name.contains("getGranted", true) && it.parameterTypes.isEmpty() }
+            if (getGranted != null) {
+                val any = getGranted.invoke(robot)
+                if (any is Collection<*>) {
+                    return any.any { it?.toString()?.contains("SEQUENCE", true) == true || it?.toString()?.contains("sequence", true) == true }
+                }
+            }
+            false
+        } catch (_: Throwable) { false }
+    }
 }
+

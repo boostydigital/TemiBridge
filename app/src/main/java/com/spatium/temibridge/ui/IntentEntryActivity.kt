@@ -79,7 +79,7 @@ class IntentEntryActivity : Activity() {
                 }
                 // Solicitar permiso de sequences explícitamente
                 "sequence-permission" -> {
-                    if (TemiController.hasSequencePermission()) {
+                    if (TemiController.isSequencePermissionGranted()) {
                         TemiController.speak("El permiso de secuencias ya está concedido")
                         Handler(Looper.getMainLooper()).postDelayed({ goHome() }, 2000)
                     } else {
@@ -98,7 +98,7 @@ class IntentEntryActivity : Activity() {
                 }
                 // Listar sequences disponibles en el robot, gestionando permiso si falta
                 "sequence-list" -> {
-                    if (TemiController.hasSequencePermission()) {
+                    if (TemiController.isSequencePermissionGranted()) {
                         TemiController.logAndSpeakSequenceNames()
                         goHome()
                     } else {
@@ -157,7 +157,7 @@ class IntentEntryActivity : Activity() {
                 "sequence-play" -> {
                     val name = data.getQueryParameter("name")?.trim().orEmpty()
                     if (name.isNotBlank()) {
-                        if (TemiController.hasSequencePermission()) {
+                        if (TemiController.isSequencePermissionGranted()) {
                             val ok = TemiController.playSequenceByName(name)
                             if (!ok) TemiController.speak("No encontré la secuencia $name")
                         } else {

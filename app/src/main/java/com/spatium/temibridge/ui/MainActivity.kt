@@ -160,7 +160,7 @@ class MainActivity : AppCompatActivity() {
         findViewById<android.view.View>(R.id.btnSeqTest).setOnClickListener {
             val seqId = "68d1859a217743075f4f9a44"
             Log.d("TemiBridge", "btnSeqTest clicked -> playSequenceById(${'$'}seqId)")
-            if (TemiController.hasSequencePermission()) {
+            if (TemiController.isSequencePermissionGranted()) {
                 val ok = TemiController.playSequenceById(seqId)
                 val msg = if (ok) "Secuencia iniciada" else "No se pudo iniciar la secuencia"
                 Toast.makeText(this, msg, Toast.LENGTH_SHORT).show()
