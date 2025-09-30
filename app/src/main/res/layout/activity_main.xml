@@ -213,6 +213,100 @@
                         android:textSize="14sp" />
                 </LinearLayout>
             </androidx.constraintlayout.widget.ConstraintLayout>
+
+            <!-- Card: Permisos Temi (Sequences) - Pruebas -->
+            <androidx.constraintlayout.widget.ConstraintLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp">
+
+                <LinearLayout
+                    android:id="@+id/permPanel"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:background="@drawable/rounded_dark_card"
+                    android:elevation="6dp"
+                    android:gravity="center"
+                    android:orientation="vertical"
+                    android:padding="16dp"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintTop_toTopOf="parent"
+                    app:layout_constraintWidth_max="600dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Permisos Temi (Sequences)"
+                        android:textColor="@android:color/white"
+                        android:textSize="18sp"
+                        android:textStyle="bold"
+                        android:layout_marginBottom="8dp" />
+
+                    <Button
+                        android:id="@+id/btnCheckPermDirect"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="Check (direct)" />
+
+                    <Button
+                        android:id="@+id/btnCheckPermCompat"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="Check (compat)"
+                        android:layout_marginTop="6dp" />
+
+                    <Button
+                        android:id="@+id/btnReqListCode"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="Request List+Code"
+                        android:layout_marginTop="12dp" />
+
+                    <Button
+                        android:id="@+id/btnReqList"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="Request List"
+                        android:layout_marginTop="6dp" />
+
+                    <Button
+                        android:id="@+id/btnReqActListCode"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="Request Activity+List+Code"
+                        android:layout_marginTop="12dp" />
+
+                    <Button
+                        android:id="@+id/btnReqActList"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="Request Activity+List"
+                        android:layout_marginTop="6dp" />
+
+                    <Button
+                        android:id="@+id/btnReqArrayCode"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="Request Array+Code"
+                        android:layout_marginTop="12dp" />
+
+                    <Button
+                        android:id="@+id/btnReqActArrayCode"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="Request Activity+Array+Code"
+                        android:layout_marginTop="6dp" />
+
+                    <Button
+                        android:id="@+id/btnSeqList"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="Listar sequences (hablar)"
+                        android:layout_marginTop="12dp" />
+
+                </LinearLayout>
+            </androidx.constraintlayout.widget.ConstraintLayout>
         </LinearLayout>
     </androidx.core.widget.NestedScrollView>
 </androidx.constraintlayout.widget.ConstraintLayout>

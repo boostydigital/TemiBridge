@@ -12,6 +12,7 @@ object TemiController {
     // One-time arrival callback handling
     private var pendingArrival: (() -> Unit)? = null
     private var goToListenerProxy: Any? = null
+    private var permListenerProxy: Any? = null
     private var lastTarget: String? = null
 
     private fun robotInstance(): Any? = try {
@@ -620,6 +621,168 @@ object TemiController {
             }
             false
         } catch (_: Throwable) { false }
+    }
+
+    // ---- Extra: listener y variantes explícitas de solicitud de permisos ----
+    fun ensurePermissionListener(): Boolean {
+        val robot = robotInstance() ?: return false
+        return try {
+            val listenerCls = Class.forName("com.robotemi.sdk.permission.OnRequestPermissionResultListener")
+            if (permListenerProxy == null) {
+                permListenerProxy = Proxy.newProxyInstance(
+                    listenerCls.classLoader,
+                    arrayOf(listenerCls),
+                    InvocationHandler { _, method, args ->
+                        try {
+                            if (method.name.equals("onRequestPermissionResult", true)) {
+                                val perm = args?.getOrNull(0)
+                                val grantRes = args?.getOrNull(1)
+                                val reqCode = args?.getOrNull(2)
+                                Log.d(TAG, "[PermResult] perm=${'$'}perm grant=${'$'}grantRes req=${'$'}reqCode")
+                            }
+                        } catch (_: Throwable) {}
+                        null
+                    }
+                )
+                val add = robot.javaClass.getMethod("addOnRequestPermissionResultListener", listenerCls)
+                add.invoke(robot, permListenerProxy)
+                Log.d(TAG, "Permission result listener registrado")
+            }
+            true
+        } catch (t: Throwable) {
+            Log.w(TAG, "No pude registrar OnRequestPermissionResultListener: ${t.message}")
+            false
+        }
+    }
+
+    fun hasSequencePermissionDirect(): Boolean {
+        val robot = robotInstance() ?: return false
+        return try {
+            val permCls = Class.forName("com.robotemi.sdk.Permission")
+            val seq = permCls.getField("SEQUENCE").get(null)
+            val check = robot.javaClass.getMethod("checkSelfPermission", permCls)
+            val res = check.invoke(robot, seq)
+            when (res) {
+                is java.lang.Boolean -> res.booleanValue()
+                is java.lang.Integer -> res.toInt() != 0
+                else -> {
+                    val grantStatusCls = Class.forName("com.robotemi.sdk.Permission\$GrantStatus")
+                    val granted = grantStatusCls.getField("GRANTED").get(null)
+                    res == granted
+                }
+            }
+        } catch (t: Throwable) {
+            Log.w(TAG, "hasSequencePermissionDirect fallo: ${t.message}")
+            false
+        }
+    }
+
+    fun requestSeqPerm_ListWithCode(): Boolean {
+        val robot = robotInstance() ?: return false
+        return try {
+            ensurePermissionListener()
+            val permCls = Class.forName("com.robotemi.sdk.Permission")
+            val seq = permCls.getField("SEQUENCE").get(null)
+            val list = java.util.ArrayList<Any>()
+            list.add(seq)
+            val m = robot.javaClass.getMethod("requestPermissions", java.util.List::class.java, Int::class.javaPrimitiveType)
+            m.invoke(robot, list, 1001)
+            Log.d(TAG, "requestSeqPerm_ListWithCode OK")
+            true
+        } catch (t: Throwable) {
+            Log.w(TAG, "requestSeqPerm_ListWithCode fallo: ${t.message}")
+            false
+        }
+    }
+
+    fun requestSeqPerm_List(): Boolean {
+        val robot = robotInstance() ?: return false
+        return try {
+            ensurePermissionListener()
+            val permCls = Class.forName("com.robotemi.sdk.Permission")
+            val seq = permCls.getField("SEQUENCE").get(null)
+            val list = java.util.ArrayList<Any>()
+            list.add(seq)
+            val m = robot.javaClass.getMethod("requestPermissions", java.util.List::class.java)
+            m.invoke(robot, list)
+            Log.d(TAG, "requestSeqPerm_List OK")
+            true
+        } catch (t: Throwable) {
+            Log.w(TAG, "requestSeqPerm_List fallo: ${t.message}")
+            false
+        }
+    }
+
+    fun requestSeqPerm_ArrayWithCode(): Boolean {
+        val robot = robotInstance() ?: return false
+        return try {
+            ensurePermissionListener()
+            val permCls = Class.forName("com.robotemi.sdk.Permission")
+            val seq = permCls.getField("SEQUENCE").get(null)
+            val arr = java.lang.reflect.Array.newInstance(permCls, 1)
+            java.lang.reflect.Array.set(arr, 0, seq)
+            val m = robot.javaClass.getMethod("requestPermissions", arr.javaClass, Int::class.javaPrimitiveType)
+            m.invoke(robot, arr, 1001)
+            Log.d(TAG, "requestSeqPerm_ArrayWithCode OK")
+            true
+        } catch (t: Throwable) {
+            Log.w(TAG, "requestSeqPerm_ArrayWithCode fallo: ${t.message}")
+            false
+        }
+    }
+
+    fun requestSeqPerm_ActivityListWithCode(activity: Activity): Boolean {
+        val robot = robotInstance() ?: return false
+        return try {
+            ensurePermissionListener()
+            val permCls = Class.forName("com.robotemi.sdk.Permission")
+            val seq = permCls.getField("SEQUENCE").get(null)
+            val list = java.util.ArrayList<Any>()
+            list.add(seq)
+            val m = robot.javaClass.getMethod("requestPermissions", Activity::class.java, java.util.List::class.java, Int::class.javaPrimitiveType)
+            m.invoke(robot, activity, list, 1001)
+            Log.d(TAG, "requestSeqPerm_ActivityListWithCode OK")
+            true
+        } catch (t: Throwable) {
+            Log.w(TAG, "requestSeqPerm_ActivityListWithCode fallo: ${t.message}")
+            false
+        }
+    }
+
+    fun requestSeqPerm_ActivityList(activity: Activity): Boolean {
+        val robot = robotInstance() ?: return false
+        return try {
+            ensurePermissionListener()
+            val permCls = Class.forName("com.robotemi.sdk.Permission")
+            val seq = permCls.getField("SEQUENCE").get(null)
+            val list = java.util.ArrayList<Any>()
+            list.add(seq)
+            val m = robot.javaClass.getMethod("requestPermissions", Activity::class.java, java.util.List::class.java)
+            m.invoke(robot, activity, list)
+            Log.d(TAG, "requestSeqPerm_ActivityList OK")
+            true
+        } catch (t: Throwable) {
+            Log.w(TAG, "requestSeqPerm_ActivityList fallo: ${t.message}")
+            false
+        }
+    }
+
+    fun requestSeqPerm_ActivityArrayWithCode(activity: Activity): Boolean {
+        val robot = robotInstance() ?: return false
+        return try {
+            ensurePermissionListener()
+            val permCls = Class.forName("com.robotemi.sdk.Permission")
+            val seq = permCls.getField("SEQUENCE").get(null)
+            val arr = java.lang.reflect.Array.newInstance(permCls, 1)
+            java.lang.reflect.Array.set(arr, 0, seq)
+            val m = robot.javaClass.getMethod("requestPermissions", Activity::class.java, arr.javaClass, Int::class.javaPrimitiveType)
+            m.invoke(robot, activity, arr, 1001)
+            Log.d(TAG, "requestSeqPerm_ActivityArrayWithCode OK")
+            true
+        } catch (t: Throwable) {
+            Log.w(TAG, "requestSeqPerm_ActivityArrayWithCode fallo: ${t.message}")
+            false
+        }
     }
 }
 
