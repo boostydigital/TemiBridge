@@ -272,6 +272,17 @@ object TemiController {
 
     fun isSequencePermissionGranted(): Boolean = hasSequencePermission()
 
+    // --- Backward-compat wrappers used by MainActivity test buttons ---
+    // Keep these method names to avoid unresolved references in UI code.
+    fun hasSequencePermissionDirect(): Boolean = hasSequencePermission()
+
+    fun requestSeqPerm_ListWithCode(): Boolean = requestSequencePermission()
+    fun requestSeqPerm_List(): Boolean = requestSequencePermission()
+    fun requestSeqPerm_ArrayWithCode(): Boolean = requestSequencePermission()
+    fun requestSeqPerm_ActivityListWithCode(activity: Activity): Boolean = requestSequencePermission(activity)
+    fun requestSeqPerm_ActivityList(activity: Activity): Boolean = requestSequencePermission(activity)
+    fun requestSeqPerm_ActivityArrayWithCode(activity: Activity): Boolean = requestSequencePermission(activity)
+
     fun requestSequencePermission(): Boolean {
         if (hasSequencePermission()) return true
         try {
@@ -454,4 +465,3 @@ object TemiController {
         }
     }
 }
-
