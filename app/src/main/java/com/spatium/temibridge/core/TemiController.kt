@@ -533,7 +533,7 @@ object TemiController {
 
             // Construir argumentos auxiliares
             val permsArray = java.lang.reflect.Array.newInstance(permClass, 1)
-            java.lang.reflect.Array.set(permsArray, 0, seqValue)
+            java.lang.reflect.Array.set(permsArray, 0, seqValue as Any)
 
             // Buscamos cualquier mÃ©todo cuyo nombre empiece por requestPermission y que acepte
             // Activity opcionalmente y Permission (singular) o Permission[] y opcional requestCode / listener.
@@ -684,7 +684,7 @@ object TemiController {
             val permCls = Class.forName("com.robotemi.sdk.Permission")
             val seq = permCls.getField("SEQUENCE").get(null)
             val list = java.util.ArrayList<Any>()
-            list.add(seq)
+            list.add(seq as Any)
             val m = robot.javaClass.getMethod("requestPermissions", java.util.List::class.java, Int::class.javaPrimitiveType)
             m.invoke(robot, list, 1001)
             Log.d(TAG, "requestSeqPerm_ListWithCode OK")
@@ -702,7 +702,7 @@ object TemiController {
             val permCls = Class.forName("com.robotemi.sdk.Permission")
             val seq = permCls.getField("SEQUENCE").get(null)
             val list = java.util.ArrayList<Any>()
-            list.add(seq)
+            list.add(seq as Any)
             val m = robot.javaClass.getMethod("requestPermissions", java.util.List::class.java)
             m.invoke(robot, list)
             Log.d(TAG, "requestSeqPerm_List OK")
@@ -720,7 +720,7 @@ object TemiController {
             val permCls = Class.forName("com.robotemi.sdk.Permission")
             val seq = permCls.getField("SEQUENCE").get(null)
             val arr = java.lang.reflect.Array.newInstance(permCls, 1)
-            java.lang.reflect.Array.set(arr, 0, seq)
+            java.lang.reflect.Array.set(arr, 0, seq as Any)
             val m = robot.javaClass.getMethod("requestPermissions", arr.javaClass, Int::class.javaPrimitiveType)
             m.invoke(robot, arr, 1001)
             Log.d(TAG, "requestSeqPerm_ArrayWithCode OK")
@@ -738,7 +738,7 @@ object TemiController {
             val permCls = Class.forName("com.robotemi.sdk.Permission")
             val seq = permCls.getField("SEQUENCE").get(null)
             val list = java.util.ArrayList<Any>()
-            list.add(seq)
+            list.add(seq as Any)
             val m = robot.javaClass.getMethod("requestPermissions", Activity::class.java, java.util.List::class.java, Int::class.javaPrimitiveType)
             m.invoke(robot, activity, list, 1001)
             Log.d(TAG, "requestSeqPerm_ActivityListWithCode OK")
