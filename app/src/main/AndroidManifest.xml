@@ -8,6 +8,7 @@
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="com.robotemi.sdk.permission.SEQUENCE" />
+    <uses-permission android:name="com.robotemi.permission.SEQUENCE" />
 
     <application
         android:label="Temi Bridge"
@@ -21,7 +22,7 @@
         <!-- Declare Temi capabilities this app requires so they appear in robot permissions UI -->
         <meta-data
             android:name="com.robotemi.sdk.metadata.PERMISSIONS"
-            android:value="com.robotemi.permission.sequence" />
+            android:value="com.robotemi.permission.SEQUENCE" />
 
         <meta-data
             android:name="com.robotemi.sdk.metadata.KIOSK"
