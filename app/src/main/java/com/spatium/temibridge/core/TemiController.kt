@@ -236,19 +236,29 @@ object TemiController {
             Log.d(TAG, "requestSequencePermission: ya concedido")
             return true
         }
-        // Intento directo SDK
+        // Intento directo SDK (List<Permission>, con/sin requestCode)
         try {
             val robotCls = Class.forName("com.robotemi.sdk.Robot")
             val getInst = robotCls.getMethod("getInstance")
             val robot = getInst.invoke(null)
             val permCls = Class.forName("com.robotemi.sdk.Permission")
             val seq = permCls.getField("SEQUENCE").get(null)
-            val arr = java.lang.reflect.Array.newInstance(permCls, 1)
-            java.lang.reflect.Array.set(arr, 0, seq)
-            val request = robot.javaClass.getMethod("requestPermissions", arr.javaClass, Int::class.javaPrimitiveType)
-            request.invoke(robot, arr, 1001)
-            Log.d(TAG, "requestSequencePermission enviado (direct)")
-            return true
+            val list = java.util.ArrayList<Any>()
+            list.add(seq)
+            // Variante con requestCode
+            val reqWithCode = runCatching { robot.javaClass.getMethod("requestPermissions", java.util.List::class.java, Int::class.javaPrimitiveType) }.getOrNull()
+            if (reqWithCode != null) {
+                reqWithCode.invoke(robot, list, 1001)
+                Log.d(TAG, "requestSequencePermission enviado (List, con requestCode)")
+                return true
+            }
+            // Variante sin requestCode
+            val reqNoCode = runCatching { robot.javaClass.getMethod("requestPermissions", java.util.List::class.java) }.getOrNull()
+            if (reqNoCode != null) {
+                reqNoCode.invoke(robot, list)
+                Log.d(TAG, "requestSequencePermission enviado (List, sin requestCode)")
+                return true
+            }
         } catch (_: Throwable) { /* fallback abajo */ }
 
         val robot = robotInstance() ?: return false
@@ -256,13 +266,31 @@ object TemiController {
             val permClass = Class.forName("com.robotemi.sdk.Permission")
             val seqField = permClass.getField("SEQUENCE")
             val seqValue = seqField.get(null)
+            // Intentar con List en diferentes variantes mediante reflexión
+            val list = java.util.ArrayList<Any>()
+            list.add(seqValue)
+            val reqWithCode = runCatching { robot.javaClass.getMethod("requestPermissions", java.util.List::class.java, Int::class.javaPrimitiveType) }.getOrNull()
+            if (reqWithCode != null) {
+                reqWithCode.invoke(robot, list, 1001)
+                Log.d(TAG, "requestSequencePermission enviado (reflection List+code)")
+                return true
+            }
+            val reqNoCode = runCatching { robot.javaClass.getMethod("requestPermissions", java.util.List::class.java) }.getOrNull()
+            if (reqNoCode != null) {
+                reqNoCode.invoke(robot, list)
+                Log.d(TAG, "requestSequencePermission enviado (reflection List)")
+                return true
+            }
+            // Último fallback: probar firma con array
             val permsArray = java.lang.reflect.Array.newInstance(permClass, 1)
             java.lang.reflect.Array.set(permsArray, 0, seqValue)
-            // Obtener la clase de array de Permission adecuadamente para la firma vararg
-            val request = robot.javaClass.getMethod("requestPermissions", permsArray.javaClass, Int::class.javaPrimitiveType)
-            request.invoke(robot, permsArray, 1001)
-            Log.d(TAG, "requestSequencePermission enviado (reflection)")
-            true
+            val reqArr = runCatching { robot.javaClass.getMethod("requestPermissions", permsArray.javaClass, Int::class.javaPrimitiveType) }.getOrNull()
+            if (reqArr != null) {
+                reqArr.invoke(robot, permsArray, 1001)
+                Log.d(TAG, "requestSequencePermission enviado (reflection Array+code)")
+                return true
+            }
+            false
         } catch (t: Throwable) {
             Log.w(TAG, "requestSequencePermission fallo: ${t.message}")
             false
