@@ -192,7 +192,7 @@ object TemiController {
             val getInst = robotCls.getMethod("getInstance")
             val robot = getInst.invoke(null)
             val permCls = Class.forName("com.robotemi.sdk.Permission")
-            val seq = permCls.getField("SEQUENCE").get(null)
+            val seq = permCls.getField("SEQUENCE").get(null) as Any
             val check = robot.javaClass.getMethod("checkSelfPermission", permCls)
             val res = check.invoke(robot, seq)
             val isGranted = when (res) {
@@ -213,7 +213,7 @@ object TemiController {
         return try {
             val permClass = Class.forName("com.robotemi.sdk.Permission")
             val seqField = permClass.getField("SEQUENCE")
-            val seqValue = seqField.get(null)
+            val seqValue = seqField.get(null) as Any
             val checkMethod = robot.javaClass.getMethod("checkSelfPermission", permClass)
             val grantStatusClass = Class.forName("com.robotemi.sdk.Permission\$GrantStatus")
             val grantedConst = grantStatusClass.getField("GRANTED").get(null)
@@ -284,7 +284,7 @@ object TemiController {
             }
             // Último fallback: probar firma con array
             val permsArray = java.lang.reflect.Array.newInstance(permClass, 1)
-            java.lang.reflect.Array.set(permsArray, 0, seqValue)
+            java.lang.reflect.Array.set(permsArray, 0, seqValue as Any)
             val reqArr = runCatching { robot.javaClass.getMethod("requestPermissions", permsArray.javaClass, Int::class.javaPrimitiveType) }.getOrNull()
             if (reqArr != null) {
                 reqArr.invoke(robot, permsArray, 1001)
