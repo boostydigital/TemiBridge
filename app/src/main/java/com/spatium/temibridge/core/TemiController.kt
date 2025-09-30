@@ -1,5 +1,6 @@
 package com.spatium.temibridge.core
 
+import android.app.Activity
 import android.util.Log
 import java.lang.reflect.InvocationHandler
 import java.lang.reflect.Proxy
@@ -486,6 +487,65 @@ object TemiController {
             (m.invoke(instance) as? CharSequence)?.toString()
         } catch (_: Throwable) {
             null
+        }
+    }
+
+    // Overload que acepta una Activity para mostrar correctamente el diálogo de permisos en Temi
+    fun requestSequencePermission(activity: Activity): Boolean {
+        if (hasSequencePermission()) {
+            Log.d(TAG, "requestSequencePermission(activity): ya concedido")
+            return true
+        }
+        val robot = robotInstance() ?: return false
+        return try {
+            val permClass = Class.forName("com.robotemi.sdk.Permission")
+            val seqField = permClass.getField("SEQUENCE")
+            val seqValue = seqField.get(null)
+            val permsArray = java.lang.reflect.Array.newInstance(permClass, 1)
+            java.lang.reflect.Array.set(permsArray, 0, seqValue)
+
+            // Intentar varias firmas
+            val mWithActNoCode = runCatching {
+                robot.javaClass.getMethod("requestPermissions", Activity::class.java, permsArray.javaClass)
+            }.getOrNull()
+            if (mWithActNoCode != null) {
+                mWithActNoCode.invoke(robot, activity, permsArray)
+                Log.d(TAG, "requestSequencePermission enviado (Activity, sin requestCode)")
+                return true
+            }
+
+            val mWithActAndCode = runCatching {
+                robot.javaClass.getMethod("requestPermissions", Activity::class.java, permsArray.javaClass, Int::class.javaPrimitiveType)
+            }.getOrNull()
+            if (mWithActAndCode != null) {
+                mWithActAndCode.invoke(robot, activity, permsArray, 1001)
+                Log.d(TAG, "requestSequencePermission enviado (Activity, con requestCode)")
+                return true
+            }
+
+            val mNoActWithCode = runCatching {
+                robot.javaClass.getMethod("requestPermissions", permsArray.javaClass, Int::class.javaPrimitiveType)
+            }.getOrNull()
+            if (mNoActWithCode != null) {
+                mNoActWithCode.invoke(robot, permsArray, 1001)
+                Log.d(TAG, "requestSequencePermission enviado (sin Activity, con requestCode)")
+                return true
+            }
+
+            val mNoActNoCode = runCatching {
+                robot.javaClass.getMethod("requestPermissions", permsArray.javaClass)
+            }.getOrNull()
+            if (mNoActNoCode != null) {
+                mNoActNoCode.invoke(robot, permsArray)
+                Log.d(TAG, "requestSequencePermission enviado (sin Activity, sin requestCode)")
+                return true
+            }
+
+            Log.w(TAG, "No se encontró método requestPermissions compatible")
+            false
+        } catch (t: Throwable) {
+            Log.w(TAG, "requestSequencePermission(activity) fallo: ${t.message}")
+            false
         }
     }
 }

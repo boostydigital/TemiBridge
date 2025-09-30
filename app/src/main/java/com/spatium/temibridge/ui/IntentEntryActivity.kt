@@ -83,7 +83,7 @@ class IntentEntryActivity : Activity() {
                         TemiController.speak("El permiso de secuencias ya está concedido")
                         Handler(Looper.getMainLooper()).postDelayed({ goHome() }, 2000)
                     } else {
-                        val ok = TemiController.requestSequencePermission()
+                        val ok = TemiController.requestSequencePermission(this)
                         if (ok) {
                             TemiController.speak("Solicitando permiso de secuencias. Por favor, acepta en pantalla")
                             // Mantener esta activity en primer plano unos segundos para que el diálogo pueda mostrarse
@@ -102,7 +102,7 @@ class IntentEntryActivity : Activity() {
                         TemiController.logAndSpeakSequenceNames()
                         goHome()
                     } else {
-                        val ok = TemiController.requestSequencePermission()
+                        val ok = TemiController.requestSequencePermission(this)
                         if (ok) {
                             TemiController.speak("Permiso de secuencias requerido. Acepta en pantalla y vuelve a intentarlo")
                             Handler(Looper.getMainLooper()).postDelayed({
@@ -161,7 +161,7 @@ class IntentEntryActivity : Activity() {
                             val ok = TemiController.playSequenceByName(name)
                             if (!ok) TemiController.speak("No encontré la secuencia $name")
                         } else {
-                            val okReq = TemiController.requestSequencePermission()
+                            val okReq = TemiController.requestSequencePermission(this)
                             val msg = if (okReq) "Permiso de secuencias requerido. Acepta en pantalla y vuelve a intentarlo" else "No se pudo solicitar el permiso de secuencias"
                             TemiController.speak(msg)
                         }

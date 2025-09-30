@@ -166,7 +166,7 @@ class MainActivity : AppCompatActivity() {
                 Toast.makeText(this, msg, Toast.LENGTH_SHORT).show()
                 if (!ok) TemiController.speak(msg) else TemiController.speak("Ejecutando secuencia")
             } else {
-                val okReq = TemiController.requestSequencePermission()
+                val okReq = TemiController.requestSequencePermission(this)
                 val msg = if (okReq) {
                     "Permiso de secuencias requerido. Acepta en pantalla y vuelve a pulsar"
                 } else {
