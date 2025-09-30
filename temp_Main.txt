@@ -1,4 +1,4 @@
-package com.spatium.temibridge.ui
+﻿package com.spatium.temibridge.ui
 
 import android.Manifest
 import android.content.pm.PackageManager
@@ -84,7 +84,7 @@ class MainActivity : AppCompatActivity() {
 
     private val requestCameraPermission =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
-            if (granted) startQrScan() else Toast.makeText(this, "Se requiere cámara para escanear.", Toast.LENGTH_SHORT).show()
+            if (granted) startQrScan() else Toast.makeText(this, "Se requiere cÃ¡mara para escanear.", Toast.LENGTH_SHORT).show()
         }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -107,7 +107,7 @@ class MainActivity : AppCompatActivity() {
             placeholder(android.R.color.transparent)
             error(android.R.color.transparent)
         }
-        // Animación de entrada del logo (fade + scale)
+        // AnimaciÃ³n de entrada del logo (fade + scale)
         headerLogo.alpha = 0f
         headerLogo.scaleX = 0.85f
         headerLogo.scaleY = 0.85f
@@ -119,7 +119,7 @@ class MainActivity : AppCompatActivity() {
             .setInterpolator(AccelerateDecelerateInterpolator())
             .start()
 
-        // Confirmación visual de depuración
+        // ConfirmaciÃ³n visual de depuraciÃ³n
         Toast.makeText(this, "MainActivity cargada", Toast.LENGTH_SHORT).show()
 
         // Animar tarjetas (entrada con fade + slide + scale)
@@ -127,8 +127,6 @@ class MainActivity : AppCompatActivity() {
         val cardTour = findViewById<View>(R.id.btnTour)
         animateCardIn(cardScan, delay = 50L)
         animateCardIn(cardTour, delay = 180L)
-        val cardSeqTest = findViewById<View>(R.id.btnSeqTest)
-        animateCardIn(cardSeqTest, delay = 300L)
 
         // Efecto Ken Burns sutil al fondo
         startKenBurns(bg)
@@ -155,27 +153,6 @@ class MainActivity : AppCompatActivity() {
                 Log.w("TemiBridge", "Abrir KioskWebActivity fallo: ${t.message}")
             }
         }
-
-        // Botn: probar secuencia por ID (Temi Center)
-        findViewById<android.view.View>(R.id.btnSeqTest).setOnClickListener {
-            val seqId = "68d1859a217743075f4f9a44"
-            Log.d("TemiBridge", "btnSeqTest clicked -> playSequenceById(${'$'}seqId)")
-            if (TemiController.hasSequencePermission()) {
-                val ok = TemiController.playSequenceById(seqId)
-                val msg = if (ok) "Secuencia iniciada" else "No se pudo iniciar la secuencia"
-                Toast.makeText(this, msg, Toast.LENGTH_SHORT).show()
-                if (!ok) TemiController.speak(msg) else TemiController.speak("Ejecutando secuencia")
-            } else {
-                val okReq = TemiController.requestSequencePermission()
-                val msg = if (okReq) {
-                    "Permiso de secuencias requerido. Acepta en pantalla y vuelve a pulsar"
-                } else {
-                    "No se pudo solicitar el permiso de secuencias"
-                }
-                Toast.makeText(this, msg, Toast.LENGTH_LONG).show()
-                TemiController.speak(msg)
-            }
-        }
     }
 
     private fun ensureCameraAndScan() {
@@ -190,7 +167,7 @@ class MainActivity : AppCompatActivity() {
     private fun startQrScan() {
         val options = ScanOptions()
             .setDesiredBarcodeFormats(ScanOptions.QR_CODE)
-            .setPrompt("Apunta la cámara al código")
+            .setPrompt("Apunta la cÃ¡mara al cÃ³digo")
             .setBeepEnabled(false)
             .setOrientationLocked(false)
         qrLauncher.launch(options)
@@ -217,7 +194,7 @@ class MainActivity : AppCompatActivity() {
                             val text = decodeParam(uri.getQueryParameter("text")).trim()
                             val recepcion = decodeParam(uri.getQueryParameter("recepcion"))
                             val telefono = decodeParam(uri.getQueryParameter("telefono"))
-                            if (text.isNotBlank()) TemiController.speak(text) else Toast.makeText(this, "QR inválido: falta text", Toast.LENGTH_LONG).show()
+                            if (text.isNotBlank()) TemiController.speak(text) else Toast.makeText(this, "QR invÃ¡lido: falta text", Toast.LENGTH_LONG).show()
                             postWebhookAndMaybeOpen(recepcion, telefono)
                             return
                         }
@@ -227,14 +204,14 @@ class MainActivity : AppCompatActivity() {
                             val telefono = decodeParam(uri.getQueryParameter("telefono"))
                             val recBool = recepcion.equals("true", ignoreCase = true)
                             if (place.isNotBlank()) {
-                                // Si NO es recepción, al llegar anuncia y luego va a "entrada" tras 10s
+                                // Si NO es recepciÃ³n, al llegar anuncia y luego va a "entrada" tras 10s
                                 if (!recBool) {
                                     Log.d("TemiBridge", "[GO] recepcion=false: programando arrival callback para place=$place")
                                     TemiController.setArrivalCallbackOnce {
-                                        // Garantizar ejecución en hilo principal
+                                        // Garantizar ejecuciÃ³n en hilo principal
                                         Handler(Looper.getMainLooper()).post {
                                             Log.d("TemiBridge", "[GO] arrival callback ejecutado: anunciando llegada y preparando retorno a entrada")
-                                            TemiController.speak("Hemos llegado a tu destino, tu anfitrión te atenderá. Gracias")
+                                            TemiController.speak("Hemos llegado a tu destino, tu anfitriÃ³n te atenderÃ¡. Gracias")
                                             Handler(Looper.getMainLooper()).postDelayed({
                                                 Log.d("TemiBridge", "[GO] 10s transcurridos: ejecutando goTo('entrada')")
                                                 TemiController.goTo("entrada")
@@ -245,7 +222,7 @@ class MainActivity : AppCompatActivity() {
                                 // Volver al comportamiento anterior: navegar al lugar usando goTo
                                 Log.d("TemiBridge", "[GO] Llamando goTo(place=$place) recBool=$recBool")
                                 TemiController.goTo(place)
-                            } else Toast.makeText(this, "QR inválido: falta place", Toast.LENGTH_LONG).show()
+                            } else Toast.makeText(this, "QR invÃ¡lido: falta place", Toast.LENGTH_LONG).show()
                             postWebhookAndMaybeOpen(recepcion, telefono)
                             return
                         }
@@ -255,26 +232,26 @@ class MainActivity : AppCompatActivity() {
                             val recepcion = decodeParam(uri.getQueryParameter("recepcion"))
                             val telefono = decodeParam(uri.getQueryParameter("telefono"))
                             val identifier = if (name.isNotBlank()) name else tourId
-                            if (identifier.isNotBlank()) startTour(identifier) else Toast.makeText(this, "QR inválido: falta name o tourId", Toast.LENGTH_LONG).show()
+                            if (identifier.isNotBlank()) startTour(identifier) else Toast.makeText(this, "QR invÃ¡lido: falta name o tourId", Toast.LENGTH_LONG).show()
                             postWebhookAndMaybeOpen(recepcion, telefono)
                             return
                         }
                     }
                 }
             }
-            Toast.makeText(this, "QR inválido. Deep link no reconocido", Toast.LENGTH_LONG).show()
+            Toast.makeText(this, "QR invÃ¡lido. Deep link no reconocido", Toast.LENGTH_LONG).show()
             return
         }
 
         // Formato legacy eliminado: ahora solo se aceptan deep links mytemi://...
-        Toast.makeText(this, "QR inválido. Formato no soportado", Toast.LENGTH_LONG).show()
+        Toast.makeText(this, "QR invÃ¡lido. Formato no soportado", Toast.LENGTH_LONG).show()
         return
     }
 
-    // --- Webhook + flujo de recepción ---
+    // --- Webhook + flujo de recepciÃ³n ---
     private val httpClient by lazy { OkHttpClient() }
 
-    // Decodifica parámetros una o más veces si vienen doblemente codificados ("%2520" => "%20" => " ")
+    // Decodifica parÃ¡metros una o mÃ¡s veces si vienen doblemente codificados ("%2520" => "%20" => " ")
     private fun decodeParam(raw: String?): String {
         if (raw.isNullOrEmpty()) return ""
         var prev: String = raw
@@ -292,7 +269,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun postWebhookAndMaybeOpen(recepcion: String?, telefono: String?) {
-        // Construir JSON simple con las variables si están presentes
+        // Construir JSON simple con las variables si estÃ¡n presentes
         val recBool = recepcion?.equals("true", ignoreCase = true) ?: false
         val sb = StringBuilder().append('{')
         sb.append("\"recepcion\":").append(if (recBool) "true" else "false")
@@ -340,3 +317,4 @@ class MainActivity : AppCompatActivity() {
         }
     }
 }
+

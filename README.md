@@ -4,7 +4,7 @@ Puente ligero para controlar un robot temi desde apps externas (web o nativas) m
 
 - Package: `com.spatium.temibridge`
 - Entry Activity: `com.spatium.temibridge.ui.IntentEntryActivity`
-- SDK: Temi SDK 1.131.4 (compatible con 1.13x+)
+- SDK: Temi SDK 1.136.0 (compatible con 1.13x+)
 
 ## Tabla de contenidos
 - [Instalación en Temi](#instalación-en-temi)

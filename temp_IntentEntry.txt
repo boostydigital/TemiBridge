@@ -1,4 +1,4 @@
-package com.spatium.temibridge.ui
+﻿package com.spatium.temibridge.ui
 
 import android.app.Activity
 import android.content.Context
@@ -13,7 +13,7 @@ import com.spatium.temibridge.core.TemiController
 
 class IntentEntryActivity : Activity() {
 
-    // Ya no inicializamos directamente el SDK de Temi; usamos un controlador por reflexión.
+    // Ya no inicializamos directamente el SDK de Temi; usamos un controlador por reflexiÃ³n.
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -57,7 +57,7 @@ class IntentEntryActivity : Activity() {
                         if (!recBool) {
                             TemiController.setArrivalCallbackOnce {
                                 Handler(Looper.getMainLooper()).post {
-                                    TemiController.speak("Hemos llegado a tu destino, tu anfitrión te atenderá. Gracias")
+                                    TemiController.speak("Hemos llegado a tu destino, tu anfitriÃ³n te atenderÃ¡. Gracias")
                                     Handler(Looper.getMainLooper()).postDelayed({
                                         TemiController.goTo("entrada")
                                     }, 10_000)
@@ -65,8 +65,6 @@ class IntentEntryActivity : Activity() {
                             }
                         }
                         TemiController.goTo(place)
-                        // Cerrar activity headless para no dejarla en el back stack
-                        goHome()
                     }
                 }
                 "say" -> data.getQueryParameter("text")?.let { text ->
@@ -77,16 +75,16 @@ class IntentEntryActivity : Activity() {
                     val tourId = data.getQueryParameter("tourId")?.trim().orEmpty()
                     startTour(name.ifBlank { tourId })
                 }
-                // Solicitar permiso de sequences explícitamente
+                // Solicitar permiso de sequences explÃ­citamente
                 "sequence-permission" -> {
                     if (TemiController.hasSequencePermission()) {
-                        TemiController.speak("El permiso de secuencias ya está concedido")
+                        TemiController.speak("El permiso de secuencias ya estÃ¡ concedido")
                         Handler(Looper.getMainLooper()).postDelayed({ goHome() }, 2000)
                     } else {
                         val ok = TemiController.requestSequencePermission()
                         if (ok) {
                             TemiController.speak("Solicitando permiso de secuencias. Por favor, acepta en pantalla")
-                            // Mantener esta activity en primer plano unos segundos para que el diálogo pueda mostrarse
+                            // Mantener esta activity en primer plano unos segundos para que el diÃ¡logo pueda mostrarse
                             Handler(Looper.getMainLooper()).postDelayed({
                                 goHome()
                             }, 6000)
@@ -128,14 +126,14 @@ class IntentEntryActivity : Activity() {
                         if (!recBool) {
                             TemiController.setArrivalCallbackOnce {
                                 Handler(Looper.getMainLooper()).post {
-                                    TemiController.speak("Hemos llegado a tu destino, tu anfitrión te atenderá. Gracias")
+                                    TemiController.speak("Hemos llegado a tu destino, tu anfitriÃ³n te atenderÃ¡. Gracias")
                                     Handler(Looper.getMainLooper()).postDelayed({
                                         TemiController.goTo("entrada")
                                     }, 10_000)
                                 }
                             }
                         } else {
-                            // Si es recepción, abrir KioskWebActivity a los 5s como en MainActivity
+                            // Si es recepciÃ³n, abrir KioskWebActivity a los 5s como en MainActivity
                             Handler(Looper.getMainLooper()).postDelayed({
                                 try {
                                     val url = "https://spatium-desk.lovable.app/pedidos-publicos?ubicacion=Recepcion"
@@ -153,13 +151,13 @@ class IntentEntryActivity : Activity() {
                     }
                     goHome()
                 }
-                // Reproducir una sequence por nombre explícito (atajo): mytemi://sequence-play?name=Open_Space
+                // Reproducir una sequence por nombre explÃ­cito (atajo): mytemi://sequence-play?name=Open_Space
                 "sequence-play" -> {
                     val name = data.getQueryParameter("name")?.trim().orEmpty()
                     if (name.isNotBlank()) {
                         if (TemiController.hasSequencePermission()) {
                             val ok = TemiController.playSequenceByName(name)
-                            if (!ok) TemiController.speak("No encontré la secuencia $name")
+                            if (!ok) TemiController.speak("No encontrÃ© la secuencia $name")
                         } else {
                             val okReq = TemiController.requestSequencePermission()
                             val msg = if (okReq) "Permiso de secuencias requerido. Acepta en pantalla y vuelve a intentarlo" else "No se pudo solicitar el permiso de secuencias"
@@ -170,16 +168,16 @@ class IntentEntryActivity : Activity() {
                     }
                     goHome()
                 }
-                // Ejecutar una sequence por nombre explícito: mytemi://sequence?name=Open_Space
+                // Ejecutar una sequence por nombre explÃ­cito: mytemi://sequence?name=Open_Space
                 "sequence" -> {
                     val name = data.getQueryParameter("name")?.trim().orEmpty()
                     if (name.isNotBlank()) {
                         val ok = TemiController.playSequenceByName(name)
-                        if (!ok) TemiController.speak("No encontré la secuencia $name")
+                        if (!ok) TemiController.speak("No encontrÃ© la secuencia $name")
                     }
                     goHome()
                 }
-                // Controlar secuencia en reproducción: mytemi://sequence-control?action=next|pause|play|previous|stop
+                // Controlar secuencia en reproducciÃ³n: mytemi://sequence-control?action=next|pause|play|previous|stop
                 "sequence-control" -> {
                     val action = data.getQueryParameter("action")?.trim().orEmpty()
                     if (action.isNotBlank()) {
@@ -192,7 +190,7 @@ class IntentEntryActivity : Activity() {
             return
         }
 
-        // Intents explícitos
+        // Intents explÃ­citos
         when (i.action) {
             "com.spatium.temibridge.ACTION_GO_TO" -> {
                 val place = i.getStringExtra("place").orEmpty()
@@ -202,12 +200,12 @@ class IntentEntryActivity : Activity() {
                 val text = i.getStringExtra("text").orEmpty()
                 if (text.isNotBlank()) TemiController.speak(text)
             }
-            // Estas acciones requieren métodos adicionales: si se necesitan, podemos añadirlos al TemiController.
+            // Estas acciones requieren mÃ©todos adicionales: si se necesitan, podemos aÃ±adirlos al TemiController.
             // "com.spatium.temibridge.ACTION_FOLLOW_ME" ->
             // "com.spatium.temibridge.ACTION_STOP" ->
             "com.spatium.temibridge.ACTION_HEAD_TILT" -> {
                 val angle = i.getIntExtra("angle", 0) // aprox. -25..25
-                // Método no implementado en TemiController por simplicidad en emulador.
+                // MÃ©todo no implementado en TemiController por simplicidad en emulador.
             }
             "com.spatium.temibridge.ACTION_VOLUME" -> {
                 val level = i.getIntExtra("level", 5) // 0..10
@@ -250,3 +248,4 @@ class IntentEntryActivity : Activity() {
         finish()
     }
 }
+
