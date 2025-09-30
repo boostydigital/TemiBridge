@@ -144,6 +144,7 @@
 
                 <LinearLayout
                     android:id="@+id/btnSeqPlay"
+                    android:visibility="gone"
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:background="@drawable/rounded_dark_card"
@@ -183,6 +184,7 @@
 
                 <LinearLayout
                     android:id="@+id/btnSeqTest"
+                    android:visibility="gone"
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:background="@drawable/rounded_dark_card"
@@ -222,6 +224,7 @@
 
                 <LinearLayout
                     android:id="@+id/permPanel"
+                    android:visibility="gone"
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:background="@drawable/rounded_dark_card"

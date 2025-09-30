@@ -127,10 +127,6 @@ class MainActivity : AppCompatActivity() {
         val cardTour = findViewById<View>(R.id.btnTour)
         animateCardIn(cardScan, delay = 50L)
         animateCardIn(cardTour, delay = 180L)
-        val cardSeqTest = findViewById<View>(R.id.btnSeqTest)
-        animateCardIn(cardSeqTest, delay = 300L)
-        val permPanel = findViewById<View>(R.id.permPanel)
-        animateCardIn(permPanel, delay = 380L)
 
         // Efecto Ken Burns sutil al fondo
         startKenBurns(bg)
@@ -143,83 +139,7 @@ class MainActivity : AppCompatActivity() {
             Log.d("TemiBridge", "btnTour clicked")
             startTour("Spatium_Visita")
         }
-        // Probar reproducir una Sequence por nombre usando deep link mytemi://sequence-play?name=...
-        findViewById<android.view.View>(R.id.btnSeqPlay).setOnClickListener {
-            Log.d("TemiBridge", "btnSeqPlay clicked -> abrir pedidos-publicos (Recepcion)")
-            try {
-                val url = "https://spatium-desk.lovable.app/pedidos-publicos?ubicacion=Recepcion"
-                val intent = Intent(this, KioskWebActivity::class.java).apply {
-                    putExtra(KioskWebActivity.EXTRA_URL, url)
-                    addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
-                }
-                startActivity(intent)
-            } catch (t: Throwable) {
-                Log.w("TemiBridge", "Abrir KioskWebActivity fallo: ${t.message}")
-            }
-        }
-
-        // Boton: probar secuencia por ID (Temi Center)
-        findViewById<android.view.View>(R.id.btnSeqTest).setOnClickListener {
-            val seqId = "68d1859a217743075f4f9a44"
-            Log.d("TemiBridge", "btnSeqTest clicked -> playSequenceById(${'$'}seqId)")
-            if (TemiController.isSequencePermissionGranted()) {
-                val ok = TemiController.playSequenceById(seqId)
-                val msg = if (ok) "Secuencia iniciada" else "No se pudo iniciar la secuencia"
-                Toast.makeText(this, msg, Toast.LENGTH_SHORT).show()
-                if (!ok) TemiController.speak(msg) else TemiController.speak("Ejecutando secuencia")
-            } else {
-                val okReq = TemiController.requestSequencePermission(this)
-                val msg = if (okReq) {
-                    "Permiso de secuencias requerido. Acepta en pantalla y vuelve a pulsar"
-                } else {
-                    "No se pudo solicitar el permiso de secuencias"
-                }
-                Toast.makeText(this, msg, Toast.LENGTH_LONG).show()
-                TemiController.speak(msg)
-            }
-        }
-
-        // Panel de pruebas de permisos Temi
-        findViewById<android.view.View>(R.id.btnCheckPermDirect).setOnClickListener {
-            val ok = TemiController.hasSequencePermissionDirect()
-            Toast.makeText(this, "Check(direct)=$ok", Toast.LENGTH_SHORT).show()
-            TemiController.speak("Permiso directo ${if (ok) "concedido" else "denegado"}")
-        }
-        findViewById<android.view.View>(R.id.btnCheckPermCompat).setOnClickListener {
-            val ok = TemiController.isSequencePermissionGranted()
-            Toast.makeText(this, "Check(compat)=$ok", Toast.LENGTH_SHORT).show()
-            TemiController.speak("Permiso compat ${if (ok) "concedido" else "denegado"}")
-        }
-        findViewById<android.view.View>(R.id.btnReqListCode).setOnClickListener {
-            val ok = TemiController.requestSeqPerm_ListWithCode()
-            Toast.makeText(this, "Req List+Code -> $ok", Toast.LENGTH_SHORT).show()
-        }
-        findViewById<android.view.View>(R.id.btnReqList).setOnClickListener {
-            val ok = TemiController.requestSeqPerm_List()
-            Toast.makeText(this, "Req List -> $ok", Toast.LENGTH_SHORT).show()
-        }
-        findViewById<android.view.View>(R.id.btnReqActListCode).setOnClickListener {
-            val ok = TemiController.requestSeqPerm_ActivityListWithCode(this)
-            Toast.makeText(this, "Req Act+List+Code -> $ok", Toast.LENGTH_SHORT).show()
-        }
-        findViewById<android.view.View>(R.id.btnReqActList).setOnClickListener {
-            val ok = TemiController.requestSeqPerm_ActivityList(this)
-            Toast.makeText(this, "Req Act+List -> $ok", Toast.LENGTH_SHORT).show()
-        }
-        findViewById<android.view.View>(R.id.btnReqArrayCode).setOnClickListener {
-            val ok = TemiController.requestSeqPerm_ArrayWithCode()
-            Toast.makeText(this, "Req Array+Code -> $ok", Toast.LENGTH_SHORT).show()
-        }
-        findViewById<android.view.View>(R.id.btnReqActArrayCode).setOnClickListener {
-            val ok = TemiController.requestSeqPerm_ActivityArrayWithCode(this)
-            Toast.makeText(this, "Req Act+Array+Code -> $ok", Toast.LENGTH_SHORT).show()
-        }
-        findViewById<android.view.View>(R.id.btnSeqList).setOnClickListener {
-            val names = TemiController.listSequenceNames()
-            val text = if (names.isEmpty()) "Sin sequences o sin permiso" else names.joinToString()
-            Toast.makeText(this, text, Toast.LENGTH_LONG).show()
-            if (text.isNotBlank()) TemiController.speak(text)
-        }
+        // Se removieron acciones de botones de permisos y secuencias
     }
 
     private fun ensureCameraAndScan() {
