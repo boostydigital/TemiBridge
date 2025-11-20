@@ -81,7 +81,6 @@ class MainActivity : AppCompatActivity() {
                 .start()
         }
     }
-
     private val requestCameraPermission =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
             if (granted) startQrScan() else Toast.makeText(this, "Se requiere cÃ¡mara para escanear.", Toast.LENGTH_SHORT).show()
@@ -92,54 +91,74 @@ class MainActivity : AppCompatActivity() {
         setContentView(R.layout.activity_main)
         Log.d("TemiBridge", "MainActivity.onCreate - setContentView OK")
 
-        // Load background image with dark overlay via Coil
-        val bg = findViewById<ImageView>(R.id.bgImage)
-        bg.load("https://cdn.prod.website-files.com/6892254c55b94994927b7f75/68b5ad5d069da781c2a4e992_GastroBarRD.jpg") {
-            crossfade(true)
-            placeholder(android.R.color.black)
-            error(android.R.color.darker_gray)
-        }
+        // Referencias a vistas
+        val btnScan = findViewById<View>(R.id.btnScan)
+        val logoSpatium = findViewById<ImageView>(R.id.logoSpatium)
+        val qrIconCenter = findViewById<ImageView>(R.id.qrIconCenter)
+        val mainText = findViewById<android.widget.TextView>(R.id.mainText)
+        val scanFrame = findViewById<View>(R.id.scanFrame)
+        val scanLine = findViewById<View>(R.id.scanLine)
+        val scanStatus = findViewById<android.widget.TextView>(R.id.scanStatus)
 
-        // Load Spatium logo in header
-        val headerLogo = findViewById<ImageView>(R.id.logo)
-        headerLogo.load("https://cdn.prod.website-files.com/6892254c55b94994927b7f75/68938a95d4da97a6a402f2bd_Spatium-logo-vertical.avif") {
+        // Cargar logo de Spatium 10 Aniversario
+        // NOTA: Reemplazar esta URL con la ubicación real del logo
+        // Por ahora, usar un placeholder o la imagen local si está disponible
+        logoSpatium.load("https://cdn.prod.website-files.com/6892254c55b94994927b7f75/68938a95d4da97a6a402f2bd_Spatium-logo-vertical.avif") {
             crossfade(true)
             placeholder(android.R.color.transparent)
             error(android.R.color.transparent)
         }
-        // AnimaciÃ³n de entrada del logo (fade + scale)
-        headerLogo.alpha = 0f
-        headerLogo.scaleX = 0.85f
-        headerLogo.scaleY = 0.85f
-        headerLogo.animate()
+
+        // Animación de entrada del logo
+        logoSpatium.alpha = 0f
+        logoSpatium.translationY = -20f
+        logoSpatium.animate()
+            .alpha(1f)
+            .translationY(0f)
+            .setDuration(900)
+            .setInterpolator(DecelerateInterpolator())
+            .start()
+
+        // Animación de entrada elegante para elementos centrales
+        qrIconCenter.alpha = 0f
+        qrIconCenter.scaleX = 0.5f
+        qrIconCenter.scaleY = 0.5f
+        qrIconCenter.animate()
             .alpha(1f)
             .scaleX(1f)
             .scaleY(1f)
-            .setDuration(650)
-            .setInterpolator(AccelerateDecelerateInterpolator())
+            .setStartDelay(200)
+            .setDuration(800)
+            .setInterpolator(DecelerateInterpolator())
             .start()
 
-        // ConfirmaciÃ³n visual de depuraciÃ³n
-        Toast.makeText(this, "MainActivity cargada", Toast.LENGTH_SHORT).show()
+        mainText.alpha = 0f
+        mainText.translationY = 30f
+        mainText.animate()
+            .alpha(1f)
+            .translationY(0f)
+            .setStartDelay(400)
+            .setDuration(700)
+            .setInterpolator(DecelerateInterpolator())
+            .start()
 
-        // Animar tarjetas (entrada con fade + slide + scale)
-        val cardScan = findViewById<View>(R.id.btnScan)
-        val cardTour = findViewById<View>(R.id.btnTour)
-        animateCardIn(cardScan, delay = 50L)
-        animateCardIn(cardTour, delay = 180L)
+        // Animación sutil de pulsación en el botón QR del header
+        animateQrButtonPulse(btnScan)
 
-        // Efecto Ken Burns sutil al fondo
-        startKenBurns(bg)
-
-        findViewById<android.view.View>(R.id.btnScan).setOnClickListener {
+        // Click en botón QR del header
+        btnScan.setOnClickListener {
             Log.d("TemiBridge", "btnScan clicked")
+            showScanningAnimation(scanFrame, scanLine, scanStatus)
             ensureCameraAndScan()
         }
+
+        // Mantener compatibilidad con botón tour (oculto)
         findViewById<android.view.View>(R.id.btnTour).setOnClickListener {
             Log.d("TemiBridge", "btnTour clicked")
             startTour("Spatium_Visita")
         }
-        // Se removieron acciones de botones de permisos y secuencias
+
+        Toast.makeText(this, "TemiBridge cargado", Toast.LENGTH_SHORT).show()
     }
 
     private fun ensureCameraAndScan() {
@@ -172,6 +191,7 @@ class MainActivity : AppCompatActivity() {
                             val place = decodeParam(uri.getQueryParameter("place")).trim()
                             val recepcion = decodeParam(uri.getQueryParameter("recepcion"))
                             val telefono = decodeParam(uri.getQueryParameter("telefono"))
+                            showSuccessAnimation()
                             if (text.isNotBlank()) TemiController.speak(text)
                             if (place.isNotBlank()) TemiController.goTo(place)
                             postWebhookAndMaybeOpen(recepcion, telefono)
@@ -181,7 +201,12 @@ class MainActivity : AppCompatActivity() {
                             val text = decodeParam(uri.getQueryParameter("text")).trim()
                             val recepcion = decodeParam(uri.getQueryParameter("recepcion"))
                             val telefono = decodeParam(uri.getQueryParameter("telefono"))
-                            if (text.isNotBlank()) TemiController.speak(text) else Toast.makeText(this, "QR invÃ¡lido: falta text", Toast.LENGTH_LONG).show()
+                            if (text.isNotBlank()) {
+                                showSuccessAnimation()
+                                TemiController.speak(text)
+                            } else {
+                                Toast.makeText(this, "QR inválido: falta text", Toast.LENGTH_LONG).show()
+                            }
                             postWebhookAndMaybeOpen(recepcion, telefono)
                             return
                         }
@@ -191,14 +216,15 @@ class MainActivity : AppCompatActivity() {
                             val telefono = decodeParam(uri.getQueryParameter("telefono"))
                             val recBool = recepcion.equals("true", ignoreCase = true)
                             if (place.isNotBlank()) {
-                                // Si NO es recepciÃ³n, al llegar anuncia y luego va a "entrada" tras 10s
+                                showSuccessAnimation()
+                                // Si NO es recepción, al llegar anuncia y luego va a "entrada" tras 10s
                                 if (!recBool) {
                                     Log.d("TemiBridge", "[GO] recepcion=false: programando arrival callback para place=$place")
                                     TemiController.setArrivalCallbackOnce {
-                                        // Garantizar ejecuciÃ³n en hilo principal
+                                        // Garantizar ejecución en hilo principal
                                         Handler(Looper.getMainLooper()).post {
                                             Log.d("TemiBridge", "[GO] arrival callback ejecutado: anunciando llegada y preparando retorno a entrada")
-                                            TemiController.speak("Hemos llegado a tu destino, tu anfitriÃ³n te atenderÃ¡. Gracias")
+                                            TemiController.speak("Hemos llegado a tu destino, tu anfitrión te atenderá. Gracias")
                                             Handler(Looper.getMainLooper()).postDelayed({
                                                 Log.d("TemiBridge", "[GO] 10s transcurridos: ejecutando goTo('entrada')")
                                                 TemiController.goTo("entrada")
@@ -209,7 +235,9 @@ class MainActivity : AppCompatActivity() {
                                 // Volver al comportamiento anterior: navegar al lugar usando goTo
                                 Log.d("TemiBridge", "[GO] Llamando goTo(place=$place) recBool=$recBool")
                                 TemiController.goTo(place)
-                            } else Toast.makeText(this, "QR invÃ¡lido: falta place", Toast.LENGTH_LONG).show()
+                            } else {
+                                Toast.makeText(this, "QR inválido: falta place", Toast.LENGTH_LONG).show()
+                            }
                             postWebhookAndMaybeOpen(recepcion, telefono)
                             return
                         }
@@ -219,14 +247,32 @@ class MainActivity : AppCompatActivity() {
                             val recepcion = decodeParam(uri.getQueryParameter("recepcion"))
                             val telefono = decodeParam(uri.getQueryParameter("telefono"))
                             val identifier = if (name.isNotBlank()) name else tourId
-                            if (identifier.isNotBlank()) startTour(identifier) else Toast.makeText(this, "QR invÃ¡lido: falta name o tourId", Toast.LENGTH_LONG).show()
+                            if (identifier.isNotBlank()) {
+                                showSuccessAnimation()
+                                startTour(identifier)
+                            } else {
+                                Toast.makeText(this, "QR inválido: falta name o tourId", Toast.LENGTH_LONG).show()
+                            }
+                            postWebhookAndMaybeOpen(recepcion, telefono)
+                            return
+                        }
+                        "sequence" -> {
+                            val name = decodeParam(uri.getQueryParameter("name")).trim()
+                            val recepcion = decodeParam(uri.getQueryParameter("recepcion"))
+                            val telefono = decodeParam(uri.getQueryParameter("telefono"))
+                            if (name.isNotBlank()) {
+                                showSuccessAnimation()
+                                executeSequence(name)
+                            } else {
+                                Toast.makeText(this, "QR inválido: falta nombre de secuencia", Toast.LENGTH_LONG).show()
+                            }
                             postWebhookAndMaybeOpen(recepcion, telefono)
                             return
                         }
                     }
                 }
             }
-            Toast.makeText(this, "QR invÃ¡lido. Deep link no reconocido", Toast.LENGTH_LONG).show()
+            Toast.makeText(this, "QR inválido. Deep link no reconocido", Toast.LENGTH_LONG).show()
             return
         }
 
@@ -302,5 +348,178 @@ class MainActivity : AppCompatActivity() {
             TemiController.startDefaultNlu(identifier)
             TemiController.speak("Iniciando tour $identifier")
         }
+    }
+
+    /**
+     * Ejecuta una secuencia del robot Temi por nombre
+     */
+    private fun executeSequence(sequenceName: String) {
+        Log.d("TemiBridge", "Ejecutando secuencia: $sequenceName")
+        
+        // Verificar si tiene permiso de secuencias
+        if (!TemiController.isSequencePermissionGranted()) {
+            Log.w("TemiBridge", "Permiso de secuencias no concedido, solicitando...")
+            val granted = TemiController.requestSequencePermission(this)
+            if (granted) {
+                TemiController.speak("Por favor, acepta el permiso de secuencias y vuelve a escanear el código")
+            } else {
+                TemiController.speak("No se pudo solicitar el permiso de secuencias")
+            }
+            return
+        }
+
+        // Ejecutar la secuencia
+        val success = TemiController.playSequenceByName(sequenceName)
+        if (success) {
+            TemiController.speak("Ejecutando secuencia $sequenceName")
+            Log.d("TemiBridge", "Secuencia $sequenceName iniciada correctamente")
+        } else {
+            TemiController.speak("No se encontró la secuencia $sequenceName")
+            Log.w("TemiBridge", "Secuencia $sequenceName no encontrada")
+        }
+    }
+
+    /**
+     * Muestra animación de éxito cuando se escanea un QR válido
+     */
+    private fun showSuccessAnimation() {
+        val qrIconCenter = findViewById<ImageView>(R.id.qrIconCenter)
+        val mainText = findViewById<android.widget.TextView>(R.id.mainText)
+
+        // Animación de pulso en el icono central
+        qrIconCenter.animate()
+            .scaleX(1.2f)
+            .scaleY(1.2f)
+            .setDuration(200)
+            .withEndAction {
+                qrIconCenter.animate()
+                    .scaleX(1.0f)
+                    .scaleY(1.0f)
+                    .setDuration(200)
+                    .start()
+            }
+            .start()
+
+        // Cambiar temporalmente el texto
+        val originalText = mainText.text
+        mainText.text = "✓ QR Escaneado"
+        mainText.setTextColor(getColor(R.color.gold_light))
+
+        // Restaurar después de 2 segundos
+        Handler(Looper.getMainLooper()).postDelayed({
+            mainText.text = originalText
+            mainText.setTextColor(getColor(R.color.gold))
+        }, 2000)
+    }
+
+    /**
+     * Animación de pulsación sutil en el botón QR del header
+     * Efecto de "respiración" para llamar la atención
+     */
+    private fun animateQrButtonPulse(button: View) {
+        button.post {
+            button.animate()
+                .scaleX(1.1f)
+                .scaleY(1.1f)
+                .setDuration(1200)
+                .setInterpolator(AccelerateDecelerateInterpolator())
+                .withEndAction {
+                    button.animate()
+                        .scaleX(1.0f)
+                        .scaleY(1.0f)
+                        .setDuration(1200)
+                        .setInterpolator(AccelerateDecelerateInterpolator())
+                        .withEndAction {
+                            // Repetir la animación después de una pausa
+                            Handler(Looper.getMainLooper()).postDelayed({
+                                animateQrButtonPulse(button)
+                            }, 2000)
+                        }
+                        .start()
+                }
+                .start()
+        }
+    }
+
+    /**
+     * Muestra el marco de escaneo con animación de línea que se mueve de arriba a abajo
+     * Simula el efecto de escaneo de un lector QR
+     */
+    private fun showScanningAnimation(scanFrame: View, scanLine: View, scanStatus: android.widget.TextView) {
+        // Hacer visible el marco de escaneo
+        scanFrame.visibility = View.VISIBLE
+        scanFrame.alpha = 0f
+        scanFrame.scaleX = 0.8f
+        scanFrame.scaleY = 0.8f
+        
+        scanFrame.animate()
+            .alpha(1f)
+            .scaleX(1f)
+            .scaleY(1f)
+            .setDuration(400)
+            .setInterpolator(DecelerateInterpolator())
+            .withEndAction {
+                // Iniciar animación de la línea de escaneo
+                animateScanLine(scanLine, scanFrame.height)
+            }
+            .start()
+
+        // Mostrar texto de estado
+        scanStatus.visibility = View.VISIBLE
+        scanStatus.text = "Escaneando..."
+        scanStatus.alpha = 0f
+        scanStatus.animate()
+            .alpha(1f)
+            .setDuration(300)
+            .start()
+
+        // Ocultar después del escaneo (simulado)
+        Handler(Looper.getMainLooper()).postDelayed({
+            hideScanningAnimation(scanFrame, scanLine, scanStatus)
+        }, 3000)
+    }
+
+    /**
+     * Anima la línea de escaneo moviéndola de arriba a abajo repetidamente
+     */
+    private fun animateScanLine(scanLine: View, frameHeight: Int) {
+        scanLine.translationY = 0f
+        scanLine.animate()
+            .translationY(frameHeight.toFloat() - 32f) // Restar padding
+            .setDuration(1500)
+            .setInterpolator(AccelerateDecelerateInterpolator())
+            .withEndAction {
+                // Volver al inicio y repetir
+                scanLine.translationY = 0f
+                scanLine.animate()
+                    .translationY(frameHeight.toFloat() - 32f)
+                    .setDuration(1500)
+                    .setInterpolator(AccelerateDecelerateInterpolator())
+                    .start()
+            }
+            .start()
+    }
+
+    /**
+     * Oculta el marco de escaneo con animación
+     */
+    private fun hideScanningAnimation(scanFrame: View, scanLine: View, scanStatus: android.widget.TextView) {
+        scanFrame.animate()
+            .alpha(0f)
+            .scaleX(0.8f)
+            .scaleY(0.8f)
+            .setDuration(300)
+            .withEndAction {
+                scanFrame.visibility = View.GONE
+            }
+            .start()
+
+        scanStatus.animate()
+            .alpha(0f)
+            .setDuration(200)
+            .withEndAction {
+                scanStatus.visibility = View.GONE
+            }
+            .start()
     }
 }

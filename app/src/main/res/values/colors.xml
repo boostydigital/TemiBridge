@@ -7,4 +7,14 @@
     <color name="teal_700">#FF018786</color>
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
+    
+    <!-- Elegant Dark Theme Colors -->
+    <color name="dark_navy">#0F1B2E</color>
+    <color name="dark_navy_light">#1A2942</color>
+    <color name="gold">#D4AF37</color>
+    <color name="gold_light">#E8C468</color>
+    <color name="gold_dark">#B8941F</color>
+    <color name="white_80">#CCFFFFFF</color>
+    <color name="white_60">#99FFFFFF</color>
+    <color name="scan_frame_gold">#D4AF37</color>
 </resources>

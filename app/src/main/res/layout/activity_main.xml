@@ -3,313 +3,144 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
-    android:layout_height="match_parent">
+    android:layout_height="match_parent"
+    android:background="@color/dark_navy">
 
-    <!-- Background image -->
-    <ImageView
-        android:id="@+id/bgImage"
+    <!-- Header con botón QR -->
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/header"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:padding="16dp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent">
+
+        <!-- Logo Spatium 10 Aniversario centrado -->
+        <ImageView
+            android:id="@+id/logoSpatium"
+            android:layout_width="0dp"
+            android:layout_height="80dp"
+            android:layout_marginStart="80dp"
+            android:layout_marginEnd="80dp"
+            android:scaleType="fitCenter"
+            android:contentDescription="Spatium 10 Aniversario"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+
+        <!-- Botón QR en esquina superior derecha -->
+        <FrameLayout
+            android:id="@+id/btnScan"
+            android:layout_width="64dp"
+            android:layout_height="64dp"
+            android:background="@drawable/qr_button_background"
+            android:clickable="true"
+            android:focusable="true"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="parent">
+
+            <ImageView
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:layout_gravity="center"
+                android:src="@drawable/qr_icon_gold"
+                android:contentDescription="Escanear QR" />
+        </FrameLayout>
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+    <!-- Contenedor central con icono, texto y marco de escaneo -->
+    <LinearLayout
+        android:id="@+id/centerContent"
         android:layout_width="0dp"
         android:layout_height="0dp"
-        android:scaleType="centerCrop"
+        android:gravity="center"
+        android:orientation="vertical"
+        android:padding="32dp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
+        app:layout_constraintTop_toBottomOf="@+id/header">
 
-    <!-- Dark overlay -->
-    <View
-        android:id="@+id/overlay"
-        android:layout_width="0dp"
-        android:layout_height="0dp"
-        android:background="#B3000000"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
+        <!-- Icono QR central grande -->
+        <ImageView
+            android:id="@+id/qrIconCenter"
+            android:layout_width="120dp"
+            android:layout_height="120dp"
+            android:src="@drawable/qr_icon_gold"
+            android:contentDescription="QR Code Icon"
+            android:layout_marginBottom="32dp" />
 
-    <!-- Logo -->
-    <ImageView
-        android:id="@+id/logo"
-        android:layout_width="wrap_content"
-        android:layout_height="140dp"
-        android:layout_marginTop="24dp"
-        android:background="@android:color/transparent"
-        android:src="@mipmap/ic_launcher"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
+        <!-- Texto principal elegante -->
+        <TextView
+            android:id="@+id/mainText"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Escanee el QR para\nver la información\ndel evento"
+            android:textColor="@color/gold"
+            android:textSize="32sp"
+            android:textStyle="normal"
+            android:fontFamily="serif"
+            android:gravity="center"
+            android:lineSpacingExtra="4dp"
+            android:layout_marginBottom="48dp" />
 
-    <!-- Cards container in a scroll view to guarantee visibility on all screens -->
-    <androidx.core.widget.NestedScrollView
-        android:id="@+id/scroll"
-        android:layout_width="0dp"
-        android:layout_height="0dp"
-        android:layout_marginBottom="16dp"
-        android:layout_marginTop="16dp"
-        android:fillViewport="true"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/logo">
+        <!-- Marco de escaneo dorado -->
+        <FrameLayout
+            android:id="@+id/scanFrame"
+            android:layout_width="280dp"
+            android:layout_height="280dp"
+            android:background="@drawable/qr_scan_frame"
+            android:visibility="gone">
+
+            <!-- Línea de escaneo animada -->
+            <View
+                android:id="@+id/scanLine"
+                android:layout_width="match_parent"
+                android:layout_height="3dp"
+                android:background="@color/gold"
+                android:layout_marginStart="16dp"
+                android:layout_marginEnd="16dp"
+                android:alpha="0.8" />
+        </FrameLayout>
+
+        <!-- Texto de estado de escaneo -->
+        <TextView
+            android:id="@+id/scanStatus"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text=""
+            android:textColor="@color/white_80"
+            android:textSize="16sp"
+            android:layout_marginTop="24dp"
+            android:visibility="gone" />
+
+        <!-- Botón Tour (oculto por defecto, se mantiene para compatibilidad) -->
+        <LinearLayout
+            android:id="@+id/btnTour"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:visibility="gone"
+            android:orientation="vertical" />
+
+        <!-- Botones de prueba ocultos -->
+        <LinearLayout
+            android:id="@+id/btnSeqPlay"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:visibility="gone" />
 
         <LinearLayout
-            android:id="@+id/cardsContainer"
-            android:layout_width="match_parent"
+            android:id="@+id/btnSeqTest"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:padding="16dp">
+            android:visibility="gone" />
 
-            <!-- Card: Scan QR -->
-            <androidx.constraintlayout.widget.ConstraintLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginBottom="16dp">
+        <LinearLayout
+            android:id="@+id/permPanel"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:visibility="gone" />
 
-                <LinearLayout
-                    android:id="@+id/btnScan"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:background="@drawable/rounded_dark_card"
-                    android:elevation="6dp"
-                    android:gravity="center"
-                    android:minHeight="160dp"
-                    android:orientation="vertical"
-                    android:padding="20dp"
-                    app:layout_constraintEnd_toEndOf="parent"
-                    app:layout_constraintStart_toStartOf="parent"
-                    app:layout_constraintTop_toTopOf="parent"
-                    app:layout_constraintWidth_max="600dp">
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="Escanear QR"
-                        android:textColor="@android:color/white"
-                        android:textSize="20sp"
-                        android:textStyle="bold" />
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="6dp"
-                        android:text="Apunta la cámara al código"
-                        android:textColor="#D0FFFFFF"
-                        android:textSize="14sp" />
-                </LinearLayout>
-            </androidx.constraintlayout.widget.ConstraintLayout>
-
-            <!-- Card: Tour -->
-            <androidx.constraintlayout.widget.ConstraintLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content">
-
-                <LinearLayout
-                    android:id="@+id/btnTour"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:background="@drawable/rounded_gradient_tour"
-                    android:elevation="6dp"
-                    android:gravity="center"
-                    android:minHeight="160dp"
-                    android:orientation="vertical"
-                    android:padding="20dp"
-                    app:layout_constraintEnd_toEndOf="parent"
-                    app:layout_constraintStart_toStartOf="parent"
-                    app:layout_constraintTop_toTopOf="parent"
-                    app:layout_constraintWidth_max="600dp">
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="Iniciar un Tour en Spatium"
-                        android:textColor="@android:color/white"
-                        android:textSize="20sp"
-                        android:textStyle="bold" />
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="6dp"
-                        android:text="Explora la experiencia"
-                        android:textColor="#D0FFFFFF"
-                        android:textSize="14sp" />
-                </LinearLayout>
-            </androidx.constraintlayout.widget.ConstraintLayout>
-
-            <!-- Card: Probar Sequence (sequence-play) -->
-            <androidx.constraintlayout.widget.ConstraintLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="16dp">
-
-                <LinearLayout
-                    android:id="@+id/btnSeqPlay"
-                    android:visibility="gone"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:background="@drawable/rounded_dark_card"
-                    android:elevation="6dp"
-                    android:gravity="center"
-                    android:minHeight="160dp"
-                    android:orientation="vertical"
-                    android:padding="20dp"
-                    app:layout_constraintEnd_toEndOf="parent"
-                    app:layout_constraintStart_toStartOf="parent"
-                    app:layout_constraintTop_toTopOf="parent"
-                    app:layout_constraintWidth_max="600dp">
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="Pedir cafe, agua o te"
-                        android:textColor="@android:color/white"
-                        android:textSize="20sp"
-                        android:textStyle="bold" />
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="6dp"
-                        android:text="Abrir página de pedidos"
-                        android:textColor="#D0FFFFFF"
-                        android:textSize="14sp" />
-                </LinearLayout>
-            </androidx.constraintlayout.widget.ConstraintLayout>
-
-            <!-- Card: Test Sequence by ID -->
-            <androidx.constraintlayout.widget.ConstraintLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="16dp">
-
-                <LinearLayout
-                    android:id="@+id/btnSeqTest"
-                    android:visibility="gone"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:background="@drawable/rounded_dark_card"
-                    android:elevation="6dp"
-                    android:gravity="center"
-                    android:minHeight="160dp"
-                    android:orientation="vertical"
-                    android:padding="20dp"
-                    app:layout_constraintEnd_toEndOf="parent"
-                    app:layout_constraintStart_toStartOf="parent"
-                    app:layout_constraintTop_toTopOf="parent"
-                    app:layout_constraintWidth_max="600dp">
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="Probar Secuencia Temi"
-                        android:textColor="@android:color/white"
-                        android:textSize="20sp"
-                        android:textStyle="bold" />
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="6dp"
-                        android:text="ID: 68d1859a217743075f4f9a44"
-                        android:textColor="#D0FFFFFF"
-                        android:textSize="14sp" />
-                </LinearLayout>
-            </androidx.constraintlayout.widget.ConstraintLayout>
-
-            <!-- Card: Permisos Temi (Sequences) - Pruebas -->
-            <androidx.constraintlayout.widget.ConstraintLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="16dp">
-
-                <LinearLayout
-                    android:id="@+id/permPanel"
-                    android:visibility="gone"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:background="@drawable/rounded_dark_card"
-                    android:elevation="6dp"
-                    android:gravity="center"
-                    android:orientation="vertical"
-                    android:padding="16dp"
-                    app:layout_constraintEnd_toEndOf="parent"
-                    app:layout_constraintStart_toStartOf="parent"
-                    app:layout_constraintTop_toTopOf="parent"
-                    app:layout_constraintWidth_max="600dp">
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="Permisos Temi (Sequences)"
-                        android:textColor="@android:color/white"
-                        android:textSize="18sp"
-                        android:textStyle="bold"
-                        android:layout_marginBottom="8dp" />
-
-                    <Button
-                        android:id="@+id/btnCheckPermDirect"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:text="Check (direct)" />
-
-                    <Button
-                        android:id="@+id/btnCheckPermCompat"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:text="Check (compat)"
-                        android:layout_marginTop="6dp" />
-
-                    <Button
-                        android:id="@+id/btnReqListCode"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:text="Request List+Code"
-                        android:layout_marginTop="12dp" />
-
-                    <Button
-                        android:id="@+id/btnReqList"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:text="Request List"
-                        android:layout_marginTop="6dp" />
-
-                    <Button
-                        android:id="@+id/btnReqActListCode"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:text="Request Activity+List+Code"
-                        android:layout_marginTop="12dp" />
-
-                    <Button
-                        android:id="@+id/btnReqActList"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:text="Request Activity+List"
-                        android:layout_marginTop="6dp" />
-
-                    <Button
-                        android:id="@+id/btnReqArrayCode"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:text="Request Array+Code"
-                        android:layout_marginTop="12dp" />
-
-                    <Button
-                        android:id="@+id/btnReqActArrayCode"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:text="Request Activity+Array+Code"
-                        android:layout_marginTop="6dp" />
-
-                    <Button
-                        android:id="@+id/btnSeqList"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:text="Listar sequences (hablar)"
-                        android:layout_marginTop="12dp" />
-
-                </LinearLayout>
-            </androidx.constraintlayout.widget.ConstraintLayout>
-        </LinearLayout>
-    </androidx.core.widget.NestedScrollView>
+    </LinearLayout>
 </androidx.constraintlayout.widget.ConstraintLayout>
