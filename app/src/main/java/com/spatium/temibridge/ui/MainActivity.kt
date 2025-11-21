@@ -1,6 +1,7 @@
 ﻿package com.spatium.temibridge.ui
 
 import android.Manifest
+import android.app.Activity
 import android.content.pm.PackageManager
 import android.content.Intent
 import android.net.Uri
@@ -20,11 +21,17 @@ import java.nio.charset.StandardCharsets
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
-import androidx.core.content.ContextCompat
 import coil.load
-import com.journeyapps.barcodescanner.ScanContract
-import com.journeyapps.barcodescanner.ScanOptions
+import androidx.camera.core.*
+import androidx.camera.lifecycle.ProcessCameraProvider
+import androidx.camera.view.PreviewView
+import androidx.core.content.ContextCompat
+import com.google.mlkit.vision.barcode.BarcodeScanning
+import com.google.mlkit.vision.barcode.common.Barcode
+import com.google.mlkit.vision.common.InputImage
 import com.spatium.temibridge.R
+import java.util.concurrent.ExecutorService
+import java.util.concurrent.Executors
 import com.spatium.temibridge.core.TemiController
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
@@ -33,13 +40,11 @@ import okhttp3.RequestBody.Companion.toRequestBody
 
 class MainActivity : AppCompatActivity() {
 
-    private val qrLauncher = registerForActivityResult(ScanContract()) { result ->
-        if (result.contents != null) {
-            handleQrContent(result.contents!!)
-        } else {
-            Toast.makeText(this, "Escaneo cancelado", Toast.LENGTH_SHORT).show()
-        }
-    }
+    private lateinit var previewView: PreviewView
+    private lateinit var cameraExecutor: ExecutorService
+    private var camera: Camera? = null
+    private var lastScanTime = 0L
+    private val SCAN_COOLDOWN_MS = 3000L // 3 segundos entre escaneos
 
     private fun animateCardIn(view: View, delay: Long) {
         view.alpha = 0f
@@ -83,7 +88,11 @@ class MainActivity : AppCompatActivity() {
     }
     private val requestCameraPermission =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
-            if (granted) startQrScan() else Toast.makeText(this, "Se requiere cÃ¡mara para escanear.", Toast.LENGTH_SHORT).show()
+            if (granted) {
+                startContinuousScanning()
+            } else {
+                Toast.makeText(this, "Se requiere cámara para escanear QR codes.", Toast.LENGTH_LONG).show()
+            }
         }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -92,64 +101,67 @@ class MainActivity : AppCompatActivity() {
         Log.d("TemiBridge", "MainActivity.onCreate - setContentView OK")
 
         // Referencias a vistas
-        val btnScan = findViewById<View>(R.id.btnScan)
+        previewView = findViewById(R.id.previewView)
+        val cameraContainer = findViewById<View>(R.id.cameraContainer)
         val logoSpatium = findViewById<ImageView>(R.id.logoSpatium)
-        val qrIconCenter = findViewById<ImageView>(R.id.qrIconCenter)
         val mainText = findViewById<android.widget.TextView>(R.id.mainText)
-        val scanFrame = findViewById<View>(R.id.scanFrame)
-        val scanLine = findViewById<View>(R.id.scanLine)
-        val scanStatus = findViewById<android.widget.TextView>(R.id.scanStatus)
+        
+        // Inicializar executor para cámara
+        cameraExecutor = Executors.newSingleThreadExecutor()
+        
+        Log.d("TemiBridge", "[DEBUG] CameraX + ML Kit inicializado")
 
-        // Cargar logo de Spatium 10 Aniversario
-        // NOTA: Reemplazar esta URL con la ubicación real del logo
-        // Por ahora, usar un placeholder o la imagen local si está disponible
-        logoSpatium.load("https://cdn.prod.website-files.com/6892254c55b94994927b7f75/68938a95d4da97a6a402f2bd_Spatium-logo-vertical.avif") {
-            crossfade(true)
-            placeholder(android.R.color.transparent)
-            error(android.R.color.transparent)
+        // Cargar logo de Spatium 10 Aniversario desde recursos locales
+        try {
+            logoSpatium.setImageResource(R.drawable.spatium_logo_10)
+            Log.d("TemiBridge", "Logo Spatium 10 cargado correctamente")
+        } catch (e: Exception) {
+            Log.e("TemiBridge", "Error cargando logo: ${e.message}")
+            logoSpatium.setImageResource(R.mipmap.ic_launcher)
         }
 
         // Animación de entrada del logo
         logoSpatium.alpha = 0f
-        logoSpatium.translationY = -20f
+        logoSpatium.translationY = -30f
         logoSpatium.animate()
             .alpha(1f)
             .translationY(0f)
-            .setDuration(900)
+            .setDuration(1000)
             .setInterpolator(DecelerateInterpolator())
             .start()
 
-        // Animación de entrada elegante para elementos centrales
-        qrIconCenter.alpha = 0f
-        qrIconCenter.scaleX = 0.5f
-        qrIconCenter.scaleY = 0.5f
-        qrIconCenter.animate()
+        // Animación de entrada del escáner QR
+        cameraContainer.alpha = 0f
+        cameraContainer.scaleX = 0.8f
+        cameraContainer.scaleY = 0.8f
+        cameraContainer.animate()
             .alpha(1f)
             .scaleX(1f)
             .scaleY(1f)
-            .setStartDelay(200)
+            .setStartDelay(300)
             .setDuration(800)
             .setInterpolator(DecelerateInterpolator())
             .start()
 
+        // Animación de entrada del texto principal
         mainText.alpha = 0f
-        mainText.translationY = 30f
+        mainText.translationY = 40f
         mainText.animate()
             .alpha(1f)
             .translationY(0f)
-            .setStartDelay(400)
-            .setDuration(700)
+            .setStartDelay(600)
+            .setDuration(900)
             .setInterpolator(DecelerateInterpolator())
             .start()
 
-        // Animación sutil de pulsación en el botón QR del header
-        animateQrButtonPulse(btnScan)
+        // Iniciar cámara con CameraX + ML Kit
+        Handler(Looper.getMainLooper()).postDelayed({
+            ensureCameraPermissionAndStart()
+        }, 500)
 
-        // Click en botón QR del header
-        btnScan.setOnClickListener {
-            Log.d("TemiBridge", "btnScan clicked")
-            showScanningAnimation(scanFrame, scanLine, scanStatus)
-            ensureCameraAndScan()
+        // Botón fullscreen - Ahora solo hace zoom en la cámara
+        findViewById<View>(R.id.btnFullscreenScanner).setOnClickListener {
+            Toast.makeText(this, "Usando ML Kit - Cámara siempre activa", Toast.LENGTH_SHORT).show()
         }
 
         // Mantener compatibilidad con botón tour (oculto)
@@ -160,23 +172,139 @@ class MainActivity : AppCompatActivity() {
 
         Toast.makeText(this, "TemiBridge cargado", Toast.LENGTH_SHORT).show()
     }
+    
 
-    private fun ensureCameraAndScan() {
+    /**
+     * Verifica permiso de cámara e inicia el escáner
+     */
+    private fun ensureCameraPermissionAndStart() {
         val permission = Manifest.permission.CAMERA
         when {
-            ContextCompat.checkSelfPermission(this, permission) == PackageManager.PERMISSION_GRANTED -> startQrScan()
-            ActivityCompat.shouldShowRequestPermissionRationale(this, permission) -> requestCameraPermission.launch(permission)
-            else -> requestCameraPermission.launch(permission)
+            ContextCompat.checkSelfPermission(this, permission) == PackageManager.PERMISSION_GRANTED -> {
+                startContinuousScanning()
+            }
+            else -> {
+                requestCameraPermission.launch(permission)
+            }
         }
     }
 
-    private fun startQrScan() {
-        val options = ScanOptions()
-            .setDesiredBarcodeFormats(ScanOptions.QR_CODE)
-            .setPrompt("Apunta la cÃ¡mara al cÃ³digo")
-            .setBeepEnabled(false)
-            .setOrientationLocked(false)
-        qrLauncher.launch(options)
+    /**
+     * Inicia la cámara usando CameraX + ML Kit para escaneo de QR
+     */
+    private fun startContinuousScanning() {
+        val cameraProviderFuture = ProcessCameraProvider.getInstance(this)
+        
+        cameraProviderFuture.addListener({
+            try {
+                val cameraProvider = cameraProviderFuture.get()
+                
+                Log.d("TemiBridge", "[CAMERA] Cámaras disponibles:")
+                cameraProvider.availableCameraInfos.forEachIndexed { index, info ->
+                    Log.d("TemiBridge", "[CAMERA] - Cámara $index: ${info}")
+                }
+                
+                // Preview
+                val preview = Preview.Builder()
+                    .setTargetResolution(android.util.Size(640, 480))
+                    .build()
+                    .also {
+                        it.setSurfaceProvider(previewView.surfaceProvider)
+                    }
+                
+                // Image analysis para ML Kit con resolución más baja
+                val imageAnalyzer = ImageAnalysis.Builder()
+                    .setTargetResolution(android.util.Size(640, 480))
+                    .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
+                    .build()
+                    .also {
+                        it.setAnalyzer(cameraExecutor, QRCodeAnalyzer { qrContent ->
+                            val currentTime = System.currentTimeMillis()
+                            if (currentTime - lastScanTime > SCAN_COOLDOWN_MS) {
+                                lastScanTime = currentTime
+                                Log.d("TemiBridge", "[ML_KIT] QR escaneado: $qrContent")
+                                runOnUiThread {
+                                    handleQrContent(qrContent)
+                                }
+                            }
+                        })
+                    }
+                
+                // Desvincular casos de uso anteriores
+                cameraProvider.unbindAll()
+                
+                // Intentar con diferentes selectores de cámara
+                val cameraSelectors = listOf(
+                    CameraSelector.DEFAULT_BACK_CAMERA to "trasera",
+                    CameraSelector.DEFAULT_FRONT_CAMERA to "frontal"
+                )
+                
+                var cameraStarted = false
+                for ((selector, name) in cameraSelectors) {
+                    try {
+                        Log.d("TemiBridge", "[CAMERA] Intentando con cámara $name...")
+                        
+                        camera = cameraProvider.bindToLifecycle(
+                            this, selector, preview, imageAnalyzer
+                        )
+                        
+                        Log.d("TemiBridge", "[CAMERA] ========== CameraX + ML Kit iniciado (cámara $name) ==========")
+                        Toast.makeText(this, "Cámara QR activa ✓ (ML Kit - $name)", Toast.LENGTH_SHORT).show()
+                        cameraStarted = true
+                        break
+                        
+                    } catch (e: Exception) {
+                        Log.w("TemiBridge", "[CAMERA] Cámara $name no disponible: ${e.message}")
+                    }
+                }
+                
+                if (!cameraStarted) {
+                    throw Exception("No se pudo iniciar ninguna cámara")
+                }
+                
+            } catch (e: Exception) {
+                Log.e("TemiBridge", "[CAMERA] ERROR FATAL: ${e.message}", e)
+                e.printStackTrace()
+                Toast.makeText(this, "Error: ${e.message}", Toast.LENGTH_LONG).show()
+            }
+        }, ContextCompat.getMainExecutor(this))
+    }
+    
+    /**
+     * Analizador de imágenes para detectar códigos QR con ML Kit
+     */
+    private class QRCodeAnalyzer(private val onQRCodeDetected: (String) -> Unit) : ImageAnalysis.Analyzer {
+        private val scanner = BarcodeScanning.getClient()
+        
+        @androidx.camera.core.ExperimentalGetImage
+        override fun analyze(imageProxy: ImageProxy) {
+            val mediaImage = imageProxy.image
+            if (mediaImage != null) {
+                val image = InputImage.fromMediaImage(mediaImage, imageProxy.imageInfo.rotationDegrees)
+                
+                scanner.process(image)
+                    .addOnSuccessListener { barcodes ->
+                        for (barcode in barcodes) {
+                            barcode.rawValue?.let { value ->
+                                onQRCodeDetected(value)
+                            }
+                        }
+                    }
+                    .addOnFailureListener { e ->
+                        Log.e("TemiBridge", "[ML_KIT] Error: ${e.message}")
+                    }
+                    .addOnCompleteListener {
+                        imageProxy.close()
+                    }
+            } else {
+                imageProxy.close()
+            }
+        }
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        cameraExecutor.shutdown()
     }
 
     private fun handleQrContent(content: String) {
@@ -265,6 +393,27 @@ class MainActivity : AppCompatActivity() {
                                 executeSequence(name)
                             } else {
                                 Toast.makeText(this, "QR inválido: falta nombre de secuencia", Toast.LENGTH_LONG).show()
+                            }
+                            postWebhookAndMaybeOpen(recepcion, telefono)
+                            return
+                        }
+                        "escort" -> {
+                            val greeting = decodeParam(uri.getQueryParameter("greeting")).trim()
+                            val place = decodeParam(uri.getQueryParameter("place")).trim()
+                            val farewell = decodeParam(uri.getQueryParameter("farewell")).trim()
+                            val waitTimeStr = decodeParam(uri.getQueryParameter("waitTime")).trim()
+                            val returnTo = decodeParam(uri.getQueryParameter("returnTo")).trim().ifEmpty { "entrada" }
+                            val returnMessage = decodeParam(uri.getQueryParameter("returnMessage")).trim()
+                            val recepcion = decodeParam(uri.getQueryParameter("recepcion"))
+                            val telefono = decodeParam(uri.getQueryParameter("telefono"))
+                            
+                            val waitTime = waitTimeStr.toLongOrNull() ?: 10L
+                            
+                            if (place.isNotBlank()) {
+                                showSuccessAnimation()
+                                executeEscortFlow(greeting, place, farewell, waitTime, returnTo, returnMessage)
+                            } else {
+                                Toast.makeText(this, "QR inválido: falta destino (place)", Toast.LENGTH_LONG).show()
                             }
                             postWebhookAndMaybeOpen(recepcion, telefono)
                             return
@@ -380,19 +529,81 @@ class MainActivity : AppCompatActivity() {
     }
 
     /**
+     * Ejecuta el flujo completo de escort: bienvenida → navegación → despedida → retorno
+     * 
+     * @param greeting Mensaje de bienvenida personalizado
+     * @param place Waypoint de destino
+     * @param farewell Mensaje de despedida al llegar
+     * @param waitTime Tiempo de espera en segundos antes de retornar
+     * @param returnTo Waypoint de retorno
+     * @param returnMessage Mensaje opcional durante el retorno
+     */
+    private fun executeEscortFlow(
+        greeting: String,
+        place: String,
+        farewell: String,
+        waitTime: Long,
+        returnTo: String,
+        returnMessage: String
+    ) {
+        Log.d("TemiBridge", "[ESCORT] Iniciando flujo: greeting='$greeting', place='$place', farewell='$farewell', waitTime=${waitTime}s, returnTo='$returnTo'")
+        
+        // 1. BIENVENIDA - Saludo personalizado
+        if (greeting.isNotBlank()) {
+            TemiController.speak(greeting)
+            Log.d("TemiBridge", "[ESCORT] Bienvenida: $greeting")
+        }
+        
+        // 2. NAVEGACIÓN - Configurar callback para cuando llegue al destino
+        TemiController.setArrivalCallbackOnce {
+            Handler(Looper.getMainLooper()).post {
+                Log.d("TemiBridge", "[ESCORT] Llegada al destino: $place")
+                
+                // 3. DESPEDIDA - Mensaje al llegar
+                val farewellMsg = if (farewell.isNotBlank()) {
+                    farewell
+                } else {
+                    "Hemos llegado a tu destino. Disfruta del evento."
+                }
+                TemiController.speak(farewellMsg)
+                Log.d("TemiBridge", "[ESCORT] Despedida: $farewellMsg")
+                
+                // 4. RETORNO - Esperar y regresar al punto de origen
+                Handler(Looper.getMainLooper()).postDelayed({
+                    Log.d("TemiBridge", "[ESCORT] Iniciando retorno a: $returnTo")
+                    
+                    // Mensaje opcional durante el retorno
+                    if (returnMessage.isNotBlank()) {
+                        TemiController.speak(returnMessage)
+                    }
+                    
+                    // Navegar de vuelta
+                    TemiController.goTo(returnTo)
+                    Log.d("TemiBridge", "[ESCORT] Retorno ejecutado a: $returnTo")
+                    
+                }, waitTime * 1000)
+            }
+        }
+        
+        // Iniciar navegación al destino
+        TemiController.goTo(place)
+        Log.d("TemiBridge", "[ESCORT] Navegación iniciada a: $place")
+    }
+
+    /**
      * Muestra animación de éxito cuando se escanea un QR válido
      */
     private fun showSuccessAnimation() {
-        val qrIconCenter = findViewById<ImageView>(R.id.qrIconCenter)
         val mainText = findViewById<android.widget.TextView>(R.id.mainText)
-
-        // Animación de pulso en el icono central
-        qrIconCenter.animate()
-            .scaleX(1.2f)
-            .scaleY(1.2f)
+        val cameraContainer = findViewById<View>(R.id.cameraContainer)
+        
+        // Animación de pulso en el escáner
+        cameraContainer.animate()
+            .scaleX(1.15f)
+            .scaleY(1.15f)
             .setDuration(200)
             .withEndAction {
-                qrIconCenter.animate()
+                cameraContainer.animate()
                     .scaleX(1.0f)
                     .scaleY(1.0f)
                     .setDuration(200)
@@ -400,126 +611,38 @@ class MainActivity : AppCompatActivity() {
             }
             .start()
 
-        // Cambiar temporalmente el texto
+        // Cambiar temporalmente el texto con animación
         val originalText = mainText.text
-        mainText.text = "✓ QR Escaneado"
-        mainText.setTextColor(getColor(R.color.gold_light))
-
-        // Restaurar después de 2 segundos
-        Handler(Looper.getMainLooper()).postDelayed({
-            mainText.text = originalText
-            mainText.setTextColor(getColor(R.color.gold))
-        }, 2000)
-    }
-
-    /**
-     * Animación de pulsación sutil en el botón QR del header
-     * Efecto de "respiración" para llamar la atención
-     */
-    private fun animateQrButtonPulse(button: View) {
-        button.post {
-            button.animate()
-                .scaleX(1.1f)
-                .scaleY(1.1f)
-                .setDuration(1200)
-                .setInterpolator(AccelerateDecelerateInterpolator())
-                .withEndAction {
-                    button.animate()
-                        .scaleX(1.0f)
-                        .scaleY(1.0f)
-                        .setDuration(1200)
-                        .setInterpolator(AccelerateDecelerateInterpolator())
-                        .withEndAction {
-                            // Repetir la animación después de una pausa
-                            Handler(Looper.getMainLooper()).postDelayed({
-                                animateQrButtonPulse(button)
-                            }, 2000)
-                        }
-                        .start()
-                }
-                .start()
-        }
-    }
-
-    /**
-     * Muestra el marco de escaneo con animación de línea que se mueve de arriba a abajo
-     * Simula el efecto de escaneo de un lector QR
-     */
-    private fun showScanningAnimation(scanFrame: View, scanLine: View, scanStatus: android.widget.TextView) {
-        // Hacer visible el marco de escaneo
-        scanFrame.visibility = View.VISIBLE
-        scanFrame.alpha = 0f
-        scanFrame.scaleX = 0.8f
-        scanFrame.scaleY = 0.8f
-        
-        scanFrame.animate()
-            .alpha(1f)
-            .scaleX(1f)
-            .scaleY(1f)
-            .setDuration(400)
-            .setInterpolator(DecelerateInterpolator())
+        mainText.animate()
+            .scaleX(1.1f)
+            .scaleY(1.1f)
+            .setDuration(150)
             .withEndAction {
-                // Iniciar animación de la línea de escaneo
-                animateScanLine(scanLine, scanFrame.height)
-            }
-            .start()
-
-        // Mostrar texto de estado
-        scanStatus.visibility = View.VISIBLE
-        scanStatus.text = "Escaneando..."
-        scanStatus.alpha = 0f
-        scanStatus.animate()
-            .alpha(1f)
-            .setDuration(300)
-            .start()
-
-        // Ocultar después del escaneo (simulado)
-        Handler(Looper.getMainLooper()).postDelayed({
-            hideScanningAnimation(scanFrame, scanLine, scanStatus)
-        }, 3000)
-    }
-
-    /**
-     * Anima la línea de escaneo moviéndola de arriba a abajo repetidamente
-     */
-    private fun animateScanLine(scanLine: View, frameHeight: Int) {
-        scanLine.translationY = 0f
-        scanLine.animate()
-            .translationY(frameHeight.toFloat() - 32f) // Restar padding
-            .setDuration(1500)
-            .setInterpolator(AccelerateDecelerateInterpolator())
-            .withEndAction {
-                // Volver al inicio y repetir
-                scanLine.translationY = 0f
-                scanLine.animate()
-                    .translationY(frameHeight.toFloat() - 32f)
-                    .setDuration(1500)
-                    .setInterpolator(AccelerateDecelerateInterpolator())
+                mainText.text = "✓ QR Escaneado\nExitosamente"
+                mainText.setTextColor(getColor(R.color.gold_light))
+                mainText.animate()
+                    .scaleX(1.0f)
+                    .scaleY(1.0f)
+                    .setDuration(150)
                     .start()
             }
             .start()
+
+        // Restaurar después de 2 segundos
+        Handler(Looper.getMainLooper()).postDelayed({
+            mainText.animate()
+                .alpha(0.5f)
+                .setDuration(200)
+                .withEndAction {
+                    mainText.text = originalText
+                    mainText.setTextColor(getColor(R.color.gold))
+                    mainText.animate()
+                        .alpha(1f)
+                        .setDuration(200)
+                        .start()
+                }
+                .start()
+        }, 2000)
     }
 
-    /**
-     * Oculta el marco de escaneo con animación
-     */
-    private fun hideScanningAnimation(scanFrame: View, scanLine: View, scanStatus: android.widget.TextView) {
-        scanFrame.animate()
-            .alpha(0f)
-            .scaleX(0.8f)
-            .scaleY(0.8f)
-            .setDuration(300)
-            .withEndAction {
-                scanFrame.visibility = View.GONE
-            }
-            .start()
-
-        scanStatus.animate()
-            .alpha(0f)
-            .setDuration(200)
-            .withEndAction {
-                scanStatus.visibility = View.GONE
-            }
-            .start()
-    }
 }

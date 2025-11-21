@@ -6,7 +6,7 @@
     android:layout_height="match_parent"
     android:background="@color/dark_navy">
 
-    <!-- Header con botón QR -->
+    <!-- Header con logo y lector QR -->
     <androidx.constraintlayout.widget.ConstraintLayout
         android:id="@+id/header"
         android:layout_width="0dp"
@@ -20,36 +20,57 @@
         <ImageView
             android:id="@+id/logoSpatium"
             android:layout_width="0dp"
-            android:layout_height="80dp"
-            android:layout_marginStart="80dp"
-            android:layout_marginEnd="80dp"
+            android:layout_height="270dp"
+            android:layout_marginStart="300dp"
+            android:layout_marginEnd="60dp"
+            android:layout_marginTop="16dp"
             android:scaleType="fitCenter"
             android:contentDescription="Spatium 10 Aniversario"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent" />
 
-        <!-- Botón QR en esquina superior derecha -->
+        <!-- Vista de cámara QR usando CameraX + ML Kit -->
         <FrameLayout
-            android:id="@+id/btnScan"
-            android:layout_width="64dp"
-            android:layout_height="64dp"
-            android:background="@drawable/qr_button_background"
-            android:clickable="true"
-            android:focusable="true"
-            app:layout_constraintEnd_toEndOf="parent"
+            android:id="@+id/cameraContainer"
+            android:layout_width="320dp"
+            android:layout_height="320dp"
+            android:layout_marginStart="280dp"
+            android:layout_marginTop="8dp"
+            android:background="@drawable/qr_scan_frame"
+            app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent">
-
-            <ImageView
-                android:layout_width="40dp"
-                android:layout_height="40dp"
+            
+            <androidx.camera.view.PreviewView
+                android:id="@+id/previewView"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent" />
+                
+            <!-- Overlay para indicar área de escaneo -->
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="3dp"
                 android:layout_gravity="center"
-                android:src="@drawable/qr_icon_gold"
-                android:contentDescription="Escanear QR" />
+                android:background="@color/gold"
+                android:alpha="0.8" />
         </FrameLayout>
+        
+        <!-- Botón de prueba para scanner fullscreen -->
+        <com.google.android.material.floatingactionbutton.FloatingActionButton
+            android:id="@+id/btnFullscreenScanner"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginEnd="32dp"
+            android:layout_marginBottom="32dp"
+            android:src="@android:drawable/ic_menu_camera"
+            android:contentDescription="Scanner Fullscreen"
+            app:backgroundTint="@color/gold"
+            app:tint="@color/dark_navy"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent" />
     </androidx.constraintlayout.widget.ConstraintLayout>
 
-    <!-- Contenedor central con icono, texto y marco de escaneo -->
+    <!-- Contenedor central con texto y marco de escaneo -->
     <LinearLayout
         android:id="@+id/centerContent"
         android:layout_width="0dp"
@@ -62,28 +83,26 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/header">
 
-        <!-- Icono QR central grande -->
-        <ImageView
-            android:id="@+id/qrIconCenter"
-            android:layout_width="120dp"
-            android:layout_height="120dp"
-            android:src="@drawable/qr_icon_gold"
-            android:contentDescription="QR Code Icon"
-            android:layout_marginBottom="32dp" />
-
         <!-- Texto principal elegante -->
         <TextView
             android:id="@+id/mainText"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Escanee el QR para\nver la información\ndel evento"
+            android:text="Escanee el codigo QR\nde la invitacion aqui"
             android:textColor="@color/gold"
-            android:textSize="32sp"
+            android:textSize="36sp"
             android:textStyle="normal"
             android:fontFamily="serif"
             android:gravity="center"
-            android:lineSpacingExtra="4dp"
+            android:lineSpacingExtra="8dp"
             android:layout_marginBottom="48dp" />
+
+        <!-- Icono QR oculto (mantener para compatibilidad con animaciones) -->
+        <ImageView
+            android:id="@+id/qrIconCenter"
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:visibility="gone" />
 
         <!-- Marco de escaneo dorado -->
         <FrameLayout
