@@ -37,11 +37,17 @@ import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
+import nl.dionsegijn.konfetti.core.Party
+import nl.dionsegijn.konfetti.core.Position
+import nl.dionsegijn.konfetti.core.emitter.Emitter
+import nl.dionsegijn.konfetti.xml.KonfettiView
+import java.util.concurrent.TimeUnit
 
 class MainActivity : AppCompatActivity() {
 
     private lateinit var previewView: PreviewView
     private lateinit var cameraExecutor: ExecutorService
+    private lateinit var konfettiView: KonfettiView
     private var camera: Camera? = null
     private var lastScanTime = 0L
     private val SCAN_COOLDOWN_MS = 3000L // 3 segundos entre escaneos
@@ -102,6 +108,7 @@ class MainActivity : AppCompatActivity() {
 
         // Referencias a vistas
         previewView = findViewById(R.id.previewView)
+        konfettiView = findViewById(R.id.konfettiView)
         val cameraContainer = findViewById<View>(R.id.cameraContainer)
         val logoSpatium = findViewById<ImageView>(R.id.logoSpatium)
         val mainText = findViewById<android.widget.TextView>(R.id.mainText)
@@ -399,23 +406,14 @@ class MainActivity : AppCompatActivity() {
                         }
                         "escort" -> {
                             val greeting = decodeParam(uri.getQueryParameter("greeting")).trim()
-                            val place = decodeParam(uri.getQueryParameter("place")).trim()
-                            val farewell = decodeParam(uri.getQueryParameter("farewell")).trim()
-                            val waitTimeStr = decodeParam(uri.getQueryParameter("waitTime")).trim()
-                            val returnTo = decodeParam(uri.getQueryParameter("returnTo")).trim().ifEmpty { "entrada" }
-                            val returnMessage = decodeParam(uri.getQueryParameter("returnMessage")).trim()
-                            val recepcion = decodeParam(uri.getQueryParameter("recepcion"))
-                            val telefono = decodeParam(uri.getQueryParameter("telefono"))
                             
-                            val waitTime = waitTimeStr.toLongOrNull() ?: 10L
-                            
-                            if (place.isNotBlank()) {
+                            if (greeting.isNotBlank()) {
                                 showSuccessAnimation()
-                                executeEscortFlow(greeting, place, farewell, waitTime, returnTo, returnMessage)
+                                TemiController.speak(greeting)
+                                Log.d("TemiBridge", "[ESCORT] Mensaje: $greeting")
                             } else {
-                                Toast.makeText(this, "QR inválido: falta destino (place)", Toast.LENGTH_LONG).show()
+                                Toast.makeText(this, "QR inválido: falta greeting", Toast.LENGTH_LONG).show()
                             }
-                            postWebhookAndMaybeOpen(recepcion, telefono)
                             return
                         }
                     }
@@ -528,121 +526,147 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    /**
-     * Ejecuta el flujo completo de escort: bienvenida → navegación → despedida → retorno
-     * 
-     * @param greeting Mensaje de bienvenida personalizado
-     * @param place Waypoint de destino
-     * @param farewell Mensaje de despedida al llegar
-     * @param waitTime Tiempo de espera en segundos antes de retornar
-     * @param returnTo Waypoint de retorno
-     * @param returnMessage Mensaje opcional durante el retorno
-     */
-    private fun executeEscortFlow(
-        greeting: String,
-        place: String,
-        farewell: String,
-        waitTime: Long,
-        returnTo: String,
-        returnMessage: String
-    ) {
-        Log.d("TemiBridge", "[ESCORT] Iniciando flujo: greeting='$greeting', place='$place', farewell='$farewell', waitTime=${waitTime}s, returnTo='$returnTo'")
-        
-        // 1. BIENVENIDA - Saludo personalizado
-        if (greeting.isNotBlank()) {
-            TemiController.speak(greeting)
-            Log.d("TemiBridge", "[ESCORT] Bienvenida: $greeting")
-        }
-        
-        // 2. NAVEGACIÓN - Configurar callback para cuando llegue al destino
-        TemiController.setArrivalCallbackOnce {
-            Handler(Looper.getMainLooper()).post {
-                Log.d("TemiBridge", "[ESCORT] Llegada al destino: $place")
-                
-                // 3. DESPEDIDA - Mensaje al llegar
-                val farewellMsg = if (farewell.isNotBlank()) {
-                    farewell
-                } else {
-                    "Hemos llegado a tu destino. Disfruta del evento."
-                }
-                TemiController.speak(farewellMsg)
-                Log.d("TemiBridge", "[ESCORT] Despedida: $farewellMsg")
-                
-                // 4. RETORNO - Esperar y regresar al punto de origen
-                Handler(Looper.getMainLooper()).postDelayed({
-                    Log.d("TemiBridge", "[ESCORT] Iniciando retorno a: $returnTo")
-                    
-                    // Mensaje opcional durante el retorno
-                    if (returnMessage.isNotBlank()) {
-                        TemiController.speak(returnMessage)
-                    }
-                    
-                    // Navegar de vuelta
-                    TemiController.goTo(returnTo)
-                    Log.d("TemiBridge", "[ESCORT] Retorno ejecutado a: $returnTo")
-                    
-                }, waitTime * 1000)
-            }
-        }
-        
-        // Iniciar navegación al destino
-        TemiController.goTo(place)
-        Log.d("TemiBridge", "[ESCORT] Navegación iniciada a: $place")
-    }
 
     /**
-     * Muestra animación de éxito cuando se escanea un QR válido
+     * Muestra animación EXTRAVAGANTE de éxito cuando se escanea un QR válido
+     * ¡CELEBRACIÓN TOTAL CON CONFETI Y TEXTO GIGANTE!
      */
     private fun showSuccessAnimation() {
         val mainText = findViewById<android.widget.TextView>(R.id.mainText)
         val cameraContainer = findViewById<View>(R.id.cameraContainer)
         
-        // Animación de pulso en el escáner
+        Log.d("TemiBridge", "🎉 ¡INICIANDO CELEBRACIÓN EXTRAVAGANTE!")
+        
+        // ========== CONFETI EXPLOSIVO ==========
+        // Crear múltiples explosiones de confeti desde diferentes posiciones
+        val party1 = Party(
+            speed = 30f,
+            maxSpeed = 50f,
+            damping = 0.9f,
+            spread = 360,
+            colors = listOf(0xFFD4AF37.toInt(), 0xFFFFD700.toInt(), 0xFFFFA500.toInt(), 0xFFFF6B6B.toInt(), 0xFF4ECDC4.toInt()),
+            emitter = Emitter(duration = 3, TimeUnit.SECONDS).max(300),
+            position = Position.Relative(0.5, 0.3)
+        )
+        
+        val party2 = Party(
+            speed = 25f,
+            maxSpeed = 45f,
+            damping = 0.9f,
+            spread = 360,
+            colors = listOf(0xFFD4AF37.toInt(), 0xFFFFD700.toInt(), 0xFFFFA500.toInt(), 0xFF95E1D3.toInt(), 0xFFF38181.toInt()),
+            emitter = Emitter(duration = 3, TimeUnit.SECONDS).max(300),
+            position = Position.Relative(0.2, 0.5)
+        )
+        
+        val party3 = Party(
+            speed = 25f,
+            maxSpeed = 45f,
+            damping = 0.9f,
+            spread = 360,
+            colors = listOf(0xFFD4AF37.toInt(), 0xFFFFD700.toInt(), 0xFFFFA500.toInt(), 0xFFAA96DA.toInt(), 0xFFFCBAD3.toInt()),
+            emitter = Emitter(duration = 3, TimeUnit.SECONDS).max(300),
+            position = Position.Relative(0.8, 0.5)
+        )
+        
+        // ¡LANZAR CONFETI!
+        konfettiView.start(party1, party2, party3)
+        
+        // ========== ANIMACIÓN DE CÁMARA - PULSO DRAMÁTICO ==========
         cameraContainer.animate()
-            .scaleX(1.15f)
-            .scaleY(1.15f)
-            .setDuration(200)
+            .scaleX(1.3f)
+            .scaleY(1.3f)
+            .rotation(5f)
+            .setDuration(300)
+            .setInterpolator(DecelerateInterpolator())
             .withEndAction {
                 cameraContainer.animate()
                     .scaleX(1.0f)
                     .scaleY(1.0f)
-                    .setDuration(200)
+                    .rotation(0f)
+                    .setDuration(400)
+                    .setInterpolator(android.view.animation.BounceInterpolator())
                     .start()
             }
             .start()
 
-        // Cambiar temporalmente el texto con animación
+        // ========== TEXTO GIGANTE EXPANDIDO ==========
         val originalText = mainText.text
+        val originalSize = mainText.textSize
+        
+        // Fase 1: Reducir y preparar
         mainText.animate()
-            .scaleX(1.1f)
-            .scaleY(1.1f)
-            .setDuration(150)
+            .scaleX(0.5f)
+            .scaleY(0.5f)
+            .alpha(0.3f)
+            .setDuration(200)
             .withEndAction {
-                mainText.text = "✓ QR Escaneado\nExitosamente"
+                // Cambiar texto y color
+                mainText.text = "🎉 ¡FELICIDADES! 🎉\n✨ QR ESCANEADO ✨\n¡EXITOSAMENTE!"
                 mainText.setTextColor(getColor(R.color.gold_light))
+                mainText.textSize = 48f // Texto GIGANTE
+                
+                // Fase 2: EXPLOTAR hacia afuera - SUPER GRANDE
                 mainText.animate()
-                    .scaleX(1.0f)
-                    .scaleY(1.0f)
-                    .setDuration(150)
+                    .scaleX(2.5f)
+                    .scaleY(2.5f)
+                    .alpha(1f)
+                    .rotation(360f)
+                    .setDuration(600)
+                    .setInterpolator(android.view.animation.OvershootInterpolator(2f))
+                    .withEndAction {
+                        // Fase 3: Pulsar para llamar atención
+                        pulsarTexto(mainText, 0)
+                    }
                     .start()
             }
             .start()
 
-        // Restaurar después de 2 segundos
+        // ========== RESTAURAR DESPUÉS DE 4 SEGUNDOS ==========
         Handler(Looper.getMainLooper()).postDelayed({
             mainText.animate()
-                .alpha(0.5f)
-                .setDuration(200)
+                .scaleX(0.8f)
+                .scaleY(0.8f)
+                .alpha(0f)
+                .rotation(0f)
+                .setDuration(400)
                 .withEndAction {
                     mainText.text = originalText
+                    mainText.textSize = originalSize / resources.displayMetrics.scaledDensity
                     mainText.setTextColor(getColor(R.color.gold))
                     mainText.animate()
+                        .scaleX(1f)
+                        .scaleY(1f)
                         .alpha(1f)
-                        .setDuration(200)
+                        .setDuration(500)
+                        .setInterpolator(android.view.animation.BounceInterpolator())
                         .start()
                 }
                 .start()
-        }, 2000)
+        }, 4000)
+    }
+    
+    /**
+     * Hace pulsar el texto repetidamente para efecto dramático
+     */
+    private fun pulsarTexto(textView: android.widget.TextView, count: Int) {
+        if (count >= 4) return // Solo 4 pulsos
+        
+        textView.animate()
+            .scaleX(2.7f)
+            .scaleY(2.7f)
+            .setDuration(300)
+            .withEndAction {
+                textView.animate()
+                    .scaleX(2.5f)
+                    .scaleY(2.5f)
+                    .setDuration(300)
+                    .withEndAction {
+                        pulsarTexto(textView, count + 1)
+                    }
+                    .start()
+            }
+            .start()
     }
 
 }

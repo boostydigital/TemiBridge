@@ -69,6 +69,9 @@ dependencies {
     // Coroutines for background work (webhook posting, timers)
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.1")
 
+    // Confetti animation
+    implementation("nl.dionsegijn:konfetti-xml:2.0.4")
+
     // Test dependencies
     testImplementation("junit:junit:4.13.2")
     androidTestImplementation("androidx.test.ext:junit:1.2.1")

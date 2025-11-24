@@ -188,6 +188,17 @@ class IntentEntryActivity : Activity() {
                     }
                     goHome()
                 }
+                // Escort: solo reproduce el mensaje de greeting
+                "escort" -> {
+                    val greeting = decodeParam(data.getQueryParameter("greeting")).trim()
+                    if (greeting.isNotBlank()) {
+                        TemiController.speak(greeting)
+                        Log.d("TemiBridge", "[ESCORT] Mensaje: $greeting")
+                    } else {
+                        TemiController.speak("Falta el mensaje de bienvenida")
+                    }
+                    goHome()
+                }
             }
             return
         }
