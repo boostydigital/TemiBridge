@@ -20,7 +20,7 @@
 
         <!-- Declare Temi capabilities so they appear in robot permissions UI -->
         <meta-data
-            android:name="com.robotemi.sdk.metadata.PERMISSIONS"
+            android:name="@string/metadata_permissions"
             android:value="com.robotemi.permission.sequence" />
 
         <meta-data

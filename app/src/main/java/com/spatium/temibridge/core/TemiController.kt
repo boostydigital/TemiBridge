@@ -24,8 +24,10 @@ object TemiController {
     }
 
     fun setArrivalCallbackOnce(callback: () -> Unit) {
+        Log.d(TAG, "[CALLBACK] Configurando nuevo callback de llegada")
         pendingArrival = callback
         ensureGoToListener()
+        Log.d(TAG, "[CALLBACK] pendingArrival ahora está SET")
     }
 
     fun clearArrivalCallback() {
@@ -37,30 +39,48 @@ object TemiController {
         return try {
             val listenerCls = Class.forName("com.robotemi.sdk.listeners.OnGoToLocationStatusChangedListener")
             if (goToListenerProxy == null) {
+                Log.d(TAG, "[LISTENER] Registrando OnGoToLocationStatusChangedListener...")
                 goToListenerProxy = Proxy.newProxyInstance(
                     listenerCls.classLoader,
                     arrayOf(listenerCls),
                     InvocationHandler { _, method, args ->
                         try {
-                            if (method.name == "onGoToLocationStatusChanged" && args != null && args.size >= 3) {
-                                val statusStr = args[1]?.toString() ?: ""
-                                val descId = when (val v = args[2]) {
-                                    is Int -> v
-                                    is java.lang.Integer -> v.toInt()
-                                    else -> -1
-                                }
-                                val isComplete = descId == 500 || statusStr.equals("Complete", ignoreCase = true)
-                                if (isComplete) {
-                                    pendingArrival?.invoke()
-                                    pendingArrival = null
+                            // Log de TODOS los métodos que llegan al proxy
+                            Log.d(TAG, "[LISTENER] Método llamado: ${method.name}, args=${args?.contentToString()}")
+                            
+                            if (method.name == "onGoToLocationStatusChanged" && args != null && args.size >= 2) {
+                                val location = args[0]?.toString() ?: ""
+                                val statusStr = args[1]?.toString()?.uppercase() ?: ""
+                                val descId = if (args.size >= 3) {
+                                    when (val v = args[2]) {
+                                        is Int -> v
+                                        is java.lang.Integer -> v.toInt()
+                                        else -> -1
+                                    }
+                                } else -1
+                                
+                                Log.d(TAG, "[GOTO] location=$location, status=$statusStr, descId=$descId, pending=${if (pendingArrival != null) "YES" else "NO"}")
+                                
+                                // Detectar llegada: COMPLETE o descId 500
+                                // El SDK de Temi usa "COMPLETE" cuando llega al destino
+                                val isComplete = statusStr == "COMPLETE" || descId == 500
+                                
+                                if (isComplete && pendingArrival != null) {
+                                    Log.d(TAG, "[GOTO] *** LLEGADA DETECTADA *** Ejecutando arrivalCallback...")
+                                    val callback = pendingArrival
+                                    pendingArrival = null // Limpiar ANTES de ejecutar para evitar doble ejecución
+                                    callback?.invoke()
                                 }
                             }
-                        } catch (_: Throwable) {}
+                        } catch (e: Throwable) {
+                            Log.e(TAG, "[LISTENER] Error en callback: ${e.message}")
+                        }
                         null
                     }
                 )
                 val addMethod = robot.javaClass.getMethod("addOnGoToLocationStatusChangedListener", listenerCls)
                 addMethod.invoke(robot, goToListenerProxy)
+                Log.d(TAG, "[LISTENER] Listener registrado exitosamente")
             }
             true
         } catch (t: Throwable) {
@@ -250,7 +270,8 @@ object TemiController {
         try {
             val robotCls = Class.forName("com.robotemi.sdk.Robot")
             val robot = robotCls.getMethod("getInstance").invoke(null)
-            val permCls = Class.forName("com.robotemi.sdk.Permission")
+            val permCls = runCatching { Class.forName("com.robotemi.sdk.permission.Permission") }.getOrNull()
+                ?: Class.forName("com.robotemi.sdk.Permission")
             val seq = permCls.getField("SEQUENCE").get(null) as Any
             val check = runCatching { robot.javaClass.getMethod("checkSelfPermission", permCls) }.getOrNull()
                 ?: runCatching { robot.javaClass.getMethod("hasPermission", permCls) }.getOrNull()
@@ -260,7 +281,9 @@ object TemiController {
                     is java.lang.Boolean -> res.booleanValue()
                     is java.lang.Integer -> res.toInt() != 0
                     else -> {
-                        val grantStatusCls = runCatching { Class.forName("com.robotemi.sdk.Permission\$GrantStatus") }.getOrNull()
+                        val grantStatusCls =
+                            runCatching { Class.forName("com.robotemi.sdk.permission.Permission\$GrantStatus") }.getOrNull()
+                                ?: runCatching { Class.forName("com.robotemi.sdk.Permission\$GrantStatus") }.getOrNull()
                         val granted = runCatching { grantStatusCls?.getField("GRANTED")?.get(null) }.getOrNull()
                         granted != null && res == granted
                     }
@@ -288,7 +311,8 @@ object TemiController {
         try {
             val robotCls = Class.forName("com.robotemi.sdk.Robot")
             val robot = robotCls.getMethod("getInstance").invoke(null)
-            val permCls = Class.forName("com.robotemi.sdk.Permission")
+            val permCls = runCatching { Class.forName("com.robotemi.sdk.permission.Permission") }.getOrNull()
+                ?: Class.forName("com.robotemi.sdk.Permission")
             val seq = permCls.getField("SEQUENCE").get(null) as Any
             val list = java.util.ArrayList<Any>()
             list.add(seq)
@@ -306,7 +330,8 @@ object TemiController {
 
         val robot = robotInstance() ?: return false
         return try {
-            val permClass = Class.forName("com.robotemi.sdk.Permission")
+            val permClass = runCatching { Class.forName("com.robotemi.sdk.permission.Permission") }.getOrNull()
+                ?: Class.forName("com.robotemi.sdk.Permission")
             val seqValue = permClass.getField("SEQUENCE").get(null) as Any
             val list = java.util.ArrayList<Any>()
             list.add(seqValue)
@@ -339,7 +364,8 @@ object TemiController {
         val robot = robotInstance() ?: return false
         return try {
             ensurePermissionListener()
-            val permClass = Class.forName("com.robotemi.sdk.Permission")
+            val permClass = runCatching { Class.forName("com.robotemi.sdk.permission.Permission") }.getOrNull()
+                ?: Class.forName("com.robotemi.sdk.Permission")
             val seqValue = permClass.getField("SEQUENCE").get(null) as Any
             val list = java.util.ArrayList<Any>()
             list.add(seqValue)
@@ -381,14 +407,40 @@ object TemiController {
         }
     }
 
-    fun playSequenceById(sequenceId: String): Boolean {
+    fun playSequenceById(
+        sequenceId: String,
+        withPlayer: Boolean = true,
+        repeat: Int = 1,
+        startFromStep: Int = 1
+    ): Boolean {
         val robot = robotInstance() ?: return false
         return try {
-            val playSequence = robot.javaClass.getMethod("playSequence", String::class.java)
-            val result = playSequence.invoke(robot, sequenceId) as? Int
-            val ok = (result == 0)
-            if (!ok) Log.w(TAG, "playSequence result: $result for id=$sequenceId")
-            ok
+            val mWithParams = runCatching {
+                robot.javaClass.getMethod(
+                    "playSequence",
+                    String::class.java,
+                    Boolean::class.javaPrimitiveType,
+                    Int::class.javaPrimitiveType,
+                    Int::class.javaPrimitiveType
+                )
+            }.getOrNull()
+
+            if (mWithParams != null) {
+                val result = mWithParams.invoke(robot, sequenceId, withPlayer, repeat, startFromStep)
+                val ok = (result as? Int)?.let { it == 0 } ?: true
+                if (!ok) {
+                    Log.w(TAG, "playSequence(id=$sequenceId,withPlayer=$withPlayer,repeat=$repeat,start=$startFromStep) result: $result")
+                }
+                ok
+            } else {
+                val legacy = robot.javaClass.getMethod("playSequence", String::class.java)
+                val result = legacy.invoke(robot, sequenceId) as? Int
+                val ok = (result == 0)
+                if (!ok) {
+                    Log.w(TAG, "playSequence result: $result for id=$sequenceId")
+                }
+                ok
+            }
         } catch (t: Throwable) {
             Log.w(TAG, "playSequenceById fallo: ${t.message}")
             false

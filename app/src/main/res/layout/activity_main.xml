@@ -1,176 +1,103 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<!-- Layout simplificado: imagen de fondo + solo frame de escaneo QR -->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:background="@color/dark_navy">
+    android:layout_height="match_parent">
 
-    <!-- Header con logo y lector QR -->
-    <androidx.constraintlayout.widget.ConstraintLayout
-        android:id="@+id/header"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:padding="16dp"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent">
-
-        <!-- Logo Spatium 10 Aniversario centrado -->
-        <ImageView
-            android:id="@+id/logoSpatium"
-            android:layout_width="0dp"
-            android:layout_height="270dp"
-            android:layout_marginStart="300dp"
-            android:layout_marginEnd="60dp"
-            android:layout_marginTop="16dp"
-            android:scaleType="fitCenter"
-            android:contentDescription="Spatium 10 Aniversario"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent" />
-
-        <!-- Vista de cámara QR usando CameraX + ML Kit -->
-        <FrameLayout
-            android:id="@+id/cameraContainer"
-            android:layout_width="320dp"
-            android:layout_height="320dp"
-            android:layout_marginStart="280dp"
-            android:layout_marginTop="8dp"
-            android:background="@drawable/qr_scan_frame"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent">
-            
-            <androidx.camera.view.PreviewView
-                android:id="@+id/previewView"
-                android:layout_width="match_parent"
-                android:layout_height="match_parent" />
-                
-            <!-- Overlay para indicar área de escaneo -->
-            <View
-                android:layout_width="match_parent"
-                android:layout_height="3dp"
-                android:layout_gravity="center"
-                android:background="@color/gold"
-                android:alpha="0.8" />
-        </FrameLayout>
-        
-        <!-- Botón de prueba para scanner fullscreen -->
-        <com.google.android.material.floatingactionbutton.FloatingActionButton
-            android:id="@+id/btnFullscreenScanner"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginEnd="32dp"
-            android:layout_marginBottom="32dp"
-            android:src="@android:drawable/ic_menu_camera"
-            android:contentDescription="Scanner Fullscreen"
-            app:backgroundTint="@color/gold"
-            app:tint="@color/dark_navy"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintBottom_toBottomOf="parent" />
-    </androidx.constraintlayout.widget.ConstraintLayout>
-
-    <!-- Contenedor central con texto y marco de escaneo -->
-    <LinearLayout
-        android:id="@+id/centerContent"
-        android:layout_width="0dp"
-        android:layout_height="0dp"
-        android:gravity="center"
-        android:orientation="vertical"
-        android:padding="32dp"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/header">
-
-        <!-- Texto principal elegante -->
-        <TextView
-            android:id="@+id/mainText"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Escanee el codigo QR\nde la invitacion aqui"
-            android:textColor="@color/gold"
-            android:textSize="36sp"
-            android:textStyle="normal"
-            android:fontFamily="serif"
-            android:gravity="center"
-            android:lineSpacingExtra="8dp"
-            android:layout_marginBottom="48dp" />
-
-        <!-- Icono QR oculto (mantener para compatibilidad con animaciones) -->
-        <ImageView
-            android:id="@+id/qrIconCenter"
-            android:layout_width="0dp"
-            android:layout_height="0dp"
-            android:visibility="gone" />
-
-        <!-- Marco de escaneo dorado -->
-        <FrameLayout
-            android:id="@+id/scanFrame"
-            android:layout_width="280dp"
-            android:layout_height="280dp"
-            android:background="@drawable/qr_scan_frame"
-            android:visibility="gone">
-
-            <!-- Línea de escaneo animada -->
-            <View
-                android:id="@+id/scanLine"
-                android:layout_width="match_parent"
-                android:layout_height="3dp"
-                android:background="@color/gold"
-                android:layout_marginStart="16dp"
-                android:layout_marginEnd="16dp"
-                android:alpha="0.8" />
-        </FrameLayout>
-
-        <!-- Texto de estado de escaneo -->
-        <TextView
-            android:id="@+id/scanStatus"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text=""
-            android:textColor="@color/white_80"
-            android:textSize="16sp"
-            android:layout_marginTop="24dp"
-            android:visibility="gone" />
-
-        <!-- Botón Tour (oculto por defecto, se mantiene para compatibilidad) -->
-        <LinearLayout
-            android:id="@+id/btnTour"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:visibility="gone"
-            android:orientation="vertical" />
-
-        <!-- Botones de prueba ocultos -->
-        <LinearLayout
-            android:id="@+id/btnSeqPlay"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:visibility="gone" />
-
-        <LinearLayout
-            android:id="@+id/btnSeqTest"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:visibility="gone" />
-
-        <LinearLayout
-            android:id="@+id/permPanel"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:visibility="gone" />
-
-    </LinearLayout>
-
-    <!-- Vista de confeti para celebración -->
-    <nl.dionsegijn.konfetti.xml.KonfettiView
-        android:id="@+id/konfettiView"
+    <!-- Imagen de fondo Spatium 10 Aniversario -->
+    <ImageView
+        android:id="@+id/backgroundImage"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
+        android:scaleType="centerCrop"
+        android:src="@drawable/background_qr_scan"
+        android:contentDescription="Fondo Spatium 10 Aniversario" />
 
-</androidx.constraintlayout.widget.ConstraintLayout>
+    <!-- Frame de escaneo QR posicionado en la esquina superior izquierda -->
+    <!-- Ajustado para coincidir con la posición del cuadro en la imagen -->
+    <FrameLayout
+        android:id="@+id/cameraContainer"
+        android:layout_width="400dp"
+        android:layout_height="280dp"
+        android:layout_marginStart="298dp"
+        android:layout_marginTop="32dp"
+        android:layout_gravity="top|start">
+
+        <androidx.camera.view.PreviewView
+            android:id="@+id/previewView"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent" />
+
+        <!-- Línea de escaneo animada -->
+        <View
+            android:id="@+id/scanLine"
+            android:layout_width="match_parent"
+            android:layout_height="2dp"
+            android:layout_gravity="center"
+            android:background="@color/gold"
+            android:alpha="0.9" />
+    </FrameLayout>
+
+    <!-- Elementos ocultos para compatibilidad con código existente -->
+    <ImageView
+        android:id="@+id/logoSpatium"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:visibility="gone" />
+
+    <TextView
+        android:id="@+id/mainText"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:visibility="gone" />
+
+    <View
+        android:id="@+id/btnFullscreenScanner"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:visibility="gone" />
+
+    <View
+        android:id="@+id/btnTour"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:visibility="gone" />
+
+    <View
+        android:id="@+id/qrIconCenter"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:visibility="gone" />
+
+    <View
+        android:id="@+id/scanFrame"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:visibility="gone" />
+
+    <View
+        android:id="@+id/scanStatus"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:visibility="gone" />
+
+    <View
+        android:id="@+id/btnSeqPlay"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:visibility="gone" />
+
+    <View
+        android:id="@+id/btnSeqTest"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:visibility="gone" />
+
+    <View
+        android:id="@+id/permPanel"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:visibility="gone" />
+
+</FrameLayout>

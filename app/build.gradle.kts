@@ -3,6 +3,11 @@ plugins {
     kotlin("android")
 }
 
+// API key de Google TTS se inyecta vía propiedad de Gradle (definida en gradle.properties)
+// Ejemplo en gradle.properties (NO subir a git):
+// GOOGLE_TTS_API_KEY=tu_api_key_de_google_tts
+val googleTtsApiKey: String = (project.findProperty("GOOGLE_TTS_API_KEY") as? String).orEmpty()
+
 android {
     namespace = "com.spatium.temibridge"
     compileSdk = 36
@@ -11,10 +16,13 @@ android {
         applicationId = "com.spatium.temibridge"
         minSdk = 26
         targetSdk = 36
-        versionCode = 1
-        versionName = "1.0"
+        versionCode = 5
+        versionName = "3.2"
         vectorDrawables.useSupportLibrary = true
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+        // Exponer la API key de TTS a BuildConfig para usarla en el código Kotlin
+        buildConfigField("String", "GOOGLE_TTS_API_KEY", "\"$googleTtsApiKey\"")
     }
 
     buildTypes {
@@ -68,9 +76,6 @@ dependencies {
 
     // Coroutines for background work (webhook posting, timers)
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.1")
-
-    // Confetti animation
-    implementation("nl.dionsegijn:konfetti-xml:2.0.4")
 
     // Test dependencies
     testImplementation("junit:junit:4.13.2")
