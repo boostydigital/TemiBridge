@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="200dp"
+    android:height="200dp"
+    android:viewportWidth="200"
+    android:viewportHeight="200">
+
+    <!-- Tea cup with animated steam and liquid -->
+    <group
+        android:name="cup_group"
+        android:pivotX="100"
+        android:pivotY="100">
+
+        <!-- Cup body -->
+        <path
+            android:name="cup_body"
+            android:pathData="M 50 60 L 45 160 Q 100 170 155 160 L 150 60 Z"
+            android:strokeColor="#8b4513"
+            android:strokeWidth="2"
+            android:fillColor="#c8813a"/>
+
+        <!-- Tea liquid -->
+        <path
+            android:name="tea_liquid"
+            android:pathData="M 50 100 L 48 160 Q 100 168 152 160 L 150 100 Z"
+            android:fillColor="#a0522d"/>
+
+        <!-- Cup rim -->
+        <path
+            android:name="cup_rim"
+            android:pathData="M 50 60 Q 100 52 150 60"
+            android:strokeColor="#8b4513"
+            android:strokeWidth="8"
+            android:fillColor="@android:color/transparent"
+            android:strokeLineCap="round"/>
+
+        <!-- Handle -->
+        <path
+            android:name="handle"
+            android:pathData="M 150 80 Q 180 85 175 130"
+            android:strokeColor="#8b4513"
+            android:strokeWidth="8"
+            android:fillColor="@android:color/transparent"
+            android:strokeLineCap="round"/>
+    </group>
+
+    <!-- Steam wisps (animated with scale and alpha) -->
+    <group
+        android:name="steam_group"
+        android:pivotX="100"
+        android:pivotY="40">
+        <path
+            android:name="steam_1"
+            android:pathData="M 80 40 Q 75 20 80 0"
+            android:strokeColor="#dcdcdc"
+            android:strokeWidth="3"
+            android:fillColor="@android:color/transparent"
+            android:strokeLineCap="round"
+            android:alpha="0.6"/>
+        <path
+            android:name="steam_2"
+            android:pathData="M 100 40 Q 95 15 100 0"
+            android:strokeColor="#dcdcdc"
+            android:strokeWidth="3"
+            android:fillColor="@android:color/transparent"
+            android:strokeLineCap="round"
+            android:alpha="0.6"/>
+        <path
+            android:name="steam_3"
+            android:pathData="M 120 40 Q 125 20 120 0"
+            android:strokeColor="#dcdcdc"
+            android:strokeWidth="3"
+            android:fillColor="@android:color/transparent"
+            android:strokeLineCap="round"
+            android:alpha="0.6"/>
+    </group>
+
+</vector>

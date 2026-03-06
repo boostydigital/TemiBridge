@@ -1,0 +1,179 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="240dp"
+    android:height="240dp"
+    android:viewportWidth="240"
+    android:viewportHeight="240">
+
+    <!-- Coffee cup espresso with animated steam, crema, and effects -->
+    <group
+        android:name="coffee_espresso_group"
+        android:pivotX="120"
+        android:pivotY="120">
+
+        <!-- Saucer -->
+        <path
+            android:pathData="M 35 200 Q 120 212 205 200"
+            android:strokeColor="#1a0d06"
+            android:strokeWidth="24"
+            android:fillColor="@android:color/transparent"
+            android:strokeLineCap="round"/>
+
+        <!-- Cup body -->
+        <path
+            android:name="cup_body"
+            android:pathData="M 45 70 L 55 190 Q 120 200 185 190 L 195 70 Q 155 60 120 60 Q 85 60 45 70 Z"
+            android:fillColor="#0a0603"
+            android:strokeColor="#1c0e06"
+            android:strokeWidth="1.5"/>
+
+        <!-- Coffee liquid fill -->
+        <path
+            android:name="coffee_liquid"
+            android:pathData="M 45 100 L 55 190 Q 120 200 185 190 L 195 100 Z"
+            android:fillColor="#1e0d04"
+            android:alpha="0.9"/>
+
+        <!-- Crema (foam) surface -->
+        <path
+            android:name="crema_surface"
+            android:pathData="M 45 100 Q 120 90 195 100"
+            android:strokeColor="#d4960a"
+            android:strokeWidth="20"
+            android:fillColor="@android:color/transparent"
+            android:strokeLineCap="round"
+            android:alpha="0.85"/>
+
+        <!-- Crema highlight -->
+        <path
+            android:name="crema_highlight"
+            android:pathData="M 45 100 Q 120 90 195 100"
+            android:strokeColor="#f0d080"
+            android:strokeWidth="20"
+            android:fillColor="@android:color/transparent"
+            android:strokeLineCap="round"
+            android:alpha="0.4"/>
+
+        <!-- Cup rim -->
+        <path
+            android:name="cup_rim"
+            android:pathData="M 45 68 Q 120 58 195 68"
+            android:strokeColor="#1c0d06"
+            android:strokeWidth="20"
+            android:fillColor="@android:color/transparent"
+            android:strokeLineCap="round"/>
+
+        <!-- Handle -->
+        <path
+            android:name="handle"
+            android:pathData="M 195 85 Q 230 90 228 130 Q 225 160 185 158"
+            android:strokeColor="#0a0603"
+            android:strokeWidth="12"
+            android:fillColor="@android:color/transparent"
+            android:strokeLineCap="round"/>
+
+        <!-- Inner shadow on cup -->
+        <path
+            android:name="inner_shadow"
+            android:pathData="M 50 75 Q 120 65 190 75 L 190 95 Q 120 85 50 95 Z"
+            android:fillColor="#000000"
+            android:alpha="0.4"/>
+
+    </group>
+
+    <!-- Steam wisps (animated) -->
+    <group
+        android:name="steam_wisps"
+        android:pivotX="120"
+        android:pivotY="60">
+
+        <!-- Wisp 1 -->
+        <path
+            android:name="steam_1"
+            android:pathData="M 90 60 Q 85 40 90 20"
+            android:strokeColor="#a07850"
+            android:strokeWidth="4"
+            android:fillColor="@android:color/transparent"
+            android:strokeLineCap="round"
+            android:alpha="0.6"/>
+
+        <!-- Wisp 2 -->
+        <path
+            android:name="steam_2"
+            android:pathData="M 120 55 Q 115 30 120 10"
+            android:strokeColor="#a07850"
+            android:strokeWidth="5"
+            android:fillColor="@android:color/transparent"
+            android:strokeLineCap="round"
+            android:alpha="0.65"/>
+
+        <!-- Wisp 3 -->
+        <path
+            android:name="steam_3"
+            android:pathData="M 150 60 Q 155 35 150 15"
+            android:strokeColor="#a07850"
+            android:strokeWidth="4"
+            android:fillColor="@android:color/transparent"
+            android:strokeLineCap="round"
+            android:alpha="0.6"/>
+
+    </group>
+
+    <!-- Ripple rings on crema surface -->
+    <group
+        android:name="ripple_rings"
+        android:pivotX="120"
+        android:pivotY="100">
+
+        <!-- Ring 1 -->
+        <path
+            android:name="ripple_1"
+            android:pathData="M 100 100 Q 120 97 140 100 Q 120 103 100 100"
+            android:strokeColor="#dca028"
+            android:strokeWidth="1.2"
+            android:fillColor="@android:color/transparent"
+            android:strokeLineCap="round"
+            android:alpha="0.6"/>
+
+        <!-- Ring 2 -->
+        <path
+            android:name="ripple_2"
+            android:pathData="M 100 100 Q 120 97 140 100 Q 120 103 100 100"
+            android:strokeColor="#dca028"
+            android:strokeWidth="1"
+            android:fillColor="@android:color/transparent"
+            android:strokeLineCap="round"
+            android:alpha="0.4"/>
+
+        <!-- Ring 3 -->
+        <path
+            android:name="ripple_3"
+            android:pathData="M 100 100 Q 120 97 140 100 Q 120 103 100 100"
+            android:strokeColor="#dca028"
+            android:strokeWidth="0.8"
+            android:fillColor="@android:color/transparent"
+            android:strokeLineCap="round"
+            android:alpha="0.2"/>
+
+    </group>
+
+    <!-- Micro-bubbles in coffee -->
+    <path
+        android:name="bubble_1"
+        android:pathData="M 98 130 Q 100 128 102 130 Q 100 132 98 130"
+        android:fillColor="#d28c28"
+        android:alpha="0.5"/>
+
+    <path
+        android:name="bubble_2"
+        android:pathData="M 128.5 140 Q 130 138.5 131.5 140 Q 130 141.5 128.5 140"
+        android:fillColor="#d28c28"
+        android:alpha="0.4"/>
+
+    <path
+        android:name="bubble_3"
+        android:pathData="M 113.2 150 Q 115 148.2 116.8 150 Q 115 151.8 113.2 150"
+        android:fillColor="#d28c28"
+        android:alpha="0.45"/>
+
+</vector>

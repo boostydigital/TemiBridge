@@ -1,4 +1,4 @@
-package com.spatium.temibridge.ui
+package com.spatium.deamon.db.temi.ui
 
 import android.content.Intent
 import android.os.Bundle
@@ -6,7 +6,7 @@ import android.view.animation.AccelerateDecelerateInterpolator
 import android.widget.ImageView
 import androidx.appcompat.app.AppCompatActivity
 import coil.load
-import com.spatium.temibridge.R
+import com.spatium.deamon.db.temi.R
 
 class SplashActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {

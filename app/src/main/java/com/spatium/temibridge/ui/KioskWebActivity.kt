@@ -1,10 +1,11 @@
-package com.spatium.temibridge.ui
+package com.spatium.deamon.db.temi.ui
 
 import android.annotation.SuppressLint
 import android.content.Intent
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.util.Log
 import android.view.WindowManager
 import android.webkit.WebSettings
 import android.webkit.WebView
@@ -14,25 +15,25 @@ import androidx.activity.OnBackPressedCallback
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
-import com.spatium.temibridge.R
+import com.spatium.deamon.db.temi.R
 
 class KioskWebActivity : AppCompatActivity() {
 
     private val handler = Handler(Looper.getMainLooper())
     private var webView: WebView? = null
+    private var urlLoaded = false
 
     private val autoClose = Runnable {
-        // Volver a la MainActivity tras 5 minutos
-        val intent = Intent(this, MainActivity::class.java).apply {
-            addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
-        }
-        startActivity(intent)
-        finish()
+        Log.d(TAG, "Auto-close timer disparado, volviendo a MainActivity")
+        returnToMain()
     }
 
     @SuppressLint("SetJavaScriptEnabled")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        Log.d(TAG, "onCreate llamado - intent: $intent")
+        Log.d(TAG, "onCreate - extras: ${intent.extras}")
+
         setContentView(R.layout.activity_kiosk_web)
 
         // Pantalla completa y mantener encendido
@@ -52,15 +53,27 @@ class KioskWebActivity : AppCompatActivity() {
             ws.useWideViewPort = true
             wv.webViewClient = object : WebViewClient() {
                 override fun shouldOverrideUrlLoading(view: WebView?, url: String?): Boolean {
-                    // Mantener navegación dentro del WebView
                     return false
+                }
+
+                override fun onPageStarted(view: WebView?, url: String?, favicon: android.graphics.Bitmap?) {
+                    super.onPageStarted(view, url, favicon)
+                    Log.d(TAG, "WebView onPageStarted: $url")
+                }
+
+                override fun onPageFinished(view: WebView?, url: String?) {
+                    super.onPageFinished(view, url)
+                    Log.d(TAG, "WebView onPageFinished: $url")
+                    urlLoaded = true
+                }
+
+                override fun onReceivedError(view: WebView?, errorCode: Int, description: String?, failingUrl: String?) {
+                    super.onReceivedError(view, errorCode, description, failingUrl)
+                    Log.e(TAG, "WebView error: code=$errorCode, desc=$description, url=$failingUrl")
                 }
             }
 
-            val url = intent.getStringExtra(EXTRA_URL)
-            if (!url.isNullOrBlank()) {
-                wv.loadUrl(url)
-            }
+            loadUrlFromIntent(intent)
         }
 
         // Back button overlay handler: volver en el WebView o cerrar actividad
@@ -69,16 +82,11 @@ class KioskWebActivity : AppCompatActivity() {
             if (wv != null && wv.canGoBack()) {
                 wv.goBack()
             } else {
-                // Volver a MainActivity
-                val intent = Intent(this, MainActivity::class.java).apply {
-                    addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
-                }
-                startActivity(intent)
-                finish()
+                returnToMain()
             }
         }
 
-        // Programar cierre en 2 minuto (120_000 ms)
+        // Programar cierre en 2 minutos (120_000 ms)
         handler.postDelayed(autoClose, 120_000)
 
         // Manejo de back usando OnBackPressedDispatcher (evita API deprecada)
@@ -93,16 +101,55 @@ class KioskWebActivity : AppCompatActivity() {
         })
     }
 
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        Log.d(TAG, "onNewIntent llamado - intent: $intent")
+        Log.d(TAG, "onNewIntent - extras: ${intent.extras}")
+        setIntent(intent)
+        loadUrlFromIntent(intent)
+        // Reiniciar timer de auto-close
+        handler.removeCallbacks(autoClose)
+        handler.postDelayed(autoClose, 120_000)
+    }
+
     override fun onDestroy() {
+        Log.d(TAG, "onDestroy llamado")
         handler.removeCallbacks(autoClose)
         webView?.destroy()
         webView = null
         super.onDestroy()
     }
 
-    // Sin override de onBackPressed (API deprecada) — gestionado por OnBackPressedDispatcher
+    private fun loadUrlFromIntent(intent: Intent?) {
+        val url = intent?.getStringExtra(EXTRA_URL)
+        Log.d(TAG, "loadUrlFromIntent: EXTRA_URL=$url")
+
+        if (!url.isNullOrBlank()) {
+            Log.d(TAG, "Cargando URL en WebView: $url")
+            urlLoaded = false
+            webView?.loadUrl(url)
+        } else {
+            Log.w(TAG, "EXTRA_URL vacío o nulo; volviendo a MainActivity")
+            returnToMain()
+        }
+    }
+
+    private fun returnToMain() {
+        Log.d(TAG, "returnToMain() llamado")
+        try {
+            val mainIntent = Intent(this, MainActivity::class.java).apply {
+                addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+            }
+            startActivity(mainIntent)
+            finish()
+        } catch (t: Throwable) {
+            Log.e(TAG, "Error volviendo a MainActivity: ${t.message}", t)
+            finish()
+        }
+    }
 
     companion object {
+        private const val TAG = "KioskWeb"
         const val EXTRA_URL = "url"
     }
 }

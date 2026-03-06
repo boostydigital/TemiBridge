@@ -1,0 +1,632 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/menu_bg_dark">
+
+    <!-- Fondo imagen borrosa -->
+    <ImageView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:scaleType="centerCrop"
+        android:src="@drawable/recepcion_spatium"
+        android:alpha="0.3"/>
+
+    <!-- Overlay oscuro adicional -->
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@color/overlay_dark"/>
+
+    <!-- Contenido principal: layout horizontal tipo tablet -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:padding="24dp">
+
+        <!-- Header -->
+        <LinearLayout
+            android:id="@+id/header"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginBottom="20dp">
+
+            <Button
+                android:id="@+id/btnBack"
+                android:layout_width="wrap_content"
+                android:layout_height="44dp"
+                android:text="← Volver"
+                android:textColor="#CCFFFFFF"
+                android:textSize="15sp"
+                android:background="@drawable/bg_glass_button"
+                android:paddingStart="20dp"
+                android:paddingEnd="20dp"
+                android:fontFamily="sans-serif-medium"/>
+
+            <View
+                android:layout_width="0dp"
+                android:layout_height="1dp"
+                android:layout_weight="1"/>
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="BEBIDAS"
+                android:textColor="@color/white"
+                android:textSize="18sp"
+                android:fontFamily="sans-serif-black"
+                android:letterSpacing="0.1"/>
+
+            <View
+                android:layout_width="0dp"
+                android:layout_height="1dp"
+                android:layout_weight="1"/>
+
+            <!-- Settings button -->
+            <ImageButton
+                android:id="@+id/btnSettings"
+                android:layout_width="44dp"
+                android:layout_height="44dp"
+                android:background="@drawable/bg_glass_button"
+                android:src="@drawable/ic_settings"
+                android:contentDescription="Configuración"
+                android:padding="10dp"
+                android:tint="@color/white_60"/>
+
+        </LinearLayout>
+
+        <!-- Cuerpo principal: dos columnas -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:orientation="horizontal"
+            android:weightSum="10">
+
+            <!-- Columna izquierda: Categorías -->
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="3"
+                android:orientation="vertical"
+                android:layout_marginEnd="16dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Categorías"
+                    android:textColor="@color/white"
+                    android:textSize="24sp"
+                    android:fontFamily="sans-serif-black"
+                    android:layout_marginBottom="4dp"/>
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Elige el tipo de bebida"
+                    android:textColor="@color/text_gray_300"
+                    android:textSize="13sp"
+                    android:layout_marginBottom="20dp"/>
+
+                <!-- Botón Té -->
+                <FrameLayout
+                    android:id="@+id/btnOrderTe"
+                    android:layout_width="match_parent"
+                    android:layout_height="0dp"
+                    android:layout_weight="1"
+                    android:layout_marginBottom="10dp"
+                    android:background="@drawable/bg_glass_button"
+                    android:clickable="true"
+                    android:focusable="true">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical"
+                        android:padding="14dp">
+
+                        <FrameLayout
+                            android:layout_width="80dp"
+                            android:layout_height="80dp"
+                            android:layout_marginEnd="14dp">
+                            <com.airbnb.lottie.LottieAnimationView
+                                android:id="@+id/ivTeaCup"
+                                android:layout_width="match_parent"
+                                android:layout_height="match_parent"
+                                app:lottie_rawRes="@raw/tea"
+                                app:lottie_autoPlay="true"
+                                app:lottie_loop="true"
+                                app:lottie_speed="1.0"/>
+                        </FrameLayout>
+
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:orientation="vertical">
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="Té"
+                                android:textColor="@color/white"
+                                android:textSize="20sp"
+                                android:fontFamily="sans-serif-black"/>
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="3 variedades"
+                                android:textColor="@color/teal_300"
+                                android:textSize="12sp"/>
+                        </LinearLayout>
+
+                    </LinearLayout>
+
+                    <!-- Borde izquierdo dinámico (se actualiza con highlightCategory) -->
+                    <View
+                        android:layout_width="4dp"
+                        android:layout_height="match_parent"
+                        android:layout_gravity="start"
+                        android:background="@android:color/transparent"/>
+                </FrameLayout>
+
+                <!-- Botón Café -->
+                <FrameLayout
+                    android:id="@+id/btnOrderCafe"
+                    android:layout_width="match_parent"
+                    android:layout_height="0dp"
+                    android:layout_weight="1"
+                    android:layout_marginBottom="10dp"
+                    android:background="@drawable/bg_glass_button"
+                    android:clickable="true"
+                    android:focusable="true">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical"
+                        android:padding="14dp">
+
+                        <FrameLayout
+                            android:layout_width="80dp"
+                            android:layout_height="80dp"
+                            android:layout_marginEnd="14dp">
+                            <com.airbnb.lottie.LottieAnimationView
+                                android:id="@+id/ivCoffeeCup"
+                                android:layout_width="match_parent"
+                                android:layout_height="match_parent"
+                                app:lottie_rawRes="@raw/coffee"
+                                app:lottie_autoPlay="true"
+                                app:lottie_loop="true"
+                                app:lottie_speed="1.0"/>
+                        </FrameLayout>
+
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:orientation="vertical">
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="Café"
+                                android:textColor="@color/white"
+                                android:textSize="20sp"
+                                android:fontFamily="sans-serif-black"/>
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="Espresso • Latte"
+                                android:textColor="@color/text_gray_400"
+                                android:textSize="12sp"/>
+                        </LinearLayout>
+
+                    </LinearLayout>
+
+                    <!-- Borde izquierdo dinámico (se actualiza con highlightCategory) -->
+                    <View
+                        android:layout_width="4dp"
+                        android:layout_height="match_parent"
+                        android:layout_gravity="start"
+                        android:background="@android:color/transparent"/>
+                </FrameLayout>
+
+                <!-- Botón Agua -->
+                <FrameLayout
+                    android:id="@+id/btnOrderAgua"
+                    android:layout_width="match_parent"
+                    android:layout_height="0dp"
+                    android:layout_weight="1"
+                    android:background="@drawable/bg_glass_button"
+                    android:clickable="true"
+                    android:focusable="true">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical"
+                        android:padding="14dp">
+
+                        <FrameLayout
+                            android:layout_width="80dp"
+                            android:layout_height="80dp"
+                            android:layout_marginEnd="14dp">
+                            <com.airbnb.lottie.LottieAnimationView
+                                android:id="@+id/ivWaterGlass"
+                                android:layout_width="match_parent"
+                                android:layout_height="match_parent"
+                                app:lottie_rawRes="@raw/water"
+                                app:lottie_autoPlay="true"
+                                app:lottie_loop="true"
+                                app:lottie_speed="1.0"/>
+                        </FrameLayout>
+
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:orientation="vertical">
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="Agua"
+                                android:textColor="@color/white"
+                                android:textSize="20sp"
+                                android:fontFamily="sans-serif-black"/>
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="Mineral • Gas"
+                                android:textColor="@color/text_gray_400"
+                                android:textSize="12sp"/>
+                        </LinearLayout>
+
+                    </LinearLayout>
+
+                    <!-- Borde izquierdo dinámico (se actualiza con highlightCategory) -->
+                    <View
+                        android:layout_width="4dp"
+                        android:layout_height="match_parent"
+                        android:layout_gravity="start"
+                        android:background="@android:color/transparent"/>
+                </FrameLayout>
+
+            </LinearLayout>
+
+            <!-- Columna derecha: Panel de detalle (Té = sabores por defecto) -->
+            <FrameLayout
+                android:id="@+id/panelDetalle"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="7"
+                android:background="@drawable/bg_glass_panel">
+
+                <!-- Panel Té: selector de sabores -->
+                <LinearLayout
+                    android:id="@+id/panelTe"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:orientation="vertical"
+                    android:padding="28dp"
+                    android:visibility="visible">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical"
+                        android:layout_marginBottom="24dp">
+
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_weight="1"
+                            android:layout_height="wrap_content"
+                            android:orientation="vertical">
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="Selección de Té"
+                                android:textColor="@color/white"
+                                android:textSize="26sp"
+                                android:fontFamily="sans-serif-black"/>
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="Personaliza tu elección"
+                                android:textColor="@color/text_gray_300"
+                                android:textSize="14sp"/>
+                        </LinearLayout>
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Paso 2 de 2"
+                            android:textColor="@color/teal_300"
+                            android:textSize="12sp"
+                            android:fontFamily="sans-serif-medium"
+                            android:background="@drawable/bg_icon_teal"
+                            android:paddingStart="14dp"
+                            android:paddingEnd="14dp"
+                            android:paddingTop="6dp"
+                            android:paddingBottom="6dp"/>
+                    </LinearLayout>
+
+                    <!-- Sabores: grid 3 columnas -->
+                    <LinearLayout
+                        android:id="@+id/gridSabores"
+                        android:layout_width="match_parent"
+                        android:layout_height="0dp"
+                        android:layout_weight="1"
+                        android:orientation="horizontal"
+                        android:layout_marginBottom="20dp">
+
+                        <!-- Frutos Rojos -->
+                        <FrameLayout
+                            android:id="@+id/btnSaborFrutos"
+                            android:layout_width="0dp"
+                            android:layout_height="match_parent"
+                            android:layout_weight="1"
+                            android:layout_marginEnd="10dp"
+                            android:background="@drawable/bg_glass_button"
+                            android:clickable="true"
+                            android:focusable="true">
+
+                            <LinearLayout
+                                android:layout_width="match_parent"
+                                android:layout_height="match_parent"
+                                android:orientation="vertical"
+                                android:gravity="center"
+                                android:padding="16dp">
+
+                                <FrameLayout
+                                    android:id="@+id/ivTeaFrutos"
+                                    android:layout_width="96dp"
+                                    android:layout_height="96dp"
+                                    android:layout_marginBottom="16dp">
+                                    <com.airbnb.lottie.LottieAnimationView
+                                        android:layout_width="match_parent"
+                                        android:layout_height="match_parent"
+                                        app:lottie_rawRes="@raw/bouncing_fruits"
+                                        app:lottie_autoPlay="true"
+                                        app:lottie_loop="true"
+                                        app:lottie_speed="1.0"/>
+                                </FrameLayout>
+
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="Frutos Rojos"
+                                    android:textColor="@color/white"
+                                    android:textSize="17sp"
+                                    android:fontFamily="sans-serif-black"
+                                    android:layout_marginBottom="6dp"
+                                    android:gravity="center"/>
+
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="INFUSIÓN"
+                                    android:textColor="@color/rose_400"
+                                    android:textSize="10sp"
+                                    android:fontFamily="sans-serif-medium"
+                                    android:letterSpacing="0.1"
+                                    android:background="@drawable/bg_icon_rose"
+                                    android:paddingStart="10dp"
+                                    android:paddingEnd="10dp"
+                                    android:paddingTop="4dp"
+                                    android:paddingBottom="4dp"/>
+                            </LinearLayout>
+                        </FrameLayout>
+
+                        <!-- Verde (seleccionado por defecto) -->
+                        <FrameLayout
+                            android:id="@+id/btnSaborVerde"
+                            android:layout_width="0dp"
+                            android:layout_height="match_parent"
+                            android:layout_weight="1"
+                            android:layout_marginEnd="10dp"
+                            android:background="@drawable/bg_category_active"
+                            android:clickable="true"
+                            android:focusable="true">
+
+                            <LinearLayout
+                                android:layout_width="match_parent"
+                                android:layout_height="match_parent"
+                                android:orientation="vertical"
+                                android:gravity="center"
+                                android:padding="16dp">
+
+                                <FrameLayout
+                                    android:id="@+id/ivTeaVerde"
+                                    android:layout_width="96dp"
+                                    android:layout_height="96dp"
+                                    android:layout_marginBottom="16dp">
+                                    <com.airbnb.lottie.LottieAnimationView
+                                        android:layout_width="match_parent"
+                                        android:layout_height="match_parent"
+                                        app:lottie_rawRes="@raw/tea"
+                                        app:lottie_autoPlay="true"
+                                        app:lottie_loop="true"
+                                        app:lottie_speed="1.0"/>
+                                </FrameLayout>
+
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="Verde"
+                                    android:textColor="@color/white"
+                                    android:textSize="17sp"
+                                    android:fontFamily="sans-serif-black"
+                                    android:layout_marginBottom="6dp"
+                                    android:gravity="center"/>
+
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="ANTIOXIDANTE"
+                                    android:textColor="@color/teal_300"
+                                    android:textSize="10sp"
+                                    android:fontFamily="sans-serif-medium"
+                                    android:letterSpacing="0.1"
+                                    android:background="@drawable/bg_icon_teal"
+                                    android:paddingStart="10dp"
+                                    android:paddingEnd="10dp"
+                                    android:paddingTop="4dp"
+                                    android:paddingBottom="4dp"/>
+                            </LinearLayout>
+                        </FrameLayout>
+
+                        <!-- Manzanilla -->
+                        <FrameLayout
+                            android:id="@+id/btnSaborManzana"
+                            android:layout_width="0dp"
+                            android:layout_height="match_parent"
+                            android:layout_weight="1"
+                            android:background="@drawable/bg_glass_button"
+                            android:clickable="true"
+                            android:focusable="true">
+
+                            <LinearLayout
+                                android:layout_width="match_parent"
+                                android:layout_height="match_parent"
+                                android:orientation="vertical"
+                                android:gravity="center"
+                                android:padding="16dp">
+
+                                <FrameLayout
+                                    android:id="@+id/ivTeaManzana"
+                                    android:layout_width="96dp"
+                                    android:layout_height="96dp"
+                                    android:layout_marginBottom="16dp">
+                                    <com.airbnb.lottie.LottieAnimationView
+                                        android:layout_width="match_parent"
+                                        android:layout_height="match_parent"
+                                        app:lottie_rawRes="@raw/plants"
+                                        app:lottie_autoPlay="true"
+                                        app:lottie_loop="true"
+                                        app:lottie_speed="1.0"/>
+                                </FrameLayout>
+
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="Manzanilla"
+                                    android:textColor="@color/white"
+                                    android:textSize="17sp"
+                                    android:fontFamily="sans-serif-black"
+                                    android:layout_marginBottom="6dp"
+                                    android:gravity="center"/>
+
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="RELAJANTE"
+                                    android:textColor="@color/amber_400"
+                                    android:textSize="10sp"
+                                    android:fontFamily="sans-serif-medium"
+                                    android:letterSpacing="0.1"
+                                    android:background="@drawable/bg_icon_amber"
+                                    android:paddingStart="10dp"
+                                    android:paddingEnd="10dp"
+                                    android:paddingTop="4dp"
+                                    android:paddingBottom="4dp"/>
+                            </LinearLayout>
+                        </FrameLayout>
+
+                    </LinearLayout>
+
+                    <!-- Botón Confirmar -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:gravity="end"
+                        android:paddingTop="16dp">
+
+                        <Button
+                            android:id="@+id/btnConfirmarTe"
+                            android:layout_width="wrap_content"
+                            android:layout_height="56dp"
+                            android:text="Confirmar Pedido  →"
+                            android:textColor="@color/white"
+                            android:textSize="17sp"
+                            android:fontFamily="sans-serif-black"
+                            android:background="@drawable/bg_btn_confirm"
+                            android:paddingStart="32dp"
+                            android:paddingEnd="32dp"/>
+                    </LinearLayout>
+
+                </LinearLayout>
+
+                <!-- Panel genérico (para Café y Agua - sin sabores) -->
+                <LinearLayout
+                    android:id="@+id/panelGenerico"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:orientation="vertical"
+                    android:gravity="center"
+                    android:padding="40dp"
+                    android:visibility="gone">
+
+                    <FrameLayout
+                        android:layout_width="160dp"
+                        android:layout_height="160dp"
+                        android:layout_marginBottom="24dp">
+
+                        <View
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:background="@drawable/bg_icon_teal"/>
+
+                        <ImageView
+                            android:id="@+id/ivGenericoIcon"
+                            android:layout_width="100dp"
+                            android:layout_height="100dp"
+                            android:layout_gravity="center"
+                            android:src="@drawable/ic_coffee"
+                            android:tint="@color/teal_300"/>
+                    </FrameLayout>
+
+                    <TextView
+                        android:id="@+id/tvGenericoNombre"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Café"
+                        android:textColor="@color/white"
+                        android:textSize="32sp"
+                        android:fontFamily="sans-serif-black"
+                        android:layout_marginBottom="8dp"/>
+
+                    <TextView
+                        android:id="@+id/tvGenericoSub"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Toca confirmar para ordenar"
+                        android:textColor="@color/text_gray_300"
+                        android:textSize="16sp"
+                        android:layout_marginBottom="40dp"/>
+
+                    <Button
+                        android:id="@+id/btnConfirmarGenerico"
+                        android:layout_width="300dp"
+                        android:layout_height="56dp"
+                        android:text="Confirmar Pedido  →"
+                        android:textColor="@color/white"
+                        android:textSize="17sp"
+                        android:fontFamily="sans-serif-black"
+                        android:background="@drawable/bg_btn_confirm"/>
+
+                </LinearLayout>
+
+            </FrameLayout>
+
+        </LinearLayout>
+    </LinearLayout>
+
+</FrameLayout>

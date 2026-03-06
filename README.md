@@ -1,9 +1,9 @@
-# Temi Bridge (com.spatium.temibridge)
+# Deamon DB TEMI (com.spatium.deamon.db.temi)
 
 Puente ligero para controlar un robot temi desde apps externas (web o nativas) mediante Intents y Deep Links. Proporciona un Activity receptor "headless" (`IntentEntryActivity`) que procesa acciones comunes: hablar, ir a un waypoint, seguir al usuario, parar, inclinar la cabeza, volumen e iniciar un tour (via NLU).
 
-- Package: `com.spatium.temibridge`
-- Entry Activity: `com.spatium.temibridge.ui.IntentEntryActivity`
+- Package: `com.spatium.deamon.db.temi`
+- Entry Activity: `com.spatium.deamon.db.temi.ui.IntentEntryActivity`
 - SDK: Temi SDK 1.136.0 (compatible con 1.13x+)
 
 ## Tabla de contenidos
@@ -35,7 +35,7 @@ adb devices
 adb install -r "<ruta>/Temi Puente.apk"
 ```
 
-> Si hay conflicto de firma: `adb uninstall com.spatium.temibridge` y vuelve a instalar.
+> Si hay conflicto de firma: `adb uninstall com.spatium.deamon.db.temi` y vuelve a instalar.
 
 ---
 
@@ -73,23 +73,23 @@ Para navegadores Android o WebViews que bloquean esquemas custom, usa `intent://
 
 - GoTo (waypoint):
 ```
-intent://go?place=Open_Space#Intent;scheme=mytemi;package=com.spatium.temibridge;end
+intent://go?place=Open_Space#Intent;scheme=mytemi;package=com.spatium.deamon.db.temi;end
 ```
 
 - Tour por nombre:
 ```
-intent://exec#Intent;action=com.spatium.temibridge.ACTION_TOUR_START;S.name=Spatium_Visita;package=com.spatium.temibridge;end
+intent://exec#Intent;action=com.spatium.temibridge.ACTION_TOUR_START;S.name=Spatium_Visita;package=com.spatium.deamon.db.temi;end
 ```
 
 - Opcional: forzar componente si el navegador no resuelve bien:
 ```
-intent://go?place=Open_Space#Intent;scheme=mytemi;package=com.spatium.temibridge;component=com.spatium.temibridge/.ui.IntentEntryActivity;end
+intent://go?place=Open_Space#Intent;scheme=mytemi;package=com.spatium.deamon.db.temi;component=com.spatium.deamon.db.temi/.ui.IntentEntryActivity;end
 ```
 
 HTML de ejemplo:
 ```html
 <a href="mytemi://go?place=Open_Space">Ir a Open_Space</a>
-<a href="intent://exec#Intent;action=com.spatium.temibridge.ACTION_TOUR_START;S.name=Spatium_Visita;package=com.spatium.temibridge;end">Iniciar tour</a>
+<a href="intent://exec#Intent;action=com.spatium.temibridge.ACTION_TOUR_START;S.name=Spatium_Visita;package=com.spatium.deamon.db.temi;end">Iniciar tour</a>
 ```
 
 ---
@@ -100,7 +100,7 @@ Desde otra app Android, dispara Intents explícitos hacia `IntentEntryActivity`.
 Kotlin/Java ejemplo (explícito):
 ```kotlin
 val intent = Intent("com.spatium.temibridge.ACTION_GO_TO").apply {
-    setPackage("com.spatium.temibridge")
+    setPackage("com.spatium.deamon.db.temi")
     putExtra("place", "Open_Space")
 }
 startActivity(intent)
@@ -110,8 +110,8 @@ O forzando el componente:
 ```kotlin
 val intent = Intent("com.spatium.temibridge.ACTION_SAY").apply {
     setClassName(
-        "com.spatium.temibridge",
-        "com.spatium.temibridge.ui.IntentEntryActivity"
+        "com.spatium.deamon.db.temi",
+        "com.spatium.deamon.db.temi.ui.IntentEntryActivity"
     )
     putExtra("text", "Hola desde tu app")
 }
@@ -125,28 +125,28 @@ Forzando el componente receptor para evitar ambigüedades:
 
 ```powershell
 # Hablar
-adb shell am start -n com.spatium.temibridge/.ui.IntentEntryActivity -a com.spatium.temibridge.ACTION_SAY --es text "Hola"
+adb shell am start -n com.spatium.deamon.db.temi/.ui.IntentEntryActivity -a com.spatium.temibridge.ACTION_SAY --es text "Hola"
 
 # Ir a un waypoint
-adb shell am start -n com.spatium.temibridge/.ui.IntentEntryActivity -a com.spatium.temibridge.ACTION_GO_TO --es place "Open_Space"
+adb shell am start -n com.spatium.deamon.db.temi/.ui.IntentEntryActivity -a com.spatium.temibridge.ACTION_GO_TO --es place "Open_Space"
 
 # Seguirme
-adb shell am start -n com.spatium.temibridge/.ui.IntentEntryActivity -a com.spatium.temibridge.ACTION_FOLLOW_ME
+adb shell am start -n com.spatium.deamon.db.temi/.ui.IntentEntryActivity -a com.spatium.temibridge.ACTION_FOLLOW_ME
 
 # Parar
-adb shell am start -n com.spatium.temibridge/.ui.IntentEntryActivity -a com.spatium.temibridge.ACTION_STOP
+adb shell am start -n com.spatium.deamon.db.temi/.ui.IntentEntryActivity -a com.spatium.temibridge.ACTION_STOP
 
 # Inclinación 15°
-adb shell am start -n com.spatium.temibridge/.ui.IntentEntryActivity -a com.spatium.temibridge.ACTION_HEAD_TILT --ei angle 15
+adb shell am start -n com.spatium.deamon.db.temi/.ui.IntentEntryActivity -a com.spatium.temibridge.ACTION_HEAD_TILT --ei angle 15
 
 # Volumen 7/10
-adb shell am start -n com.spatium.temibridge/.ui.IntentEntryActivity -a com.spatium.temibridge.ACTION_VOLUME --ei level 7
+adb shell am start -n com.spatium.deamon.db.temi/.ui.IntentEntryActivity -a com.spatium.temibridge.ACTION_VOLUME --ei level 7
 
 # Tour (por nombre)
-adb shell am start -n com.spatium.temibridge/.ui.IntentEntryActivity -a com.spatium.temibridge.ACTION_TOUR_START --es name "Spatium_Visita"
+adb shell am start -n com.spatium.deamon.db.temi/.ui.IntentEntryActivity -a com.spatium.temibridge.ACTION_TOUR_START --es name "Spatium_Visita"
 
 # Deep link de tour
-adb shell am start -n com.spatium.temibridge/.ui.IntentEntryActivity -a android.intent.action.VIEW -d "mytemi://tour?name=Spatium_Visita"
+adb shell am start -n com.spatium.deamon.db.temi/.ui.IntentEntryActivity -a android.intent.action.VIEW -d "mytemi://tour?name=Spatium_Visita"
 ```
 
 ---
@@ -162,7 +162,7 @@ adb shell am start -n com.spatium.temibridge/.ui.IntentEntryActivity -a android.
 ```jsx
 <button
   onClick={() => {
-    const intent = "intent://go?place=Open_Space#Intent;scheme=mytemi;package=com.spatium.temibridge;end";
+    const intent = "intent://go?place=Open_Space#Intent;scheme=mytemi;package=com.spatium.deamon.db.temi;end";
     const deep = "mytemi://go?place=Open_Space";
     window.location.href = intent;
     setTimeout(() => { window.location.href = deep; }, 300);
@@ -201,8 +201,8 @@ adb shell am start -n com.spatium.temibridge/.ui.IntentEntryActivity -a android.
   - En WebView, habilita `shouldOverrideUrlLoading` para `mytemi://`/`intent://`.
 
 - "Activity not started, unable to resolve Intent":
-  - Forzar componente: `-n com.spatium.temibridge/.ui.IntentEntryActivity`.
-  - Verificar que el package instalado sea `com.spatium.temibridge`.
+  - Forzar componente: `-n com.spatium.deamon.db.temi/.ui.IntentEntryActivity`.
+  - Verificar que el package instalado sea `com.spatium.deamon.db.temi`.
 
 - GoTo no mueve:
   - Confirma que el waypoint existe en Temi con el mismo nombre (sensibilidad a mayúsculas/guiones/espacios).

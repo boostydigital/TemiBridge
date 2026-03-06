@@ -1,4 +1,4 @@
-package com.spatium.temibridge.ui
+package com.spatium.deamon.db.temi.ui
 
 import android.app.Activity
 import android.content.Context
@@ -9,7 +9,7 @@ import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
-import com.spatium.temibridge.core.TemiController
+import com.spatium.deamon.db.temi.core.TemiController
 
 class IntentEntryActivity : Activity() {
 

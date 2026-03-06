@@ -11,6 +11,14 @@
         <item name="colorOnSecondary">@color/black</item>
         <!-- Status bar color. -->
         <item name="android:statusBarColor">?attr/colorPrimaryVariant</item>
+        <!-- Enable window content transitions -->
+        <item name="android:windowActivityTransitions">true</item>
+        <!-- Specify enter and exit transitions -->
+        <item name="android:windowEnterTransition">@transition/slide</item>
+        <item name="android:windowExitTransition">@transition/fade</item>
+        <!-- Specify shared element transitions -->
+        <item name="android:windowSharedElementEnterTransition">@transition/change_image_transform</item>
+        <item name="android:windowSharedElementExitTransition">@transition/change_image_transform</item>
         <!-- Customize your theme here. -->
     </style>
     <style name="Theme.Transparent" parent="Theme.MaterialComponents.DayNight.NoActionBar">

@@ -1,10 +1,10 @@
-package com.spatium.temibridge.core
+package com.spatium.deamon.db.temi.core
 
 import android.content.Context
 import android.media.MediaPlayer
 import android.util.Base64
 import android.util.Log
-import com.spatium.temibridge.BuildConfig
+import com.spatium.deamon.db.temi.BuildConfig
 import kotlinx.coroutines.*
 import okhttp3.*
 import okhttp3.MediaType.Companion.toMediaType

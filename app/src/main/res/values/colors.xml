@@ -17,4 +17,31 @@
     <color name="white_80">#CCFFFFFF</color>
     <color name="white_60">#99FFFFFF</color>
     <color name="scan_frame_gold">#D4AF37</color>
+
+    <!-- Menu / Glassmorphism Colors -->
+    <color name="menu_bg_dark">#0F172A</color>
+    <color name="glass_panel_bg">#661E293B</color>
+    <color name="glass_border">#26FFFFFF</color>
+    <color name="glass_button_bg">#1AFFFFFF</color>
+    <color name="teal_400">#2DD4BF</color>
+    <color name="teal_300">#5EEAD4</color>
+    <color name="teal_accent">#3320B9AC</color>
+    <color name="teal_border">#4D14B8A6</color>
+    <color name="amber_500">#F59E0B</color>
+    <color name="amber_400">#FBBF24</color>
+    <color name="amber_border">#4DD97706</color>
+    <color name="blue_400">#60A5FA</color>
+    <color name="blue_border">#4D3B82F6</color>
+    <color name="rose_400">#FB7185</color>
+    <color name="rose_border">#4DE11D48</color>
+    <color name="indigo_500">#6366F1</color>
+    <color name="purple_600">#9333EA</color>
+    <color name="green_400">#4ADE80</color>
+    <color name="emerald_500">#10B981</color>
+    <color name="text_gray_300">#D1D5DB</color>
+    <color name="text_gray_400">#9CA3AF</color>
+    <color name="overlay_dark">#B30F172A</color>
+    <color name="category_active_bg">#331E3A5F</color>
+    <color name="success_green">#10B981</color>
+    <color name="btn_cancel_bg">#1AFFFFFF</color>
 </resources>

@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="200dp"
+    android:height="200dp"
+    android:viewportWidth="200"
+    android:viewportHeight="200">
+
+    <!-- Tea variants container with animated elements -->
+    <group
+        android:name="tea_variants_group"
+        android:pivotX="100"
+        android:pivotY="100">
+
+        <!-- Variant 1: Verde (Green Tea) -->
+        <path
+            android:name="tea_verde_cup"
+            android:pathData="M 30 80 L 28 160 Q 70 170 70 160 L 68 80 Z"
+            android:fillColor="#4caf50"
+            android:strokeColor="#2e7d32"
+            android:strokeWidth="1.5"/>
+
+        <path
+            android:name="tea_verde_liquid"
+            android:pathData="M 30 110 L 28 160 Q 70 168 70 160 L 68 110 Z"
+            android:fillColor="#81c784"
+            android:alpha="0.8"/>
+
+        <!-- Variant 2: Frutos (Fruit Tea) -->
+        <path
+            android:name="tea_frutos_cup"
+            android:pathData="M 100 80 L 98 160 Q 140 170 140 160 L 138 80 Z"
+            android:fillColor="#ff6f00"
+            android:strokeColor="#e65100"
+            android:strokeWidth="1.5"/>
+
+        <path
+            android:name="tea_frutos_liquid"
+            android:pathData="M 100 110 L 98 160 Q 140 168 140 160 L 138 110 Z"
+            android:fillColor="#ffb74d"
+            android:alpha="0.8"/>
+
+        <!-- Variant 3: Manzana (Apple Tea) -->
+        <path
+            android:name="tea_manzana_cup"
+            android:pathData="M 170 80 L 168 160 Q 210 170 210 160 L 208 80 Z"
+            android:fillColor="#d32f2f"
+            android:strokeColor="#b71c1c"
+            android:strokeWidth="1.5"/>
+
+        <path
+            android:name="tea_manzana_liquid"
+            android:pathData="M 170 110 L 168 160 Q 210 168 210 160 L 208 110 Z"
+            android:fillColor="#ef5350"
+            android:alpha="0.8"/>
+
+        <!-- Decorative steam wisps for all variants -->
+        <path
+            android:name="steam_verde"
+            android:pathData="M 50 70 Q 48 50 50 30"
+            android:strokeColor="#81c784"
+            android:strokeWidth="2"
+            android:fillColor="@android:color/transparent"
+            android:strokeLineCap="round"
+            android:alpha="0.6"/>
+
+        <path
+            android:name="steam_frutos"
+            android:pathData="M 120 70 Q 118 50 120 30"
+            android:strokeColor="#ffb74d"
+            android:strokeWidth="2"
+            android:fillColor="@android:color/transparent"
+            android:strokeLineCap="round"
+            android:alpha="0.6"/>
+
+        <path
+            android:name="steam_manzana"
+            android:pathData="M 190 70 Q 188 50 190 30"
+            android:strokeColor="#ef5350"
+            android:strokeWidth="2"
+            android:fillColor="@android:color/transparent"
+            android:strokeLineCap="round"
+            android:alpha="0.6"/>
+
+    </group>
+
+</vector>

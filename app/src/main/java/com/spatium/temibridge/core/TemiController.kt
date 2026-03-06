@@ -1,4 +1,4 @@
-package com.spatium.temibridge.core
+package com.spatium.deamon.db.temi.core
 
 import android.app.Activity
 import android.util.Log
@@ -413,8 +413,18 @@ object TemiController {
         repeat: Int = 1,
         startFromStep: Int = 1
     ): Boolean {
-        val robot = robotInstance() ?: return false
+        Log.d(TAG, "=== playSequenceById INICIADO === ID: $sequenceId, withPlayer=$withPlayer, repeat=$repeat, startFromStep=$startFromStep")
+        
+        val robot = robotInstance()
+        if (robot == null) {
+            Log.e(TAG, "❌ Robot instance es null, no se puede ejecutar secuencia")
+            return false
+        }
+        
+        Log.d(TAG, "Robot instance obtenido: $robot")
+        
         return try {
+            Log.d(TAG, "Buscando método playSequence con parámetros...")
             val mWithParams = runCatching {
                 robot.javaClass.getMethod(
                     "playSequence",
@@ -426,23 +436,38 @@ object TemiController {
             }.getOrNull()
 
             if (mWithParams != null) {
+                Log.d(TAG, "✓ Método playSequence con 4 parámetros encontrado")
+                Log.d(TAG, "Invocando: playSequence($sequenceId, $withPlayer, $repeat, $startFromStep)")
                 val result = mWithParams.invoke(robot, sequenceId, withPlayer, repeat, startFromStep)
+                Log.d(TAG, "Resultado de invocación: $result (tipo: ${result?.javaClass?.simpleName})")
+                
                 val ok = (result as? Int)?.let { it == 0 } ?: true
                 if (!ok) {
-                    Log.w(TAG, "playSequence(id=$sequenceId,withPlayer=$withPlayer,repeat=$repeat,start=$startFromStep) result: $result")
+                    Log.w(TAG, "⚠ playSequence retornó código no-cero: $result para id=$sequenceId")
+                } else {
+                    Log.d(TAG, "✓ playSequence ejecutado exitosamente")
                 }
                 ok
             } else {
+                Log.d(TAG, "Método con 4 parámetros no encontrado, intentando método legacy...")
                 val legacy = robot.javaClass.getMethod("playSequence", String::class.java)
+                Log.d(TAG, "✓ Método playSequence(String) encontrado")
+                Log.d(TAG, "Invocando: playSequence($sequenceId)")
                 val result = legacy.invoke(robot, sequenceId) as? Int
+                Log.d(TAG, "Resultado de invocación: $result")
+                
                 val ok = (result == 0)
                 if (!ok) {
-                    Log.w(TAG, "playSequence result: $result for id=$sequenceId")
+                    Log.w(TAG, "⚠ playSequence retornó código no-cero: $result para id=$sequenceId")
+                } else {
+                    Log.d(TAG, "✓ playSequence ejecutado exitosamente")
                 }
                 ok
             }
         } catch (t: Throwable) {
-            Log.w(TAG, "playSequenceById fallo: ${t.message}")
+            Log.e(TAG, "❌ playSequenceById fallo con excepción: ${t.message}", t)
+            Log.e(TAG, "Stack trace completo:")
+            t.printStackTrace()
             false
         }
     }
@@ -514,6 +539,221 @@ object TemiController {
         } catch (t: Throwable) {
             Log.w(TAG, "No pude registrar OnRequestPermissionResultListener: ${t.message}")
             false
+        }
+    }
+
+    // --- Face Tracking Permissions ---
+    fun hasFaceRecognitionPermission(): Boolean {
+        try {
+            val robotCls = Class.forName("com.robotemi.sdk.Robot")
+            val robot = robotCls.getMethod("getInstance").invoke(null)
+            val permCls = runCatching { Class.forName("com.robotemi.sdk.permission.Permission") }.getOrNull()
+                ?: Class.forName("com.robotemi.sdk.Permission")
+            
+            // Intentar obtener el permiso FACE_RECOGNITION
+            val faceRecognition = runCatching { permCls.getField("FACE_RECOGNITION").get(null) }.getOrNull()
+                ?: runCatching { permCls.getField("FACE").get(null) }.getOrNull()
+            
+            if (faceRecognition != null) {
+                val check = runCatching { robot.javaClass.getMethod("checkSelfPermission", permCls) }.getOrNull()
+                    ?: runCatching { robot.javaClass.getMethod("hasPermission", permCls) }.getOrNull()
+                
+                if (check != null) {
+                    val res = check.invoke(robot, faceRecognition)
+                    return when (res) {
+                        is java.lang.Boolean -> res.booleanValue()
+                        is java.lang.Integer -> res.toInt() != 0
+                        else -> {
+                            val grantStatusCls = runCatching { Class.forName("com.robotemi.sdk.permission.Permission\$GrantStatus") }.getOrNull()
+                                ?: runCatching { Class.forName("com.robotemi.sdk.Permission\$GrantStatus") }.getOrNull()
+                            val granted = runCatching { grantStatusCls?.getField("GRANTED")?.get(null) }.getOrNull()
+                            granted != null && res == granted
+                        }
+                    }
+                }
+            }
+        } catch (t: Throwable) {
+            Log.w(TAG, "hasFaceRecognitionPermission fallo: ${t.message}")
+        }
+        return false
+    }
+
+    fun requestFaceRecognitionPermission(): Boolean {
+        if (hasFaceRecognitionPermission()) return true
+        val robot = robotInstance() ?: return false
+        return try {
+            Log.d(TAG, "Solicitando permiso de reconocimiento facial...")
+            val permClass = runCatching { Class.forName("com.robotemi.sdk.permission.Permission") }.getOrNull()
+                ?: Class.forName("com.robotemi.sdk.Permission")
+            
+            val faceRecognition = runCatching { permClass.getField("FACE_RECOGNITION").get(null) }.getOrNull()
+                ?: runCatching { permClass.getField("FACE").get(null) }.getOrNull()
+            
+            if (faceRecognition != null) {
+                val list = java.util.ArrayList<Any>()
+                list.add(faceRecognition)
+                
+                val reqWithCode = runCatching { robot.javaClass.getMethod("requestPermissions", java.util.List::class.java, Int::class.javaPrimitiveType) }.getOrNull()
+                if (reqWithCode != null) {
+                    reqWithCode.invoke(robot, list, 1002)
+                    Log.d(TAG, "✓ Permiso de reconocimiento facial solicitado")
+                    return true
+                }
+                
+                val reqNoCode = runCatching { robot.javaClass.getMethod("requestPermissions", java.util.List::class.java) }.getOrNull()
+                if (reqNoCode != null) {
+                    reqNoCode.invoke(robot, list)
+                    Log.d(TAG, "✓ Permiso de reconocimiento facial solicitado")
+                    return true
+                }
+            }
+            Log.w(TAG, "No se pudo solicitar permiso de reconocimiento facial")
+            false
+        } catch (t: Throwable) {
+            Log.e(TAG, "requestFaceRecognitionPermission fallo: ${t.message}", t)
+            false
+        }
+    }
+
+    // --- Face Tracking & Head Orientation ---
+    fun enableFaceTracking(): Boolean {
+        val robot = robotInstance() ?: return false
+        return try {
+            Log.d(TAG, "=== HABILITANDO FACE TRACKING CON constraintBeWith ===")
+            Log.d(TAG, "Robot instance: $robot")
+            Log.d(TAG, "Robot class: ${robot.javaClass.name}")
+            
+            // constraintBeWith() - robot gira y tilta en su eje hacia el usuario sin moverse
+            // No requiere permisos especiales. Disponible desde SDK 0.10.53
+            Log.d(TAG, "Buscando método constraintBeWith()...")
+            val constraintBeWithMethod = robot.javaClass.getMethod("constraintBeWith")
+            Log.d(TAG, "Método encontrado: $constraintBeWithMethod")
+            
+            Log.d(TAG, "Invocando constraintBeWith()...")
+            constraintBeWithMethod.invoke(robot)
+            Log.d(TAG, "✓ constraintBeWith() ejecutado - Robot se orienta hacia el usuario")
+            
+            Log.d(TAG, "✓✓✓ FACE TRACKING HABILITADO COMPLETAMENTE ✓✓✓")
+            true
+        } catch (t: Throwable) {
+            Log.e(TAG, "❌ enableFaceTracking fallo: ${t.message}", t)
+            Log.e(TAG, "Stack trace:", t)
+            t.printStackTrace()
+            false
+        }
+    }
+
+    fun disableFaceTracking(): Boolean {
+        val robot = robotInstance() ?: return false
+        return try {
+            Log.d(TAG, "Deshabilitando face tracking con stopMovement...")
+            
+            // stopMovement() detiene constraintBeWith y cualquier movimiento activo
+            val stopMovementMethod = robot.javaClass.getMethod("stopMovement")
+            stopMovementMethod.invoke(robot)
+            Log.d(TAG, "✓ stopMovement() ejecutado")
+            
+            // 2. Detener reconocimiento facial
+            val stopFaceRecognitionMethod = robot.javaClass.getMethod("stopFaceRecognition")
+            stopFaceRecognitionMethod.invoke(robot)
+            Log.d(TAG, "✓ stopFaceRecognition() ejecutado")
+            
+            Log.d(TAG, "✓ Face tracking deshabilitado completamente")
+            true
+        } catch (t: Throwable) {
+            Log.e(TAG, "❌ disableFaceTracking fallo: ${t.message}", t)
+            false
+        }
+    }
+
+    fun tiltHead(angle: Float): Boolean {
+        val robot = robotInstance() ?: return false
+        return try {
+            Log.d(TAG, "Intentando inclinar cabeza: $angle grados...")
+            
+            // Intentar con Float primero, luego con Double
+            var method = runCatching { robot.javaClass.getMethod("tiltHead", Float::class.javaPrimitiveType) }.getOrNull()
+            if (method == null) {
+                method = runCatching { robot.javaClass.getMethod("tiltHead", Double::class.javaPrimitiveType) }.getOrNull()
+            }
+            
+            if (method != null) {
+                method.invoke(robot, angle)
+                Log.d(TAG, "✓ Cabeza inclinada: $angle grados")
+                true
+            } else {
+                Log.w(TAG, "⚠ No se encontró método para inclinar cabeza")
+                logAvailableMethods(robot)
+                false
+            }
+        } catch (t: Throwable) {
+            Log.e(TAG, "❌ tiltHead fallo: ${t.message}", t)
+            false
+        }
+    }
+
+    fun turnHead(angle: Float): Boolean {
+        val robot = robotInstance() ?: return false
+        return try {
+            Log.d(TAG, "Intentando girar cabeza: $angle grados...")
+            
+            var method = runCatching { robot.javaClass.getMethod("turnHead", Float::class.javaPrimitiveType) }.getOrNull()
+            if (method == null) {
+                method = runCatching { robot.javaClass.getMethod("turnHead", Double::class.javaPrimitiveType) }.getOrNull()
+            }
+            
+            if (method != null) {
+                method.invoke(robot, angle)
+                Log.d(TAG, "✓ Cabeza girada: $angle grados")
+                true
+            } else {
+                Log.w(TAG, "⚠ No se encontró método para girar cabeza")
+                false
+            }
+        } catch (t: Throwable) {
+            Log.e(TAG, "❌ turnHead fallo: ${t.message}", t)
+            false
+        }
+    }
+
+    fun turnByAngle(angle: Float): Boolean {
+        val robot = robotInstance() ?: return false
+        return try {
+            Log.d(TAG, "Intentando girar robot: $angle grados...")
+            
+            var method = runCatching { robot.javaClass.getMethod("turnByAngle", Float::class.javaPrimitiveType) }.getOrNull()
+            if (method == null) {
+                method = runCatching { robot.javaClass.getMethod("turnByAngle", Double::class.javaPrimitiveType) }.getOrNull()
+            }
+            
+            if (method != null) {
+                method.invoke(robot, angle)
+                Log.d(TAG, "✓ Robot girado: $angle grados")
+                true
+            } else {
+                Log.w(TAG, "⚠ No se encontró método para girar robot")
+                false
+            }
+        } catch (t: Throwable) {
+            Log.e(TAG, "❌ turnByAngle fallo: ${t.message}", t)
+            false
+        }
+    }
+
+    private fun logAvailableMethods(robot: Any) {
+        try {
+            val methods = robot.javaClass.methods
+            Log.d(TAG, "=== MÉTODOS DISPONIBLES EN ROBOT ===")
+            methods.filter { it.name.contains("track", ignoreCase = true) || 
+                            it.name.contains("face", ignoreCase = true) ||
+                            it.name.contains("head", ignoreCase = true) ||
+                            it.name.contains("turn", ignoreCase = true) ||
+                            it.name.contains("tilt", ignoreCase = true) }
+                .forEach { method ->
+                    Log.d(TAG, "  - ${method.name}(${method.parameterTypes.joinToString { it.simpleName }})")
+                }
+        } catch (t: Throwable) {
+            Log.w(TAG, "No se pudieron listar métodos: ${t.message}")
         }
     }
 }

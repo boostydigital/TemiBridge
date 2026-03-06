@@ -4,6 +4,20 @@
     android:layout_height="match_parent"
     android:background="@android:color/black">
 
+    <!-- Fondo imagen borrosa -->
+    <ImageView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:scaleType="centerCrop"
+        android:src="@drawable/recepcion_spatium"
+        android:alpha="0.3"/>
+
+    <!-- Overlay oscuro adicional -->
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@color/overlay_dark"/>
+
     <WebView
         android:id="@+id/webView"
         android:layout_width="match_parent"

@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/menu_bg_dark">
+
+    <!-- Fondo imagen borrosa -->
+    <ImageView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:scaleType="centerCrop"
+        android:src="@drawable/recepcion_spatium"
+        android:alpha="0.3"/>
+
+    <!-- Overlay oscuro adicional -->
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@color/overlay_dark"/>
+
+    <!-- Contenido centrado -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:gravity="center"
+        android:padding="32dp">
+
+        <LinearLayout
+            android:layout_width="800dp"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:padding="60dp"
+            android:background="@drawable/bg_glass_panel">
+
+            <!-- Icono del producto -->
+            <com.airbnb.lottie.LottieAnimationView
+                android:id="@+id/ivProductIcon"
+                android:layout_width="120dp"
+                android:layout_height="120dp"
+                android:layout_marginBottom="32dp"
+                app:lottie_rawRes="@raw/tea"
+                app:lottie_autoPlay="true"
+                app:lottie_loop="true"
+                app:lottie_speed="1.0"/>
+
+            <!-- Nombre del producto -->
+            <TextView
+                android:id="@+id/tvProductName"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Producto"
+                android:textColor="@color/white"
+                android:textSize="36sp"
+                android:fontFamily="sans-serif-black"
+                android:layout_marginBottom="16dp"
+                android:gravity="center"/>
+
+            <!-- Descripción -->
+            <TextView
+                android:id="@+id/tvProductDesc"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Descripción"
+                android:textColor="#B3FFFFFF"
+                android:textSize="16sp"
+                android:layout_marginBottom="48dp"
+                android:gravity="center"/>
+
+            <!-- Botones -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center"
+                android:spacing="16dp">
+
+                <Button
+                    android:id="@+id/btnCancel"
+                    android:layout_width="200dp"
+                    android:layout_height="60dp"
+                    android:text="Cancelar"
+                    android:textColor="@color/white"
+                    android:textSize="18sp"
+                    android:fontFamily="sans-serif-black"
+                    android:background="@drawable/bg_glass_button"
+                    android:layout_marginEnd="16dp"/>
+
+                <Button
+                    android:id="@+id/btnConfirm"
+                    android:layout_width="200dp"
+                    android:layout_height="60dp"
+                    android:text="Confirmar"
+                    android:textColor="@color/white"
+                    android:textSize="18sp"
+                    android:fontFamily="sans-serif-black"
+                    android:background="@drawable/bg_btn_confirm"/>
+
+            </LinearLayout>
+
+        </LinearLayout>
+
+    </LinearLayout>
+
+</FrameLayout>

@@ -1,4 +1,4 @@
-﻿package com.spatium.temibridge.ui
+﻿package com.spatium.deamon.db.temi.ui
 
 import android.Manifest
 import android.content.pm.PackageManager
@@ -10,10 +10,18 @@ import android.net.Uri
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.widget.Button
+import android.widget.FrameLayout
+import android.widget.LinearLayout
+import android.widget.TextView
 import android.widget.Toast
 import android.util.Log
 import android.view.animation.DecelerateInterpolator
 import android.view.View
+import android.view.WindowManager
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.WindowInsetsControllerCompat
 import java.net.URLDecoder
 import java.nio.charset.StandardCharsets
 import androidx.activity.result.contract.ActivityResultContracts
@@ -24,11 +32,13 @@ import androidx.camera.view.PreviewView
 import androidx.core.content.ContextCompat
 import com.google.mlkit.vision.barcode.BarcodeScanning
 import com.google.mlkit.vision.common.InputImage
-import com.spatium.temibridge.R
+import com.spatium.deamon.db.temi.BuildConfig
+import com.spatium.deamon.db.temi.R
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
-import com.spatium.temibridge.core.TemiController
-import com.spatium.temibridge.core.GoogleTTS
+import com.spatium.deamon.db.temi.core.TemiController
+import com.spatium.deamon.db.temi.core.GoogleTTS
+import com.spatium.deamon.db.temi.core.RobotPedidosWorker
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -56,30 +66,130 @@ class MainActivity : AppCompatActivity() {
         setContentView(R.layout.activity_main)
         Log.d("TemiBridge", "MainActivity.onCreate - setContentView OK")
 
-        // Referencias a vistas
-        previewView = findViewById(R.id.previewView)
-        val cameraContainer = findViewById<View>(R.id.cameraContainer)
-        
-        // Inicializar executor para cámara
+        setupFullscreen()
+        RobotPedidosWorker.start(this)
         cameraExecutor = Executors.newSingleThreadExecutor()
-        
-        Log.d("TemiBridge", "[DEBUG] CameraX + ML Kit inicializado - Layout con imagen de fondo")
 
-        // Animación sutil de entrada del escáner QR
-        cameraContainer.alpha = 0f
-        cameraContainer.animate()
-            .alpha(1f)
-            .setStartDelay(300)
-            .setDuration(600)
-            .setInterpolator(DecelerateInterpolator())
-            .start()
+        setupTiles()
+        setupBottomNav()
 
-        // Iniciar cámara con CameraX + ML Kit
-        Handler(Looper.getMainLooper()).postDelayed({
+        Log.d("TemiBridge", "MainActivity iniciada con nuevo diseño grid")
+    }
+
+    private fun setupFullscreen() {
+        window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        WindowCompat.setDecorFitsSystemWindows(window, false)
+        val controller = WindowInsetsControllerCompat(window, window.decorView)
+        controller.hide(WindowInsetsCompat.Type.systemBars())
+        controller.systemBarsBehavior =
+            WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+    }
+
+    private fun setupTiles() {
+        // Check-In: escaneo QR para bienvenida
+        findViewById<FrameLayout>(R.id.tileCheckin).setOnClickListener {
+            Log.d("TemiBridge", "[TILE] Check-In tocado")
             ensureCameraPermissionAndStart()
-        }, 500)
+            showTileAnimation(it)
+        }
 
-        Log.d("TemiBridge", "TemiBridge Spatium 10 Aniversario cargado")
+        // Opinar: ir a sitio web de opiniones
+        findViewById<FrameLayout>(R.id.tileOpinar).setOnClickListener {
+            Log.d("TemiBridge", "[TILE] Opinar tocado")
+            showTileAnimation(it)
+            openWebView("https://spatium-desk.lovable.app/opiniones")
+        }
+
+        // Pedir: abrir MenuActivity
+        findViewById<FrameLayout>(R.id.tilePedir).setOnClickListener {
+            Log.d("TemiBridge", "[TILE] Pedir tocado")
+            showTileAnimation(it)
+            val intent = Intent(this, MenuActivity::class.java).apply {
+                addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+            }
+            startActivity(intent)
+        }
+
+        // Gestionar: admin
+        findViewById<FrameLayout>(R.id.tileGestionar).setOnClickListener {
+            Log.d("TemiBridge", "[TILE] Gestionar tocado")
+            showTileAnimation(it)
+            openWebView("https://spatium-desk.lovable.app")
+        }
+
+        // Explorar: tour del robot
+        findViewById<FrameLayout>(R.id.tileExplorar).setOnClickListener {
+            Log.d("TemiBridge", "[TILE] Explorar tocado")
+            showTileAnimation(it)
+            val tourId = "68ac8a6466a57fda1359c414"
+            val ok = TemiController.playTourById(tourId)
+            if (!ok) Toast.makeText(this, "No se pudo iniciar el tour", Toast.LENGTH_LONG).show()
+        }
+
+        // Guiar: navegación asistida
+        findViewById<FrameLayout>(R.id.tileGuiar).setOnClickListener {
+            Log.d("TemiBridge", "[TILE] Guiar tocado")
+            showTileAnimation(it)
+            TemiController.speak("¿A dónde te guío hoy?")
+        }
+
+        // Party: secuencia festiva
+        findViewById<FrameLayout>(R.id.tileParty).setOnClickListener {
+            Log.d("TemiBridge", "[TILE] Party tocado")
+            showTileAnimation(it)
+            TemiController.speak("¡Vamos a celebrar!")
+        }
+    }
+
+    private fun setupBottomNav() {
+        // Inicio: ya estamos aquí
+        findViewById<LinearLayout>(R.id.navInicio).setOnClickListener {
+            Log.d("TemiBridge", "[NAV] Inicio")
+        }
+        // Servicios: tile Pedir
+        findViewById<LinearLayout>(R.id.navServicios).setOnClickListener {
+            Log.d("TemiBridge", "[NAV] Servicios")
+            val intent = Intent(this, MenuActivity::class.java).apply {
+                addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
+            }
+            startActivity(intent)
+        }
+        // Actividad: historial (web)
+        findViewById<LinearLayout>(R.id.navActividad).setOnClickListener {
+            Log.d("TemiBridge", "[NAV] Actividad")
+            openWebView("https://spatium-desk.lovable.app/actividad")
+        }
+        // QR: escaneo manual
+        findViewById<LinearLayout>(R.id.navQr).setOnClickListener {
+            Log.d("TemiBridge", "[NAV] QR Scanner")
+            ensureCameraPermissionAndStart()
+        }
+    }
+
+    private fun openWebView(url: String) {
+        try {
+            val intent = Intent(this, KioskWebActivity::class.java).apply {
+                putExtra(KioskWebActivity.EXTRA_URL, url)
+                addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+            }
+            startActivity(intent)
+        } catch (t: Throwable) {
+            Log.w("TemiBridge", "Error abriendo WebView: ${t.message}")
+        }
+    }
+
+    private fun showTileAnimation(view: View) {
+        playSuccessSound()
+        view.animate()
+            .scaleX(0.95f).scaleY(0.95f)
+            .setDuration(100)
+            .withEndAction {
+                view.animate()
+                    .scaleX(1f).scaleY(1f)
+                    .setDuration(150)
+                    .setInterpolator(DecelerateInterpolator())
+                    .start()
+            }.start()
     }
     
 

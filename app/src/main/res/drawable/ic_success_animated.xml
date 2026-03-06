@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="160dp"
+    android:height="160dp"
+    android:viewportWidth="160"
+    android:viewportHeight="160">
+
+    <!-- Círculo de fondo -->
+    <group
+        android:name="circle_group"
+        android:pivotX="80"
+        android:pivotY="80">
+        <path
+            android:name="circle_path"
+            android:pathData="M 80,10 A 70,70 0 0,1 80,150 A 70,70 0 0,1 80,10"
+            android:strokeColor="#10B981"
+            android:strokeWidth="8"
+            android:strokeLineCap="round"
+            android:fillColor="@android:color/transparent" />
+    </group>
+
+    <!-- Checkmark -->
+    <group
+        android:name="checkmark_group"
+        android:pivotX="80"
+        android:pivotY="80">
+        <path
+            android:name="checkmark_path"
+            android:pathData="M 50,80 L 70,100 L 110,60"
+            android:strokeColor="#10B981"
+            android:strokeWidth="10"
+            android:strokeLineCap="round"
+            android:strokeLineJoin="round"
+            android:fillColor="@android:color/transparent" />
+    </group>
+
+</vector>

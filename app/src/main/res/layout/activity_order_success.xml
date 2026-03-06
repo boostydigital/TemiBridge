@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/menu_bg_dark">
+
+    <!-- Fondo imagen borrosa -->
+    <ImageView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:scaleType="centerCrop"
+        android:src="@drawable/recepcion_spatium"
+        android:alpha="0.3"/>
+
+    <!-- Overlay oscuro adicional -->
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@color/overlay_dark"/>
+
+    <!-- Contenido centrado -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:gravity="center"
+        android:padding="32dp">
+
+        <LinearLayout
+            android:layout_width="800dp"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:padding="60dp"
+            android:background="@drawable/bg_glass_panel">
+
+            <!-- Círculo de éxito -->
+            <FrameLayout
+                android:id="@+id/successCircle"
+                android:layout_width="160dp"
+                android:layout_height="160dp"
+                android:layout_marginBottom="32dp">
+
+                <ImageView
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:background="@drawable/bg_success_circle"/>
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:gravity="center"
+                    android:text="✓"
+                    android:textColor="@color/white"
+                    android:textSize="72sp"
+                    android:fontFamily="sans-serif-black"/>
+            </FrameLayout>
+
+            <!-- Título principal -->
+            <TextView
+                android:id="@+id/tvProductName"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="¡Pedido enviado con éxito!"
+                android:textColor="@color/white"
+                android:textSize="48sp"
+                android:fontFamily="sans-serif-black"
+                android:gravity="center"
+                android:layout_marginBottom="12dp"/>
+
+            <!-- Subtítulo -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Tu bebida está en camino"
+                android:textColor="@color/text_gray_300"
+                android:textSize="22sp"
+                android:gravity="center"
+                android:layout_marginBottom="8dp"/>
+
+            <!-- Línea decorativa -->
+            <View
+                android:layout_width="120dp"
+                android:layout_height="3dp"
+                android:background="@color/emerald_500"
+                android:layout_marginTop="16dp"
+                android:layout_marginBottom="40dp"/>
+
+            <!-- Botones (ocultos) -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center"
+                android:spacing="16dp"
+                android:layout_marginTop="48dp"
+                android:visibility="gone">
+
+                <Button
+                    android:id="@+id/btnBackHome"
+                    android:layout_width="200dp"
+                    android:layout_height="60dp"
+                    android:text="Volver al Inicio"
+                    android:textColor="@color/white"
+                    android:textSize="16sp"
+                    android:fontFamily="sans-serif-black"
+                    android:background="@drawable/bg_btn_confirm"
+                    android:layout_marginEnd="16dp"/>
+
+                <Button
+                    android:id="@+id/btnNewOrder"
+                    android:layout_width="200dp"
+                    android:layout_height="60dp"
+                    android:text="Nuevo Pedido"
+                    android:textColor="@color/white"
+                    android:textSize="16sp"
+                    android:fontFamily="sans-serif-black"
+                    android:background="@drawable/bg_glass_button"/>
+
+            </LinearLayout>
+
+        </LinearLayout>
+    </LinearLayout>
+
+</FrameLayout>

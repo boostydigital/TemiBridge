@@ -1,6 +1,10 @@
+import java.io.File
+import java.util.Properties
+
 plugins {
-    id("com.android.application")
-    kotlin("android")
+    alias(libs.plugins.android.application)
+    alias(libs.plugins.kotlin.android)
+    alias(libs.plugins.kotlin.serialization)
 }
 
 // API key de Google TTS se inyecta vía propiedad de Gradle (definida en gradle.properties)
@@ -8,21 +12,41 @@ plugins {
 // GOOGLE_TTS_API_KEY=tu_api_key_de_google_tts
 val googleTtsApiKey: String = (project.findProperty("GOOGLE_TTS_API_KEY") as? String).orEmpty()
 
+// Configuración Supabase: se lee desde local.properties para no hardcodear claves
+val localProps = Properties()
+val localPropsFile = rootProject.file("local.properties")
+if (localPropsFile.exists()) {
+	localProps.load(localPropsFile.inputStream())
+}
+val rawSupabaseUrl: String = localProps.getProperty("SUPABASE_URL", "").trim()
+val supabaseUrl: String = rawSupabaseUrl.substringBefore("#").trim()
+val rawSupabaseAnonKey: String = localProps.getProperty("SUPABASE_ANON_KEY", "").trim()
+val supabaseAnonKey: String = rawSupabaseAnonKey.substringBefore("#").trim()
+val tourRecepcionId: String = localProps.getProperty("TOUR_RECEPCION_ID", "").trim()
+
+// Mover el directorio de build del mГіdulo fuera de OneDrive para evitar bloqueos en Windows
+buildDir = File(System.getProperty("user.home"), "TemiDeamonDBBuild/app")
+
 android {
-    namespace = "com.spatium.temibridge"
+    namespace = "com.spatium.deamon.db.temi"
     compileSdk = 36
 
     defaultConfig {
-        applicationId = "com.spatium.temibridge"
+        applicationId = "com.spatium.deamon.db.temi"
         minSdk = 26
         targetSdk = 36
-        versionCode = 5
-        versionName = "3.2"
+        versionCode = 11
+        versionName = "3.6"
         vectorDrawables.useSupportLibrary = true
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         // Exponer la API key de TTS a BuildConfig para usarla en el código Kotlin
         buildConfigField("String", "GOOGLE_TTS_API_KEY", "\"$googleTtsApiKey\"")
+        buildConfigField("String", "SUPABASE_URL", "\"$supabaseUrl\"")
+        buildConfigField("String", "SUPABASE_ANON_KEY", "\"$supabaseAnonKey\"")
+        buildConfigField("String", "TOUR_RECEPCION_ID", "\"$tourRecepcionId\"")
+        // Feature flag para activar/desactivar el worker de Supabase en runtime
+        buildConfigField("boolean", "ENABLE_SUPABASE_WORKER", "true")
     }
 
     buildTypes {
@@ -76,6 +100,16 @@ dependencies {
 
     // Coroutines for background work (webhook posting, timers)
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.1")
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.3")
+
+    // Supabase-kt (Postgrest + Realtime) y Ktor client para Android
+    implementation(platform("io.github.jan-tennert.supabase:bom:2.4.2"))
+    implementation("io.github.jan-tennert.supabase:postgrest-kt")
+    implementation("io.github.jan-tennert.supabase:realtime-kt")
+    implementation("io.ktor:ktor-client-android:2.3.12")
+    
+    // Lottie para animaciones
+    implementation("com.airbnb.android:lottie:6.4.0")
 
     // Test dependencies
     testImplementation("junit:junit:4.13.2")

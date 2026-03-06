@@ -1,103 +1,481 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Layout simplificado: imagen de fondo + solo frame de escaneo QR -->
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
-    android:layout_height="match_parent">
+    android:layout_height="match_parent"
+    android:background="@color/menu_bg_dark">
 
-    <!-- Imagen de fondo Spatium 10 Aniversario -->
+    <!-- Fondo de imagen (Check-In hero) -->
     <ImageView
         android:id="@+id/backgroundImage"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:scaleType="centerCrop"
-        android:src="@drawable/background_qr_scan"
-        android:contentDescription="Fondo Spatium 10 Aniversario" />
+        android:src="@drawable/recepcion_spatium"/>
 
-    <!-- Frame de escaneo QR posicionado en la esquina superior izquierda -->
-    <!-- Ajustado para coincidir con la posición del cuadro en la imagen -->
-    <FrameLayout
-        android:id="@+id/cameraContainer"
-        android:layout_width="400dp"
-        android:layout_height="280dp"
-        android:layout_marginStart="298dp"
-        android:layout_marginTop="32dp"
-        android:layout_gravity="top|start">
+    <!-- Overlay oscuro base -->
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@drawable/dark_gradient_overlay"/>
 
-        <androidx.camera.view.PreviewView
-            android:id="@+id/previewView"
+    <!-- Contenido principal -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:paddingStart="24dp"
+        android:paddingEnd="24dp"
+        android:paddingTop="20dp"
+        android:paddingBottom="100dp">
+
+        <!-- Grid de tiles 4 columnas x 3 filas -->
+        <!-- Fila 1: CheckIn(2) + Opinar(1) + Pedir(1 fila 1 de 2) -->
+        <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="match_parent" />
+            android:layout_height="0dp"
+            android:layout_weight="2"
+            android:orientation="horizontal"
+            android:layout_marginBottom="8dp">
 
-        <!-- Línea de escaneo animada -->
-        <View
-            android:id="@+id/scanLine"
+            <!-- Check-In: col 1-2, row 1-2 (span vertical gestionado con peso en col vertical) -->
+            <FrameLayout
+                android:id="@+id/tileCheckin"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="2"
+                android:layout_marginEnd="8dp"
+                android:background="@drawable/tile_opinar"
+                android:clickable="true"
+                android:focusable="true">
+
+                <!-- Fondo foto -->
+                <ImageView
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:scaleType="centerCrop"
+                    android:src="@drawable/recepcion_spatium"/>
+
+                <!-- Gradient overlay bottom -->
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:background="@drawable/tile_checkin"/>
+
+                <!-- Contenido -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="bottom"
+                    android:orientation="vertical"
+                    android:padding="24dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="✓"
+                        android:textColor="#E6FFFFFF"
+                        android:textSize="48sp"
+                        android:layout_marginBottom="8dp"/>
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="CHECK-IN"
+                        android:textColor="@color/white"
+                        android:textSize="32sp"
+                        android:fontFamily="sans-serif-black"
+                        android:textStyle="italic"
+                        android:letterSpacing="-0.02"/>
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Recepción Invitado"
+                        android:textColor="#B3FFFFFF"
+                        android:textSize="15sp"
+                        android:layout_marginTop="4dp"/>
+                </LinearLayout>
+            </FrameLayout>
+
+            <!-- Columna derecha fila 1: Opinar (arriba) + Pedir parte superior -->
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="2"
+                android:orientation="horizontal">
+
+                <!-- Opinar -->
+                <FrameLayout
+                    android:id="@+id/tileOpinar"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:layout_marginEnd="8dp"
+                    android:background="@drawable/tile_opinar"
+                    android:clickable="true"
+                    android:focusable="true">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:orientation="vertical"
+                        android:gravity="center"
+                        android:padding="20dp">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="★"
+                            android:textColor="#CCFFffFF"
+                            android:textSize="36sp"
+                            android:layout_marginBottom="10dp"/>
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="OPINAR"
+                            android:textColor="@color/white"
+                            android:textSize="20sp"
+                            android:fontFamily="sans-serif-black"
+                            android:letterSpacing="0.1"/>
+                    </LinearLayout>
+                </FrameLayout>
+
+                <!-- Gestionar -->
+                <FrameLayout
+                    android:id="@+id/tileGestionar"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:background="@drawable/tile_gestionar"
+                    android:clickable="true"
+                    android:focusable="true">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:orientation="vertical"
+                        android:gravity="center"
+                        android:padding="20dp">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="👥"
+                            android:textSize="36sp"
+                            android:layout_marginBottom="10dp"/>
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="GESTIONAR"
+                            android:textColor="@color/white"
+                            android:textSize="20sp"
+                            android:fontFamily="sans-serif-black"
+                            android:letterSpacing="0.1"/>
+                    </LinearLayout>
+                </FrameLayout>
+
+            </LinearLayout>
+
+        </LinearLayout>
+
+        <!-- Fila 2: (Check-in continúa) + Pedir(1 de 2) + (espacio) -->
+        <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="2dp"
-            android:layout_gravity="center"
-            android:background="@color/gold"
-            android:alpha="0.9" />
-    </FrameLayout>
+            android:layout_height="0dp"
+            android:layout_weight="2"
+            android:orientation="horizontal"
+            android:layout_marginBottom="8dp">
 
-    <!-- Elementos ocultos para compatibilidad con código existente -->
-    <ImageView
-        android:id="@+id/logoSpatium"
-        android:layout_width="0dp"
-        android:layout_height="0dp"
-        android:visibility="gone" />
+            <!-- Pedir: ocupa col 3, rows 1-2 (simula span) -->
+            <FrameLayout
+                android:id="@+id/tilePedir"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:layout_marginEnd="8dp"
+                android:background="@drawable/tile_pedir"
+                android:clickable="true"
+                android:focusable="true">
 
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:orientation="vertical"
+                    android:gravity="center"
+                    android:padding="20dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="☕"
+                        android:textSize="44sp"
+                        android:layout_marginBottom="12dp"/>
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="PEDIR"
+                        android:textColor="@color/white"
+                        android:textSize="26sp"
+                        android:fontFamily="sans-serif-black"
+                        android:letterSpacing="0.05"/>
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="CAFE"
+                        android:textColor="#99FFFFFF"
+                        android:textSize="13sp"
+                        android:fontFamily="sans-serif-medium"
+                        android:letterSpacing="0.15"
+                        android:layout_marginTop="6dp"/>
+                </LinearLayout>
+            </FrameLayout>
+
+            <!-- Explorar: col 1-2 row 3 -->
+            <FrameLayout
+                android:id="@+id/tileExplorar"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="2"
+                android:background="@drawable/tile_explorar"
+                android:clickable="true"
+                android:focusable="true">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:paddingStart="36dp"
+                    android:paddingEnd="36dp">
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="EXPLORAR"
+                            android:textColor="@color/white"
+                            android:textSize="32sp"
+                            android:fontFamily="sans-serif-black"
+                            android:textStyle="italic"/>
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="EVENTOS"
+                            android:textColor="#66FFFFFF"
+                            android:textSize="13sp"
+                            android:fontFamily="sans-serif-medium"
+                            android:letterSpacing="0.2"
+                            android:layout_marginTop="4dp"/>
+                    </LinearLayout>
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="📅"
+                        android:textSize="52sp"
+                        android:alpha="0.25"/>
+                </LinearLayout>
+            </FrameLayout>
+
+        </LinearLayout>
+
+        <!-- Fila 3: Guiar + Party -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:orientation="horizontal">
+
+            <FrameLayout
+                android:id="@+id/tileGuiar"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:layout_marginEnd="8dp"
+                android:background="@drawable/tile_guiar"
+                android:clickable="true"
+                android:focusable="true">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:orientation="vertical"
+                    android:gravity="center"
+                    android:padding="16dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="🧭"
+                        android:textSize="32sp"
+                        android:layout_marginBottom="8dp"/>
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="GUIAR"
+                        android:textColor="@color/white"
+                        android:textSize="18sp"
+                        android:fontFamily="sans-serif-black"
+                        android:letterSpacing="0.1"/>
+                </LinearLayout>
+            </FrameLayout>
+
+            <FrameLayout
+                android:id="@+id/tileParty"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:background="@drawable/tile_party"
+                android:clickable="true"
+                android:focusable="true">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:orientation="vertical"
+                    android:gravity="center"
+                    android:padding="16dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="🎉"
+                        android:textSize="32sp"
+                        android:layout_marginBottom="8dp"/>
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="PARTY"
+                        android:textColor="@color/white"
+                        android:textSize="18sp"
+                        android:fontFamily="sans-serif-black"
+                        android:letterSpacing="0.1"/>
+                </LinearLayout>
+            </FrameLayout>
+
+        </LinearLayout>
+
+    </LinearLayout>
+
+    <!-- Bottom navigation glass -->
+    <LinearLayout
+        android:id="@+id/bottomNav"
+        android:layout_width="match_parent"
+        android:layout_height="68dp"
+        android:layout_gravity="bottom|center_horizontal"
+        android:layout_marginStart="40dp"
+        android:layout_marginEnd="40dp"
+        android:layout_marginBottom="16dp"
+        android:orientation="horizontal"
+        android:gravity="center"
+        android:background="@drawable/bg_bottom_nav"
+        android:paddingStart="24dp"
+        android:paddingEnd="24dp">
+
+        <!-- Inicio (activo) -->
+        <LinearLayout
+            android:id="@+id/navInicio"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:clickable="true"
+            android:focusable="true">
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:text="⌂" android:textSize="20sp" android:textColor="#1152d4"/>
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:text="INICIO" android:textSize="9sp" android:textColor="#1152d4"
+                android:fontFamily="sans-serif-black" android:letterSpacing="0.05"/>
+        </LinearLayout>
+
+        <!-- Servicios -->
+        <LinearLayout
+            android:id="@+id/navServicios"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:clickable="true"
+            android:focusable="true">
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:text="⊞" android:textSize="20sp" android:textColor="#66FFFFFF"/>
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:text="SERVICIOS" android:textSize="9sp" android:textColor="#66FFFFFF"
+                android:fontFamily="sans-serif-black" android:letterSpacing="0.05"/>
+        </LinearLayout>
+
+        <!-- Actividad -->
+        <LinearLayout
+            android:id="@+id/navActividad"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:clickable="true"
+            android:focusable="true">
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:text="↺" android:textSize="20sp" android:textColor="#66FFFFFF"/>
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:text="ACTIVIDAD" android:textSize="9sp" android:textColor="#66FFFFFF"
+                android:fontFamily="sans-serif-black" android:letterSpacing="0.05"/>
+        </LinearLayout>
+
+        <!-- QR Scanner (acción oculta) -->
+        <LinearLayout
+            android:id="@+id/navQr"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:clickable="true"
+            android:focusable="true">
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:text="⊡" android:textSize="20sp" android:textColor="#66FFFFFF"/>
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:text="QR" android:textSize="9sp" android:textColor="#66FFFFFF"
+                android:fontFamily="sans-serif-black" android:letterSpacing="0.05"/>
+        </LinearLayout>
+
+    </LinearLayout>
+
+    <!-- TextView y IDs de compatibilidad (invisibles) -->
     <TextView
         android:id="@+id/mainText"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:visibility="gone" />
-
-    <View
-        android:id="@+id/btnFullscreenScanner"
         android:layout_width="0dp"
         android:layout_height="0dp"
-        android:visibility="gone" />
+        android:visibility="gone"/>
 
-    <View
-        android:id="@+id/btnTour"
+    <Button
+        android:id="@+id/buttonTour"
         android:layout_width="0dp"
         android:layout_height="0dp"
-        android:visibility="gone" />
+        android:visibility="gone"/>
 
+    <!-- cameraContainer: View oculta para la animación del QR (mantiene compatibilidad) -->
     <View
-        android:id="@+id/qrIconCenter"
-        android:layout_width="0dp"
-        android:layout_height="0dp"
-        android:visibility="gone" />
-
-    <View
-        android:id="@+id/scanFrame"
-        android:layout_width="0dp"
-        android:layout_height="0dp"
-        android:visibility="gone" />
-
-    <View
-        android:id="@+id/scanStatus"
-        android:layout_width="0dp"
-        android:layout_height="0dp"
-        android:visibility="gone" />
-
-    <View
-        android:id="@+id/btnSeqPlay"
-        android:layout_width="0dp"
-        android:layout_height="0dp"
-        android:visibility="gone" />
-
-    <View
-        android:id="@+id/btnSeqTest"
-        android:layout_width="0dp"
-        android:layout_height="0dp"
-        android:visibility="gone" />
-
-    <View
-        android:id="@+id/permPanel"
-        android:layout_width="0dp"
-        android:layout_height="0dp"
-        android:visibility="gone" />
+        android:id="@+id/cameraContainer"
+        android:layout_width="80dp"
+        android:layout_height="80dp"
+        android:layout_gravity="bottom|end"
+        android:layout_marginEnd="20dp"
+        android:layout_marginBottom="90dp"
+        android:background="@drawable/bg_glass_button"
+        android:visibility="visible"/>
 
 </FrameLayout>
