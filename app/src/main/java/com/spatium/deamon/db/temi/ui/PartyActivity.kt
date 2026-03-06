@@ -85,9 +85,28 @@ class PartyActivity : AppCompatActivity() {
 
     private fun disableFaceTrackingAndSpeak() {
         try {
-            // Detener movimiento (desactiva seguimiento de cara del usuario)
+            // Detener movimiento
             robot?.stopMovement()
-            Log.d(TAG, "[ROBOT] ✓ Movimiento detenido - seguimiento de cara desactivado")
+            Log.d(TAG, "[ROBOT] ✓ Movimiento detenido")
+
+            // Desactivar detección de personas para que el robot se quede quieto
+            try {
+                robot?.javaClass?.getMethod("setDetectionModeOn",
+                    Boolean::class.javaPrimitiveType, Float::class.javaPrimitiveType)
+                    ?.invoke(robot, false, 1.0f)
+                Log.d(TAG, "[ROBOT] ✓ Modo detección desactivado")
+            } catch (t: Throwable) {
+                Log.w(TAG, "[ROBOT] ⚠️ No se pudo desactivar detección: ${t.message}")
+            }
+
+            // Desactivar track user (seguimiento de cara)
+            try {
+                robot?.javaClass?.getMethod("beWithMe")?.invoke(robot)
+                robot?.javaClass?.getMethod("stopMovement")?.invoke(robot)
+                Log.d(TAG, "[ROBOT] ✓ Face tracking detenido")
+            } catch (t: Throwable) {
+                Log.w(TAG, "[ROBOT] ⚠️ No se pudo detener face tracking: ${t.message}")
+            }
 
             // Hacer que el robot diga el mensaje
             val message = "Ajusta mi cabeza para una mejor foto"
