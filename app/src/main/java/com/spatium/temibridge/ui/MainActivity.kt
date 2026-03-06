@@ -93,11 +93,14 @@ class MainActivity : AppCompatActivity() {
             showTileAnimation(it)
         }
 
-        // Opinar: ir a sitio web de opiniones
+        // Rating: abrir pantalla de valoración
         findViewById<FrameLayout>(R.id.tileOpinar).setOnClickListener {
-            Log.d("TemiBridge", "[TILE] Opinar tocado")
+            Log.d("TemiBridge", "[TILE] Rating tocado")
             showTileAnimation(it)
-            openWebView("https://spatium-desk.lovable.app/opiniones")
+            val intent = Intent(this, RatingActivity::class.java).apply {
+                addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+            }
+            startActivity(intent)
         }
 
         // Pedir: abrir MenuActivity
@@ -126,11 +129,15 @@ class MainActivity : AppCompatActivity() {
             if (!ok) Toast.makeText(this, "No se pudo iniciar el tour", Toast.LENGTH_LONG).show()
         }
 
-        // Guiar: navegación asistida
+        // Tour: ejecutar tour del robot
         findViewById<FrameLayout>(R.id.tileGuiar).setOnClickListener {
-            Log.d("TemiBridge", "[TILE] Guiar tocado")
+            Log.d("TemiBridge", "[TILE] Tour tocado")
             showTileAnimation(it)
-            TemiController.speak("¿A dónde te guío hoy?")
+            val tourId = "68ac8a6466a57fda1359c414"
+            val ok = TemiController.playTourById(tourId)
+            if (!ok) {
+                TemiController.speak("¿A dónde te guío hoy?")
+            }
         }
 
         // Party: cámara fotográfica con envío por WhatsApp
