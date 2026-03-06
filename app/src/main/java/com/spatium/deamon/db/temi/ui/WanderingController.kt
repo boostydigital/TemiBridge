@@ -22,6 +22,7 @@ class WanderingController(
         private const val DETECTION_DISTANCE = 1.5f
         private const val IGNORE_TIMEOUT = 8000L
         private const val PHOTO_MODE_TIMEOUT = 30000L
+        private const val SPEED_LEVEL_SLOW = 1 // SpeedLevel ordinal: SLOW=1
     }
 
     private var isWandering = false
@@ -125,7 +126,9 @@ class WanderingController(
         selectedLocations = locations
         currentLocationIndex = 0
         isWandering = true
+        isDetectionProcessing = false
         
+        enableDetection()
         navigateToNextLocation()
     }
 
@@ -139,12 +142,12 @@ class WanderingController(
         }
 
         val nextLocation = selectedLocations[currentLocationIndex]
-        Log.d(TAG, "[GOTO] Navegando a: $nextLocation")
+        Log.d(TAG, "[GOTO] Navegando a: $nextLocation (velocidad lenta)")
         
         onNavigationStart(nextLocation)
         
         try {
-            robot?.goTo(nextLocation)
+            goToSlow(nextLocation)
             
             // Configurar timeout para navegación (60 segundos)
             navigationTimer?.removeCallbacksAndMessages(null)
@@ -157,6 +160,51 @@ class WanderingController(
         } catch (e: Exception) {
             Log.e(TAG, "[GOTO] Error navegando a $nextLocation: ${e.message}")
             moveToNextLocation()
+        }
+    }
+
+    /**
+     * Navega a una ubicación a velocidad mínima usando reflexión para SpeedLevel
+     */
+    private fun goToSlow(location: String) {
+        val r = robot ?: return
+        try {
+            // Intentar goTo con SpeedLevel (SDK moderno)
+            val speedLevelCls = Class.forName("com.robotemi.sdk.navigation.model.SpeedLevel")
+            val speedValues = speedLevelCls.enumConstants as? Array<*>
+            val slowSpeed = speedValues?.getOrNull(SPEED_LEVEL_SLOW) // SLOW = ordinal 1
+            
+            if (slowSpeed != null) {
+                val goToMethod = r.javaClass.getMethod(
+                    "goTo", String::class.java,
+                    Boolean::class.javaPrimitiveType,
+                    Boolean::class.javaPrimitiveType,
+                    speedLevelCls
+                )
+                goToMethod.invoke(r, location, false, false, slowSpeed)
+                Log.d(TAG, "[GOTO] goTo con SpeedLevel.SLOW exitoso")
+                return
+            }
+        } catch (t: Throwable) {
+            Log.w(TAG, "[GOTO] goTo con SpeedLevel no disponible: ${t.message}")
+        }
+        // Fallback: goTo simple
+        r.goTo(location)
+        Log.d(TAG, "[GOTO] Fallback a goTo simple")
+    }
+
+    /**
+     * Activa el modo de detección de personas
+     */
+    fun enableDetection() {
+        val r = robot ?: return
+        try {
+            r.javaClass.getMethod("setDetectionModeOn",
+                Boolean::class.javaPrimitiveType, Float::class.javaPrimitiveType)
+                .invoke(r, true, DETECTION_DISTANCE)
+            Log.d(TAG, "[DETECTION] Modo detección ACTIVADO (distancia=$DETECTION_DISTANCE)")
+        } catch (t: Throwable) {
+            Log.w(TAG, "[DETECTION] Error activando detección: ${t.message}")
         }
     }
 
@@ -284,6 +332,7 @@ class WanderingController(
         }
         
         isWandering = true
+        enableDetection()
         Log.d(TAG, "[WANDER] Deambulación reactivada - continuando a siguiente ubicación")
         moveToNextLocation()
     }

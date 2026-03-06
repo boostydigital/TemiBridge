@@ -98,20 +98,25 @@ class SelfieHunterActivity : AppCompatActivity() {
                     currentState = State.SPEAKING
                 },
                 onNavigationStart = { location ->
-                    Log.d(TAG, "[NAVIGATION] Navegando a: $location")
-                },
+                    Log.d(TAG, "[NAVIGATION] Navegando a: $location (CTA permanece visible)")
+                    // NO ocultar CTA durante navegación - siempre visible
+                },  
                 onNavigationComplete = {
                     Log.d(TAG, "[NAVIGATION] Navegación completada")
                 },
                 onTtsCompleted = {
                     Log.d(TAG, "[TTS] TTS completado - cambiando a WAITING_TOUCH")
                     currentState = State.WAITING_TOUCH
+                    // CTA ya está visible, solo asegurar
                     runOnUiThread { showCTAScreen() }
                 }
             )
             
             // Inicializar listeners del WanderingController
             wanderingController?.initialize()
+            
+            // Mostrar CTA overlay INMEDIATAMENTE (siempre visible durante deambulación)
+            showCTAScreen()
             
             // Iniciar deambulación INMEDIATAMENTE
             wanderingController?.startWandering(selectedLocations)
@@ -149,6 +154,7 @@ class SelfieHunterActivity : AppCompatActivity() {
             }
             Log.d(TAG, "[PHOTO] Intent creado, lanzando startActivityForResult...")
             startActivityForResult(intent, 1001)
+            overridePendingTransition(R.anim.fade_in, R.anim.fade_out)
             Log.d(TAG, "[PHOTO] PartyActivity lanzada exitosamente")
         } catch (e: Exception) {
             Log.e(TAG, "[PHOTO] Error lanzando PartyActivity: ${e.message}", e)
@@ -191,6 +197,7 @@ class SelfieHunterActivity : AppCompatActivity() {
         wanderingController?.cleanup()
         unregisterListeners()
         finish()
+        overridePendingTransition(R.anim.fade_in, R.anim.fade_out)
     }
 
     private fun sayFarewellAndResumeWandering() {
@@ -313,11 +320,14 @@ class SelfieHunterActivity : AppCompatActivity() {
                                     }
                                 }
                             }
+                            State.SPEAKING -> {
+                                // Ignorar cambios de detección mientras habla
+                            }
                             State.WAITING_TOUCH -> {
                                 if (!isDetected) {
-                                    Log.d(TAG, "[DETECTION] Persona se fue - ocultando CTA y reanudando")
+                                    Log.d(TAG, "[DETECTION] Persona se fue - reanudando deambulación (CTA permanece)")
                                     currentState = State.WANDERING
-                                    Handler(Looper.getMainLooper()).post { hideCTAScreen() }
+                                    // NO ocultar CTA - siempre visible durante deambulación
                                     Handler(Looper.getMainLooper()).postDelayed({
                                         if (currentState == State.WANDERING) {
                                             wanderingController?.resumeWandering()
@@ -368,7 +378,7 @@ class SelfieHunterActivity : AppCompatActivity() {
         if (requestCode == 1001) {
             Log.d(TAG, "[RESULT] Retornando de PartyActivity - diciendo despedida y reanudando")
             currentState = State.WANDERING
-            hideCTAScreen()
+            showCTAScreen() // Volver a mostrar CTA para deambulación
             enableDetectionMode()
             sayFarewellAndResumeWandering()
         }
