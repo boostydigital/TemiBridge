@@ -479,8 +479,107 @@ class MenuActivity : AppCompatActivity() {
 
     private fun showSettingsDialog() {
         val currentId = prefs.getString(KEY_FAREWELL_SEQUENCE_ID, DEFAULT_FAREWELL_SEQUENCE_ID) ?: DEFAULT_FAREWELL_SEQUENCE_ID
-        Log.d(TAG, "Configuración: Secuencia de despedida actual = $currentId")
-        Toast.makeText(this, "ID actual: $currentId", Toast.LENGTH_SHORT).show()
+        val ratingPrefs = getSharedPreferences(RatingActivity.PREFS_NAME, Context.MODE_PRIVATE)
+        val currentEventName = ratingPrefs.getString(RatingActivity.KEY_EVENT_NAME, "EVENTO SPATIUM") ?: "EVENTO SPATIUM"
+        val currentWebhookUrl = ratingPrefs.getString(RatingActivity.KEY_WEBHOOK_URL, "") ?: ""
+
+        val scrollView = android.widget.ScrollView(this)
+        val layout = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(56, 32, 56, 16)
+        }
+        scrollView.addView(layout)
+
+        // ── Sección: Secuencia de Despedida ──
+        layout.addView(TextView(this).apply {
+            text = "SECUENCIA DE DESPEDIDA"
+            setTextColor(android.graphics.Color.parseColor("#94a3b8"))
+            textSize = 11f
+            letterSpacing = 0.15f
+            setPadding(0, 0, 0, 12)
+        })
+        val etSequenceId = EditText(this).apply {
+            setText(currentId)
+            hint = "ID de secuencia"
+            setTextColor(android.graphics.Color.WHITE)
+            setHintTextColor(android.graphics.Color.parseColor("#64748b"))
+            setBackgroundColor(android.graphics.Color.parseColor("#1e293b"))
+            setPadding(24, 20, 24, 20)
+        }
+        layout.addView(etSequenceId)
+
+        // Separador
+        layout.addView(View(this).apply {
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, 1
+            ).also { it.topMargin = 28; it.bottomMargin = 20 }
+            setBackgroundColor(android.graphics.Color.parseColor("#334155"))
+        })
+
+        // ── Sección: Rating ──
+        layout.addView(TextView(this).apply {
+            text = "CONFIGURACIÓN RATING"
+            setTextColor(android.graphics.Color.parseColor("#94a3b8"))
+            textSize = 11f
+            letterSpacing = 0.15f
+            setPadding(0, 0, 0, 12)
+        })
+
+        layout.addView(TextView(this).apply {
+            text = "Nombre del evento"
+            setTextColor(android.graphics.Color.parseColor("#cbd5e1"))
+            textSize = 13f
+            setPadding(0, 0, 0, 6)
+        })
+        val etEventName = EditText(this).apply {
+            setText(currentEventName)
+            hint = "Ej: TALLER DE INNOVACIÓN 2026"
+            setTextColor(android.graphics.Color.WHITE)
+            setHintTextColor(android.graphics.Color.parseColor("#64748b"))
+            setBackgroundColor(android.graphics.Color.parseColor("#1e293b"))
+            setPadding(24, 20, 24, 20)
+        }
+        layout.addView(etEventName)
+
+        layout.addView(View(this).apply {
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, 0
+            ).also { it.topMargin = 16 }
+        })
+
+        layout.addView(TextView(this).apply {
+            text = "URL Webhook (envío de rating)"
+            setTextColor(android.graphics.Color.parseColor("#cbd5e1"))
+            textSize = 13f
+            setPadding(0, 0, 0, 6)
+        })
+        val etWebhookUrl = EditText(this).apply {
+            setText(currentWebhookUrl)
+            hint = "https://hook.us1.make.com/..."
+            setTextColor(android.graphics.Color.WHITE)
+            setHintTextColor(android.graphics.Color.parseColor("#64748b"))
+            setBackgroundColor(android.graphics.Color.parseColor("#1e293b"))
+            setPadding(24, 20, 24, 20)
+            inputType = android.text.InputType.TYPE_TEXT_VARIATION_URI
+        }
+        layout.addView(etWebhookUrl)
+
+        val dialog = AlertDialog.Builder(this, R.style.Theme_TemiBridge)
+            .setTitle("Configuración")
+            .setView(scrollView)
+            .setPositiveButton("Guardar") { _, _ ->
+                prefs.edit().putString(KEY_FAREWELL_SEQUENCE_ID, etSequenceId.text.toString().trim()).apply()
+                ratingPrefs.edit()
+                    .putString(RatingActivity.KEY_EVENT_NAME, etEventName.text.toString().trim())
+                    .putString(RatingActivity.KEY_WEBHOOK_URL, etWebhookUrl.text.toString().trim())
+                    .apply()
+                Toast.makeText(this, "Configuración guardada", Toast.LENGTH_SHORT).show()
+                Log.d(TAG, "[SETTINGS] Guardado: seq=${etSequenceId.text}, event=${etEventName.text}, webhook=${etWebhookUrl.text}")
+            }
+            .setNegativeButton("Cancelar", null)
+            .create()
+
+        dialog.show()
     }
 
     private fun returnToMain() {

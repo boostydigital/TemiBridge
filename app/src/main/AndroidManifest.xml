@@ -145,6 +145,13 @@
             android:screenOrientation="landscape"/>
 
         <activity
+            android:name=".ui.RatingActivity"
+            android:exported="false"
+            android:theme="@style/Theme.TemiBridge"
+            android:launchMode="singleTop"
+            android:screenOrientation="landscape"/>
+
+        <activity
             android:name=".ui.FotosActivity"
             android:exported="false"
             android:theme="@style/Theme.TemiBridge"
