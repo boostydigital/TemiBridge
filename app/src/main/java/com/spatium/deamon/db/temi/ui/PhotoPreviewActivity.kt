@@ -198,12 +198,21 @@ class PhotoPreviewActivity : AppCompatActivity() {
                         Toast.makeText(this@PhotoPreviewActivity, "✅ Foto enviada", Toast.LENGTH_SHORT).show()
                         SharedData.reset()
 
+                        // Traer nuestra app de vuelta al foreground
+                        try {
+                            val bringBack = Intent(this@PhotoPreviewActivity, PhotoPreviewActivity::class.java)
+                            bringBack.addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+                            startActivity(bringBack)
+                            Log.d(TAG, "[WHATSAPP] App traída al foreground")
+                        } catch (e: Exception) {
+                            Log.w(TAG, "[WHATSAPP] Error trayendo app al frente: ${e.message}")
+                        }
+
                         handler.postDelayed({
-                            // Retornar a PartyActivity sin lanzar nueva instancia
                             Log.d(TAG, "[WHATSAPP] Retornando a PartyActivity")
                             setResult(Activity.RESULT_OK)
                             finish()
-                        }, 1000) // Esperar 1 segundo antes de retornar
+                        }, 1500)
                         return
                     }
                     SharedData.SendState.ERROR_GENERAL,
