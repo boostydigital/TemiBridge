@@ -12,7 +12,7 @@ import kotlin.random.Random
  */
 class WanderingController(
     private val robot: Robot?,
-    private val onPersonDetected: () -> Unit,
+    private val personDetectedCallback: () -> Unit,
     private val onNavigationStart: (location: String) -> Unit,
     private val onNavigationComplete: () -> Unit,
     private val onTtsCompleted: () -> Unit
@@ -164,7 +164,13 @@ class WanderingController(
      * Mueve al siguiente índice de ubicación
      */
     private fun moveToNextLocation() {
-        currentLocationIndex = (currentLocationIndex + 1) % selectedLocations.size
+        if (selectedLocations.size > 1) {
+            var nextIndex: Int
+            do {
+                nextIndex = Random.nextInt(selectedLocations.size)
+            } while (nextIndex == currentLocationIndex)
+            currentLocationIndex = nextIndex
+        }
         navigateToNextLocation()
     }
 
@@ -260,7 +266,7 @@ class WanderingController(
         }
 
         // Notificar que se detectó persona
-        onPersonDetected()
+        personDetectedCallback()
     }
 
     /**
@@ -270,32 +276,16 @@ class WanderingController(
         Log.d(TAG, "[WANDER] Reanudando deambulación")
         
         cancelPhotoTimer()
+        isDetectionProcessing = false
         
-        if (!isWandering) {
-            Log.d(TAG, "[WANDER] Deambulación no está activa - no continuar")
+        if (selectedLocations.isEmpty()) {
+            Log.w(TAG, "[WANDER] No hay ubicaciones para reanudar")
             return
         }
         
-        Log.d(TAG, "[WANDER] Deambulación activa - continuando a siguiente ubicación")
-
-        // Hablar frase de despedida
-        val byePhrase = byePhrases.random()
-        Log.d(TAG, "[TTS] Frase de despedida: $byePhrase")
-        
-        try {
-            val ttsRequest = createTtsRequest(byePhrase)
-            if (ttsRequest != null && robot != null) {
-                val speak = robot.javaClass.getMethod("speak", ttsRequest.javaClass)
-                speak.invoke(robot, ttsRequest)
-            }
-        } catch (e: Exception) {
-            Log.w(TAG, "[TTS] Error al hablar frase de despedida: ${e.message}")
-        }
-
-        // Esperar a que termine de hablar y luego continuar
-        Handler(Looper.getMainLooper()).postDelayed({
-            moveToNextLocation()
-        }, 3000)
+        isWandering = true
+        Log.d(TAG, "[WANDER] Deambulación reactivada - continuando a siguiente ubicación")
+        moveToNextLocation()
     }
 
     /**

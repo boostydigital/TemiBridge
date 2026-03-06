@@ -15,7 +15,6 @@ import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import com.robotemi.sdk.Robot
-import com.robotemi.sdk.TtsRequest
 import com.spatium.deamon.db.temi.R
 
 class SelfieHunterActivity : AppCompatActivity() {
@@ -24,6 +23,7 @@ class SelfieHunterActivity : AppCompatActivity() {
         private const val TAG = "SelfieHunterActivity"
         private const val DETECTION_DISTANCE = 1.5f
         const val EXTRA_SELECTED_LOCATIONS = "selected_locations"
+        private const val FAREWELL_PHRASE = "Nuestro equipo de recepción enviará la foto a tu WhatsApp. ¡Disfruta el evento!"
     }
 
     enum class State { WANDERING, SPEAKING, WAITING_TOUCH, PHOTO_MODE }
@@ -31,7 +31,7 @@ class SelfieHunterActivity : AppCompatActivity() {
     private var currentState = State.WANDERING
     private var robot: Robot? = null
     private var wanderingController: WanderingController? = null
-    private var locationManager: LocationManager? = null
+    private var selectedLocations = listOf<String>()
 
     // ── Listeners con reflexión para compatibilidad entre versiones del SDK ──
     private var goToListenerProxy: Any? = null
@@ -70,6 +70,11 @@ class SelfieHunterActivity : AppCompatActivity() {
             Log.d(TAG, "[UI] Botón cámara tocado")
             onCameraButtonPressed()
         }
+        // Botón para salir del modo deambulatorio
+        findViewById<View>(R.id.btnExitWandering)?.setOnClickListener {
+            Log.d(TAG, "[UI] Botón salir tocado")
+            exitWanderingMode()
+        }
     }
 
     fun onCtaButtonClicked(view: View) {
@@ -79,73 +84,45 @@ class SelfieHunterActivity : AppCompatActivity() {
 
     private fun loadLocationsAndStart() {
         Log.d(TAG, "[LOAD] Iniciando loadLocationsAndStart()")
-        val selectedLocations = intent.getStringArrayListExtra(EXTRA_SELECTED_LOCATIONS) ?: emptyList()
+        selectedLocations = intent.getStringArrayListExtra(EXTRA_SELECTED_LOCATIONS) ?: emptyList()
         Log.d(TAG, "[LOAD] Ubicaciones recibidas: ${selectedLocations.size} - $selectedLocations")
         
         if (selectedLocations.isNotEmpty()) {
             Log.d(TAG, "[LOCATIONS] Ubicaciones seleccionadas: ${selectedLocations.size}")
-            selectedLocations.forEach { location ->
-                Log.d(TAG, "[LOCATIONS] Agregando ubicación: $location")
-            }
             
             // Inicializar WanderingController con callbacks
             wanderingController = WanderingController(
                 robot = robot,
-                onPersonDetected = { 
+                personDetectedCallback = { 
+                    Log.d(TAG, "[DETECTION] Callback personDetected - cambiando a SPEAKING")
                     currentState = State.SPEAKING
-                    onPersonDetected()
                 },
                 onNavigationStart = { location ->
-                    updateStatusText("🚀 Navegando a: $location")
+                    Log.d(TAG, "[NAVIGATION] Navegando a: $location")
                 },
                 onNavigationComplete = {
-                    onNavigationComplete()
+                    Log.d(TAG, "[NAVIGATION] Navegación completada")
                 },
                 onTtsCompleted = {
                     Log.d(TAG, "[TTS] TTS completado - cambiando a WAITING_TOUCH")
                     currentState = State.WAITING_TOUCH
-                    Handler(Looper.getMainLooper()).post { 
-                        showCTAScreen()
-                        // Iniciar deambulación solo cuando el botón selfie es visible
-                        wanderingController?.startWandering(selectedLocations)
-                    }
+                    runOnUiThread { showCTAScreen() }
                 }
             )
             
             // Inicializar listeners del WanderingController
             wanderingController?.initialize()
             
-            // NO iniciar deambulación inmediatamente
-            // El robot esperará a detectar una persona para comenzar a moverse
-            updateStatusText("👀 Esperando personas...")
+            // Iniciar deambulación INMEDIATAMENTE
+            wanderingController?.startWandering(selectedLocations)
+            Log.d(TAG, "[WANDER] Deambulación iniciada con ${selectedLocations.size} ubicaciones")
         } else {
             Log.w(TAG, "[LOCATIONS] Sin ubicaciones seleccionadas")
             updateStatusText("⚠️ Sin ubicaciones")
         }
     }
 
-    private fun onPersonDetected() {
-        Log.d(TAG, "[DETECTION] Persona detectada en SelfieHunterActivity")
-        currentState = State.SPEAKING
-        hideCTAScreen()
-        Handler(Looper.getMainLooper()).post {
-            showCTAScreen()
-        }
-    }
-
-    private fun onNavigationStart(location: String) {
-        Log.d(TAG, "[NAVIGATION] Navegando a: $location")
-        currentState = State.WANDERING
-        hideCTAScreen()
-    }
-
-    private fun onNavigationComplete() {
-        Log.d(TAG, "[NAVIGATION] Navegación completada")
-    }
-
-    // Métodos antiguos ya no se usan - la lógica está en WanderingController
-    // startWandering(), speakToDetectedPerson(), onTtsCompleted(), etc.
-    // fueron reemplazados por WanderingController.kt
+    // La lógica de detección y navegación se maneja en WanderingController y en los listeners de SDK
 
     // ──────────────────────────────────────────
     // 4. BOTÓN CÁMARA presionado
@@ -157,6 +134,8 @@ class SelfieHunterActivity : AppCompatActivity() {
         }
         currentState = State.PHOTO_MODE
         hideCTAScreen()
+        wanderingController?.stopWandering()
+        disableDetectionMode()
         Log.d(TAG, "[CAMERA] ¡Usuario tocó! Abriendo cámara...")
         launchPhotoApp()
     }
@@ -191,15 +170,9 @@ class SelfieHunterActivity : AppCompatActivity() {
 
     private fun hideCTAScreen() {
         runOnUiThread {
-            // Mostrar contenido principal
             findViewById<LinearLayout>(R.id.mainContent)?.visibility = View.VISIBLE
-            // Ocultar overlay CTA
-            findViewById<FrameLayout>(R.id.ctaOverlay).visibility = View.GONE
+            findViewById<FrameLayout>(R.id.ctaOverlay)?.visibility = View.GONE
         }
-        
-        // Detener deambulación cuando el botón selfie se oculta
-        wanderingController?.stopWandering()
-        updateStatusText("👀 Esperando personas...")
     }
 
     private fun updateStatusText(text: String) {
@@ -207,6 +180,71 @@ class SelfieHunterActivity : AppCompatActivity() {
             try {
                 findViewById<TextView>(R.id.tvSelfieStatus)?.text = text
             } catch (t: Throwable) { }
+        }
+    }
+
+    // ──────────────────────────────────────────
+    // Nuevos métodos de control
+    // ──────────────────────────────────────────
+    private fun exitWanderingMode() {
+        Log.d(TAG, "[EXIT] Saliendo del modo deambulatorio")
+        wanderingController?.cleanup()
+        unregisterListeners()
+        finish()
+    }
+
+    private fun sayFarewellAndResumeWandering() {
+        Log.d(TAG, "[FAREWELL] Diciendo frase de despedida y reanudando")
+        try {
+            val ttsRequest = createTtsRequest(FAREWELL_PHRASE)
+            if (ttsRequest != null && robot != null) {
+                val speak = robot!!.javaClass.getMethod("speak", ttsRequest.javaClass)
+                speak.invoke(robot, ttsRequest)
+                Log.d(TAG, "[FAREWELL] TTS enviado: $FAREWELL_PHRASE")
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "[FAREWELL] Error TTS: ${e.message}")
+        }
+        // Esperar a que termine de hablar y luego reanudar deambulación
+        Handler(Looper.getMainLooper()).postDelayed({
+            if (currentState == State.WANDERING) {
+                wanderingController?.resumeWandering()
+            }
+        }, 5000)
+    }
+
+    private fun disableDetectionMode() {
+        val r = robot ?: return
+        try {
+            r.javaClass.getMethod("setDetectionModeOn",
+                Boolean::class.javaPrimitiveType, Float::class.javaPrimitiveType)
+                .invoke(r, false, DETECTION_DISTANCE)
+            Log.d(TAG, "[DETECTION] Modo detección DESACTIVADO")
+        } catch (t: Throwable) {
+            Log.w(TAG, "[DETECTION] Error desactivando detección: ${t.message}")
+        }
+    }
+
+    private fun enableDetectionMode() {
+        val r = robot ?: return
+        try {
+            r.javaClass.getMethod("setDetectionModeOn",
+                Boolean::class.javaPrimitiveType, Float::class.javaPrimitiveType)
+                .invoke(r, true, DETECTION_DISTANCE)
+            Log.d(TAG, "[DETECTION] Modo detección ACTIVADO")
+        } catch (t: Throwable) {
+            Log.w(TAG, "[DETECTION] Error activando detección: ${t.message}")
+        }
+    }
+
+    private fun createTtsRequest(text: String): Any? {
+        return try {
+            val cls = Class.forName("com.robotemi.sdk.TtsRequest")
+            val create = cls.getMethod("create", String::class.java, Boolean::class.javaPrimitiveType)
+            create.invoke(null, text, false)
+        } catch (t: Throwable) {
+            Log.w(TAG, "[TTS] TtsRequest no disponible: ${t.message}")
+            null
         }
     }
 
@@ -267,20 +305,23 @@ class SelfieHunterActivity : AppCompatActivity() {
                         when (currentState) {
                             State.WANDERING -> {
                                 if (isDetected) {
+                                    Log.d(TAG, "[DETECTION] Persona detectada en WANDERING - deteniendo y hablando")
+                                    currentState = State.SPEAKING
                                     Handler(Looper.getMainLooper()).post {
-                                        try {
-                                            r.javaClass.getMethod("stopMovement").invoke(r)
-                                        } catch (t: Throwable) { }
+                                        wanderingController?.stopWandering()
                                         wanderingController?.onPersonDetected()
                                     }
                                 }
                             }
                             State.WAITING_TOUCH -> {
                                 if (!isDetected) {
-                                    Log.d(TAG, "[DETECTION] Persona se fue — retomando")
+                                    Log.d(TAG, "[DETECTION] Persona se fue - ocultando CTA y reanudando")
+                                    currentState = State.WANDERING
                                     Handler(Looper.getMainLooper()).post { hideCTAScreen() }
                                     Handler(Looper.getMainLooper()).postDelayed({
-                                        wanderingController?.resumeWandering()
+                                        if (currentState == State.WANDERING) {
+                                            wanderingController?.resumeWandering()
+                                        }
                                     }, 1500L)
                                 }
                             }
@@ -325,10 +366,11 @@ class SelfieHunterActivity : AppCompatActivity() {
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
         if (requestCode == 1001) {
-            Log.d(TAG, "[RESULT] Retornando de PartyActivity")
-            // Retomar deambulación usando WanderingController
+            Log.d(TAG, "[RESULT] Retornando de PartyActivity - diciendo despedida y reanudando")
             currentState = State.WANDERING
-            wanderingController?.resumeWandering()
+            hideCTAScreen()
+            enableDetectionMode()
+            sayFarewellAndResumeWandering()
         }
     }
 
