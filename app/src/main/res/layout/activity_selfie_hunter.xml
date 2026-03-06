@@ -1,0 +1,210 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#101622">
+
+    <!-- Fondo oscuro con gradiente -->
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@drawable/dark_gradient_overlay"/>
+
+    <!-- Contenido principal (se oculta cuando aparece overlay CTA) -->
+    <LinearLayout
+        android:id="@+id/mainContent"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:gravity="center"
+        android:padding="40dp">
+
+        <!-- Título -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="¡Captura el momento!"
+            android:textColor="#FFFFFFFF"
+            android:textSize="48sp"
+            android:fontFamily="sans-serif-black"
+            android:textStyle="bold"
+            android:layout_marginBottom="16dp"
+            android:gravity="center"/>
+
+        <!-- Subtítulo -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Toca para tomar una selfie"
+            android:textColor="#B3FFFFFF"
+            android:textSize="20sp"
+            android:fontFamily="sans-serif"
+            android:layout_marginBottom="64dp"
+            android:gravity="center"/>
+
+        <!-- Botón cámara grande circular -->
+        <FrameLayout
+            android:id="@+id/btnSelfieCamera"
+            android:layout_width="280dp"
+            android:layout_height="280dp"
+            android:layout_gravity="center_horizontal"
+            android:background="@drawable/bg_capture_button"
+            android:clickable="true"
+            android:focusable="true"
+            android:elevation="16dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:gravity="center"
+                android:orientation="vertical">
+
+                <!-- Icono cámara -->
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="📷"
+                    android:textSize="96sp"
+                    android:layout_marginBottom="16dp"/>
+
+                <!-- Texto del botón -->
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="TOMA UNA SELFIE"
+                    android:textColor="#FFFFFFFF"
+                    android:textSize="18sp"
+                    android:fontFamily="sans-serif-black"
+                    android:letterSpacing="0.1"
+                    android:gravity="center"/>
+            </LinearLayout>
+        </FrameLayout>
+
+        <!-- Pulsing particles visual -->
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:orientation="horizontal"
+            android:layout_marginTop="48dp">
+
+            <View
+                android:layout_width="8dp"
+                android:layout_height="8dp"
+                android:background="@drawable/bg_capture_button"
+                android:layout_margin="8dp"
+                android:elevation="4dp"/>
+
+            <View
+                android:layout_width="8dp"
+                android:layout_height="8dp"
+                android:background="@drawable/bg_glass_circle"
+                android:layout_margin="8dp"
+                android:elevation="4dp"/>
+
+            <View
+                android:layout_width="8dp"
+                android:layout_height="8dp"
+                android:background="@drawable/bg_capture_button"
+                android:layout_margin="8dp"
+                android:elevation="4dp"/>
+        </LinearLayout>
+    </LinearLayout>
+
+    <!-- Status text (para debugging) -->
+    <TextView
+        android:id="@+id/tvSelfieStatus"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="top|center_horizontal"
+        android:layout_marginTop="24dp"
+        android:text="Buscando personas..."
+        android:textColor="#99FFFFFF"
+        android:textSize="14sp"
+        android:fontFamily="sans-serif"
+        android:gravity="center"/>
+
+    <!-- CTA Overlay: aparece cuando detecta persona (reemplaza el contenido principal) -->
+    <FrameLayout
+        android:id="@+id/ctaOverlay"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="#CC0F172A"
+        android:visibility="gone">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:gravity="center"
+            android:orientation="vertical"
+            android:padding="48dp">
+
+            <!-- Emoji grande -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="📸"
+                android:textSize="120sp"
+                android:layout_marginBottom="32dp"/>
+
+            <!-- Texto CTA -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:gravity="center"
+                android:text="¡Tómate una foto\nconmigo!"
+                android:textColor="#FFFFFFFF"
+                android:textSize="44sp"
+                android:fontFamily="sans-serif-black"
+                android:textStyle="bold"
+                android:lineSpacingMultiplier="1.2"
+                android:layout_marginBottom="16dp"/>
+
+            <!-- Instrucción -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:gravity="center"
+                android:text="TOCA EL BOTÓN PARA EMPEZAR"
+                android:textColor="#B3FFFFFF"
+                android:textSize="16sp"
+                android:fontFamily="sans-serif-medium"
+                android:letterSpacing="0.15"
+                android:layout_marginBottom="48dp"/>
+
+            <!-- Botón CTA: reutiliza el mismo listener del botón principal -->
+            <FrameLayout
+                android:layout_width="240dp"
+                android:layout_height="240dp"
+                android:background="@drawable/bg_capture_button"
+                android:clickable="true"
+                android:focusable="true"
+                android:onClick="onCtaButtonClicked">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:gravity="center"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="📷"
+                        android:textSize="80sp"
+                        android:layout_marginBottom="12dp"/>
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="¡TÓCAME!"
+                        android:textColor="#FFFFFFFF"
+                        android:textSize="16sp"
+                        android:fontFamily="sans-serif-black"
+                        android:letterSpacing="0.05"/>
+                </LinearLayout>
+            </FrameLayout>
+        </LinearLayout>
+    </FrameLayout>
+
+</FrameLayout>

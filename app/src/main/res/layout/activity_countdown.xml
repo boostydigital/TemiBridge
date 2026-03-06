@@ -1,0 +1,228 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#0F172A">
+
+    <!-- Camera Preview streaming - Z-order 0 (back) -->
+    <androidx.camera.view.PreviewView
+        android:id="@+id/countdownPreviewView"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:elevation="0dp"
+        app:scaleType="fillCenter"/>
+
+
+    <!-- Corner accents - top left -->
+    <View
+        android:layout_width="64dp"
+        android:layout_height="2dp"
+        android:layout_gravity="top|start"
+        android:layout_margin="32dp"
+        android:background="#66FFFFFF"/>
+    <View
+        android:layout_width="2dp"
+        android:layout_height="64dp"
+        android:layout_gravity="top|start"
+        android:layout_margin="32dp"
+        android:background="#66FFFFFF"/>
+
+    <!-- Corner accents - top right -->
+    <View
+        android:layout_width="64dp"
+        android:layout_height="2dp"
+        android:layout_gravity="top|end"
+        android:layout_margin="32dp"
+        android:background="#66FFFFFF"/>
+    <View
+        android:layout_width="2dp"
+        android:layout_height="64dp"
+        android:layout_gravity="top|end"
+        android:layout_margin="32dp"
+        android:background="#66FFFFFF"/>
+
+    <!-- Corner accents - bottom left -->
+    <View
+        android:layout_width="64dp"
+        android:layout_height="2dp"
+        android:layout_gravity="bottom|start"
+        android:layout_margin="32dp"
+        android:background="#66FFFFFF"/>
+    <View
+        android:layout_width="2dp"
+        android:layout_height="64dp"
+        android:layout_gravity="bottom|start"
+        android:layout_margin="32dp"
+        android:background="#66FFFFFF"/>
+
+    <!-- Corner accents - bottom right -->
+    <View
+        android:layout_width="64dp"
+        android:layout_height="2dp"
+        android:layout_gravity="bottom|end"
+        android:layout_margin="32dp"
+        android:background="#66FFFFFF"/>
+    <View
+        android:layout_width="2dp"
+        android:layout_height="64dp"
+        android:layout_gravity="bottom|end"
+        android:layout_margin="32dp"
+        android:background="#66FFFFFF"/>
+
+    <!-- Header -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="top"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingHorizontal="48dp"
+        android:paddingTop="24dp"
+        android:paddingBottom="24dp">
+
+        <FrameLayout
+            android:layout_width="44dp"
+            android:layout_height="44dp"
+            android:background="@drawable/bg_primary_button">
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:text="📷"
+                android:textSize="20sp"/>
+        </FrameLayout>
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="12dp"
+            android:layout_weight="1"
+            android:fontFamily="sans-serif-bold"
+            android:text="ProShot Tablet"
+            android:textColor="#FFFFFFFF"
+            android:textSize="20sp"/>
+
+        <FrameLayout
+            android:id="@+id/btnCountdownClose"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:background="@drawable/bg_glass_circle"
+            android:clickable="true"
+            android:focusable="true">
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:text="✕"
+                android:textColor="#FFFFFFFF"
+                android:textSize="16sp"/>
+        </FrameLayout>
+    </LinearLayout>
+
+    <!-- Main countdown container - centered -->
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:background="@drawable/bg_glass_panel_rounded"
+        android:gravity="center"
+        android:orientation="vertical"
+        android:padding="64dp">
+
+        <!-- Countdown ring + number container -->
+        <FrameLayout
+            android:layout_width="280dp"
+            android:layout_height="280dp">
+
+            <!-- Background ring (drawn in code via canvas) -->
+            <com.spatium.deamon.db.temi.ui.CountdownRingView
+                android:id="@+id/countdownRing"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"/>
+
+            <!-- Countdown number -->
+            <TextView
+                android:id="@+id/tvCountdownNumber"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:fontFamily="sans-serif-bold"
+                android:text="3"
+                android:textColor="#FFFFFFFF"
+                android:textSize="120sp"/>
+        </FrameLayout>
+
+        <!-- Label below ring -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="32dp"
+            android:fontFamily="sans-serif-bold"
+            android:letterSpacing="0.04"
+            android:text="Prepárate..."
+            android:textColor="#FFFFFFFF"
+            android:textSize="32sp"/>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:fontFamily="sans-serif"
+            android:text="Tu foto se tomará en instantes"
+            android:textColor="#B0C4DE"
+            android:textSize="16sp"/>
+    </LinearLayout>
+
+    <!-- Bottom bar -->
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|center_horizontal"
+        android:layout_marginBottom="48dp"
+        android:background="@drawable/bg_glass_panel_rounded"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingHorizontal="32dp"
+        android:paddingVertical="16dp">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="⏱"
+            android:textColor="#1152D4"
+            android:textSize="20sp"/>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:fontFamily="sans-serif-medium"
+            android:letterSpacing="0.1"
+            android:text="3s TIMER"
+            android:textColor="#CCE0E0E0"
+            android:textSize="13sp"/>
+
+        <View
+            android:layout_width="1dp"
+            android:layout_height="24dp"
+            android:layout_marginHorizontal="20dp"
+            android:background="#33FFFFFF"/>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="🔊"
+            android:textSize="18sp"/>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="6dp"
+            android:fontFamily="sans-serif-medium"
+            android:text="Sonido activo"
+            android:textColor="#CCE0E0E0"
+            android:textSize="13sp"/>
+    </LinearLayout>
+
+</FrameLayout>

@@ -133,11 +133,27 @@ class MainActivity : AppCompatActivity() {
             TemiController.speak("¿A dónde te guío hoy?")
         }
 
-        // Party: secuencia festiva
+        // Party: cámara fotográfica con envío por WhatsApp
         findViewById<FrameLayout>(R.id.tileParty).setOnClickListener {
-            Log.d("TemiBridge", "[TILE] Party tocado")
+            Log.d("TemiBridge", "[TILE] Party tocado - abriendo cámara party")
             showTileAnimation(it)
-            TemiController.speak("¡Vamos a celebrar!")
+            // Desactivar face tracking inmediatamente
+            TemiController.disableFaceTracking()
+            val intent = Intent(this, PartyActivity::class.java).apply {
+                addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+            }
+            startActivity(intent)
+        }
+
+        // Fotos: Selfie Hunter — selector de ubicaciones del mapa + deambulación
+        findViewById<FrameLayout>(R.id.tileFotos).setOnClickListener {
+            Log.d("TemiBridge", "[TILE] Fotos tocado - abriendo selector de ubicaciones")
+            showTileAnimation(it)
+            TemiController.disableFaceTracking()
+            val intent = Intent(this, com.spatium.deamon.db.temi.ui.MapSelectorActivity::class.java).apply {
+                addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+            }
+            startActivity(intent)
         }
     }
 

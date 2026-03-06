@@ -5,7 +5,7 @@
 #>
 
 param(
-    [string]$TemiIP = "192.168.41.157"
+    [string]$TemiIP = "192.168.191.67"
 )
 
 $ErrorActionPreference = "Stop"

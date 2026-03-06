@@ -2,4 +2,5 @@
 <resources>
     <string name="app_name">Deamon DB TEMI</string>
     <string name="TemiBridge">Deamon DB TEMI</string>
+    <string name="accessibility_service_description">Servicio para automatizar el envío de fotos por WhatsApp. Este servicio detecta cuando se abre WhatsApp con una foto adjunta y presiona automáticamente el botón de enviar.</string>
 </resources>

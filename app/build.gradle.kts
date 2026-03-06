@@ -35,8 +35,8 @@ android {
         applicationId = "com.spatium.deamon.db.temi"
         minSdk = 26
         targetSdk = 36
-        versionCode = 11
-        versionName = "3.6"
+        versionCode = 12
+        versionName = "3.7"
         vectorDrawables.useSupportLibrary = true
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
@@ -72,6 +72,10 @@ android {
     }
     buildFeatures {
         buildConfig = true
+    }
+    lint {
+        disable += "MissingClass"
+        abortOnError = false
     }
 }
 

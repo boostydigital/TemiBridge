@@ -12,6 +12,10 @@
     <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES" />
+    <uses-permission android:name="android.permission.BIND_ACCESSIBILITY_SERVICE" />
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
     
     <!-- Permisos del SDK de Temi -->
     <uses-permission android:name="com.robotemi.permission.sequence" />
@@ -111,6 +115,66 @@
             android:launchMode="singleTop"
             android:screenOrientation="landscape"/>
 
+        <activity
+            android:name=".ui.PartyActivity"
+            android:exported="false"
+            android:hardwareAccelerated="false"
+            android:theme="@style/Theme.TemiBridge"
+            android:launchMode="singleTop"
+            android:screenOrientation="landscape"/>
+
+        <activity
+            android:name=".ui.MapSelectorActivity"
+            android:exported="false"
+            android:theme="@style/Theme.TemiBridge"
+            android:launchMode="singleTop"
+            android:screenOrientation="landscape"/>
+
+        <activity
+            android:name=".ui.PrefixSelectorActivity"
+            android:exported="false"
+            android:theme="@style/Theme.TemiBridge"
+            android:launchMode="singleTop"
+            android:screenOrientation="landscape"/>
+
+        <activity
+            android:name=".ui.SelfieHunterActivity"
+            android:exported="false"
+            android:theme="@style/Theme.TemiBridge"
+            android:launchMode="singleTop"
+            android:screenOrientation="landscape"/>
+
+        <activity
+            android:name=".ui.FotosActivity"
+            android:exported="false"
+            android:theme="@style/Theme.TemiBridge"
+            android:launchMode="singleTop"
+            android:screenOrientation="landscape"/>
+
+        <activity
+            android:name=".ui.CountdownActivity"
+            android:exported="false"
+            android:theme="@style/Theme.TemiBridge"
+            android:launchMode="singleTop"
+            android:screenOrientation="landscape"/>
+
+        <activity
+            android:name=".ui.PhotoPreviewActivity"
+            android:exported="false"
+            android:theme="@style/Theme.TemiBridge"
+            android:launchMode="singleTop"
+            android:screenOrientation="landscape"/>
+
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths"/>
+        </provider>
+
         <service
             android:name=".core.RobotPedidosForegroundService"
             android:enabled="true"
@@ -119,6 +183,20 @@
             <property
                 android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
                 android:value="robot_pedidos_sync" />
+        </service>
+
+        <!-- Servicio de accesibilidad para WhatsApp -->
+        <service
+            android:name=".ui.WhatsAppAccessibilityService"
+            android:enabled="true"
+            android:exported="true"
+            android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE">
+            <intent-filter>
+                <action android:name="android.accessibilityservice.AccessibilityService" />
+            </intent-filter>
+            <meta-data
+                android:name="android.accessibilityservice"
+                android:resource="@xml/accessibility_service_config" />
         </service>
 
     </application>
