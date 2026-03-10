@@ -448,8 +448,25 @@ class WanderingController(
      * Limpia recursos
      */
     fun cleanup() {
-        stopWandering()
+        isWandering = false
+        isDetectionProcessing = false
         cancelAllTimers()
+        
+        try {
+            robot?.stopMovement()
+            Log.d(TAG, "[CLEANUP] ✓ stopMovement ejecutado")
+        } catch (e: Exception) {
+            Log.w(TAG, "[CLEANUP] Error en stopMovement: ${e.message}")
+        }
+        
+        try {
+            robot?.javaClass?.getMethod("setDetectionModeOn",
+                Boolean::class.javaPrimitiveType, Float::class.javaPrimitiveType)
+                ?.invoke(robot, false, DETECTION_DISTANCE)
+            Log.d(TAG, "[CLEANUP] ✓ Detección DESACTIVADA")
+        } catch (t: Throwable) {
+            Log.w(TAG, "[CLEANUP] Error desactivando detección: ${t.message}")
+        }
         
         try {
             ttsListenerProxy?.let {
@@ -461,5 +478,6 @@ class WanderingController(
         }
         
         ttsListenerProxy = null
+        Log.d(TAG, "[CLEANUP] ✓ WanderingController limpiado completamente")
     }
 }

@@ -27,6 +27,7 @@ class FotosActivity : AppCompatActivity() {
         private const val PHOTO_MODE_TIMEOUT_MS = 30_000L
         const val EXTRA_LOCATION_PREFIX = "location_prefix"
         const val EXTRA_SELECTED_LOCATIONS = "selected_locations"
+        private const val REQUEST_PHOTO = 2001
     }
 
     enum class State { WANDERING, SPEAKING, WAITING_TOUCH, PHOTO_MODE }
@@ -263,17 +264,20 @@ class FotosActivity : AppCompatActivity() {
     }
 
     private fun launchPhotoApp() {
-        val intent = Intent(this, PartyActivity::class.java).apply {
-            addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
-        }
-        startActivity(intent)
+        Log.d(TAG, "[PHOTO] Lanzando PartyActivity")
+        val intent = Intent(this, PartyActivity::class.java)
+        startActivityForResult(intent, REQUEST_PHOTO)
+    }
 
-        Handler(Looper.getMainLooper()).postDelayed({
-            if (currentState == State.PHOTO_MODE) {
-                Log.d(TAG, "[PHOTO] Timeout de foto — retomando deambulación")
+    @Deprecated("Deprecated in Java")
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        if (requestCode == REQUEST_PHOTO) {
+            Log.d(TAG, "[PHOTO] Regresando de PartyActivity — retomando deambulación")
+            Handler(Looper.getMainLooper()).postDelayed({
                 startWandering()
-            }
-        }, PHOTO_MODE_TIMEOUT_MS)
+            }, PAUSE_BETWEEN_POINTS_MS)
+        }
     }
 
     // ──────────────────────────────────────────

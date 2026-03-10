@@ -194,8 +194,23 @@ class SelfieHunterActivity : AppCompatActivity() {
     // ──────────────────────────────────────────
     private fun exitWanderingMode() {
         Log.d(TAG, "[EXIT] Saliendo del modo deambulatorio")
+        currentState = State.PHOTO_MODE
         wanderingController?.cleanup()
         unregisterListeners()
+        try {
+            robot?.stopMovement()
+            Log.d(TAG, "[EXIT] ✓ stopMovement ejecutado")
+        } catch (e: Exception) {
+            Log.w(TAG, "[EXIT] Error stopMovement: ${e.message}")
+        }
+        try {
+            robot?.javaClass?.getMethod("setDetectionModeOn",
+                Boolean::class.javaPrimitiveType, Float::class.javaPrimitiveType)
+                ?.invoke(robot, false, DETECTION_DISTANCE)
+            Log.d(TAG, "[EXIT] ✓ Detección desactivada")
+        } catch (t: Throwable) {
+            Log.w(TAG, "[EXIT] Error desactivando detección: ${t.message}")
+        }
         finish()
         overridePendingTransition(R.anim.fade_in, R.anim.fade_out)
     }
