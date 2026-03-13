@@ -316,6 +316,7 @@ class MenuActivity : AppCompatActivity() {
         val intent = Intent(this, OrderConfirmationActivity::class.java).apply {
             putExtra("productName", nombreCompleto)
             putExtra("iconRes", iconRes)
+            putExtra(OrderConfirmationActivity.EXTRA_PLACE, lastPlace)
             addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
         }
         

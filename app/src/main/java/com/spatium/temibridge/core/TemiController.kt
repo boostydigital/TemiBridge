@@ -410,7 +410,7 @@ object TemiController {
     fun playSequenceById(
         sequenceId: String,
         withPlayer: Boolean = true,
-        repeat: Int = 1,
+        repeat: Int = 0,
         startFromStep: Int = 1
     ): Boolean {
         Log.d(TAG, "=== playSequenceById INICIADO === ID: $sequenceId, withPlayer=$withPlayer, repeat=$repeat, startFromStep=$startFromStep")

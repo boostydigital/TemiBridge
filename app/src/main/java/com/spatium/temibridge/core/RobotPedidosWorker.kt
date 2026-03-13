@@ -31,25 +31,27 @@ object RobotPedidosWorker {
             return
         }
 
-        if (scope != null) {
-            Log.d(TAG, "RobotPedidosWorker ya estaba iniciado")
-            return
-        }
+        synchronized(this) {
+            if (scope != null) {
+                Log.d(TAG, "RobotPedidosWorker ya estaba iniciado")
+                return
+            }
 
-        val supabase = SupabaseClientProvider.getClient()
-        if (supabase == null) {
-            Log.w(TAG, "SupabaseClient no disponible; no se inicia worker")
-            return
-        }
+            val supabase = SupabaseClientProvider.getClient()
+            if (supabase == null) {
+                Log.w(TAG, "SupabaseClient no disponible; no se inicia worker")
+                return
+            }
 
-        val appContext = context.applicationContext
-        val job = SupervisorJob()
-        val newScope = CoroutineScope(Dispatchers.IO + job)
-        scope = newScope
+            val appContext = context.applicationContext
+            val job = SupervisorJob()
+            val newScope = CoroutineScope(Dispatchers.IO + job)
+            scope = newScope
 
-        newScope.launch {
-            Log.d(TAG, "RobotPedidosWorker iniciado: sync inicial + Realtime")
-            runWorker(appContext, supabase)
+            newScope.launch {
+                Log.d(TAG, "RobotPedidosWorker iniciado: sync inicial + Realtime")
+                runWorker(appContext, supabase)
+            }
         }
     }
 
@@ -107,7 +109,7 @@ object RobotPedidosWorker {
     }
 
     private suspend fun processPedido(context: Context, supabase: SupabaseClient, pedido: RobotPedido) {
-        // Marcar que estamos procesando para bloquear nuevos polls
+        // Marcar que estamos procesando para bloquear nuevos polls inmediatamente
         isProcessing.set(true)
         try {
             Log.d(TAG, "========================================")
@@ -119,8 +121,8 @@ object RobotPedidosWorker {
             Log.d(TAG, "  orden_action: ${pedido.ordenAction}")
             Log.d(TAG, "========================================")
 
-            // Claim atómico: solo un worker marcará realizado=true
-            supabase
+            // Claim atómico: actualizar realizado=true solo si aún es false, y retornar las filas afectadas
+            val claimed = supabase
                 .from("robot_pedidos")
                 .update(
                     {
@@ -131,9 +133,17 @@ object RobotPedidosWorker {
                         eq("id", pedido.id)
                         eq("realizado", false)
                     }
+                    select()
                 }
+                .decodeList<RobotPedido>()
 
-            Log.d(TAG, "Pedido id=${pedido.id} marcado realizado=true en DB")
+            // Si el claim no afectó ninguna fila, otro poll ya procesó este registro → abortar
+            if (claimed.isEmpty()) {
+                Log.w(TAG, "Pedido id=${pedido.id} ya fue procesado por otro ciclo (claim vacío). Abortando.")
+                return
+            }
+
+            Log.d(TAG, "Pedido id=${pedido.id} marcado realizado=true en DB (claim exitoso)")
 
             // NUEVO FLUJO:
             // 1. Ejecutar la secuencia del registro PRIMERO

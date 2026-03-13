@@ -38,7 +38,6 @@ import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 import com.spatium.deamon.db.temi.core.TemiController
 import com.spatium.deamon.db.temi.core.GoogleTTS
-import com.spatium.deamon.db.temi.core.RobotPedidosWorker
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -67,7 +66,6 @@ class MainActivity : AppCompatActivity() {
         Log.d("TemiBridge", "MainActivity.onCreate - setContentView OK")
 
         setupFullscreen()
-        RobotPedidosWorker.start(this)
         cameraExecutor = Executors.newSingleThreadExecutor()
 
         setupTiles()

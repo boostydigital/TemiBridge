@@ -32,11 +32,13 @@ class OrderConfirmationActivity : AppCompatActivity() {
         private const val PREFS_NAME = "menu_prefs"
         private const val KEY_FAREWELL_SEQUENCE_ID = "farewell_sequence_id"
         private const val DEFAULT_FAREWELL_SEQUENCE_ID = "694063d5bd16eddf28b772d8"
+        const val EXTRA_PLACE = "place"
     }
 
     private lateinit var prefs: SharedPreferences
     private var productName: String = ""
     private var iconRes: Int = 0
+    private var lastPlace: String = ""
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -45,6 +47,7 @@ class OrderConfirmationActivity : AppCompatActivity() {
         prefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         productName = intent.getStringExtra("productName") ?: ""
         iconRes = intent.getIntExtra("iconRes", R.drawable.ic_tea)
+        lastPlace = intent.getStringExtra(EXTRA_PLACE) ?: ""
 
         setupFullscreen()
         setupUI()
@@ -116,15 +119,20 @@ class OrderConfirmationActivity : AppCompatActivity() {
 
         CoroutineScope(Dispatchers.IO).launch {
             try {
-                val comidaEncoded = URLEncoder.encode(productName.split(" ")[0].lowercase(), "UTF-8")
-                val webhookUrl = "https://hook.us1.make.com/ei3fb5lpstgw8s8sygvyvnda9klzq0y3?despedida=sin_lugar&comida=$comidaEncoded"
+                val comida = productName.split(" ")[0].lowercase()
+                val lugar = lastPlace.ifEmpty { "sin_lugar" }
+                val jsonBody = """{"lugar":"$lugar","comida":"$comida"}"""
+                val webhookUrl = "https://hook.us1.make.com/ei3fb5lpstgw8s8sygvyvnda9klzq0y3"
 
-                Log.d(TAG, "=== ENVIANDO WEBHOOK === URL: $webhookUrl")
+                Log.d(TAG, "=== ENVIANDO WEBHOOK === URL: $webhookUrl | Body: $jsonBody")
 
                 val connection = java.net.URL(webhookUrl).openConnection() as java.net.HttpURLConnection
-                connection.requestMethod = "GET"
+                connection.requestMethod = "POST"
+                connection.setRequestProperty("Content-Type", "application/json")
+                connection.doOutput = true
                 connection.connectTimeout = 10000
                 connection.readTimeout = 10000
+                connection.outputStream.use { it.write(jsonBody.toByteArray(Charsets.UTF_8)) }
                 val responseCode = connection.responseCode
                 Log.d(TAG, "Webhook response: $responseCode")
                 connection.disconnect()
