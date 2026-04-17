@@ -1,7 +1,11 @@
 package com.spatium.deamon.db.temi.ui
 
 import android.annotation.SuppressLint
+import android.content.BroadcastReceiver
 import android.content.Context
+import android.content.Intent
+import android.content.IntentFilter
+import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
@@ -17,6 +21,7 @@ import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import androidx.lifecycle.lifecycleScope
 import com.spatium.deamon.db.temi.R
+import com.spatium.temibridge.core.RatingManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
@@ -34,11 +39,41 @@ class RatingActivity : AppCompatActivity() {
     private lateinit var webView: WebView
     private var eventName = DEFAULT_EVENT_NAME
     private var webhookUrl = ""
+    
+    // Modo RatingManager (viene de evaluación programada)
+    private var isRatingManagerMode = false
+    private var customerName = ""
+    private var salon = ""
+    
+    // Receiver para cerrar la activity desde RatingManager
+    private val closeReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            Log.d(TAG, "Recibido broadcast de cierre")
+            finish()
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_rating)
         Log.d(TAG, "[LIFECYCLE] RatingActivity.onCreate")
+
+        // Verificar si viene del RatingManager
+        isRatingManagerMode = intent.getBooleanExtra("rating_manager_mode", false)
+        customerName = intent.getStringExtra("customer_name") ?: ""
+        salon = intent.getStringExtra("salon") ?: ""
+        
+        Log.d(TAG, "[CONFIG] isRatingManagerMode=$isRatingManagerMode, salon=$salon, customer=$customerName")
+        
+        // Registrar receiver para cerrar desde RatingManager
+        if (isRatingManagerMode) {
+            val filter = IntentFilter("com.spatium.deamon.db.temi.CLOSE_RATING")
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                registerReceiver(closeReceiver, filter, Context.RECEIVER_NOT_EXPORTED)
+            } else {
+                registerReceiver(closeReceiver, filter)
+            }
+        }
 
         setupFullscreen()
         loadPreferences()
@@ -135,27 +170,64 @@ class RatingActivity : AppCompatActivity() {
         @JavascriptInterface
         fun submitRating(rating: Int) {
             Log.d(TAG, "[BRIDGE] Rating submitted: $rating")
-            sendRatingAsync(rating)
-            loadThankYouPage()
+            
+            if (isRatingManagerMode) {
+                // Notificar al RatingManager (singleton en MainActivity)
+                Log.d(TAG, "[BRIDGE] Modo RatingManager - notificando rating")
+                notifyRatingManager(rating)
+                // No llamar loadThankYouPage aquí, RatingManager maneja el flujo
+            } else {
+                // Modo legacy: enviar a webhook
+                sendRatingAsync(rating)
+                loadThankYouPage()
+            }
         }
 
         @JavascriptInterface
         fun goBack() {
             Log.d(TAG, "[BRIDGE] Back pressed")
-            runOnUiThread { finish() }
+            if (!isRatingManagerMode) {
+                runOnUiThread { finish() }
+            }
+            // En modo RatingManager, ignorar back (debe quedarse 15 min)
         }
 
         @JavascriptInterface
         fun skip() {
             Log.d(TAG, "[BRIDGE] Skip pressed")
-            runOnUiThread { finish() }
+            if (!isRatingManagerMode) {
+                runOnUiThread { finish() }
+            }
+            // En modo RatingManager, ignorar skip (debe quedarse 15 min)
         }
 
         @JavascriptInterface
         fun goHome() {
             Log.d(TAG, "[BRIDGE] Home pressed")
-            runOnUiThread { finish() }
+            if (!isRatingManagerMode) {
+                runOnUiThread { finish() }
+            }
+            // En modo RatingManager, ignorar home (debe quedarse 15 min)
         }
+    }
+
+    /**
+     * Notifica al RatingManager que se recibió una evaluación.
+     * Usa un broadcast para comunicarse con el manager.
+     */
+    private fun notifyRatingManager(rating: Int) {
+        Log.d(TAG, "[NOTIFY] Enviando rating=$rating al RatingManager")
+        
+        // Enviar broadcast con los datos del rating
+        val intent = Intent("com.spatium.deamon.db.temi.RATING_SUBMITTED").apply {
+            putExtra("rating", rating)
+            putExtra("customer_name", customerName)
+            putExtra("salon", salon)
+        }
+        sendBroadcast(intent)
+        
+        // Mostrar página de agradecimiento mientras RatingManager procesa
+        loadThankYouPage()
     }
 
     override fun finish() {
@@ -164,6 +236,14 @@ class RatingActivity : AppCompatActivity() {
     }
 
     override fun onDestroy() {
+        // Desregistrar receiver si estaba en modo RatingManager
+        if (isRatingManagerMode) {
+            try {
+                unregisterReceiver(closeReceiver)
+            } catch (e: Exception) {
+                Log.w(TAG, "Error unregistering receiver: ${e.message}")
+            }
+        }
         webView.destroy()
         super.onDestroy()
         Log.d(TAG, "[LIFECYCLE] RatingActivity destroyed")

@@ -39,6 +39,7 @@ import java.util.concurrent.Executors
 import com.spatium.deamon.db.temi.core.TemiController
 import com.spatium.deamon.db.temi.core.GoogleTTS
 import com.spatium.deamon.db.temi.core.AnnouncementManager
+import com.spatium.temibridge.core.RatingManager
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -54,6 +55,9 @@ class MainActivity : AppCompatActivity() {
     
     // Manager para modo anuncio con patrullaje
     private lateinit var announcementManager: AnnouncementManager
+    
+    // Manager para modo rating/evaluación de salones
+    private lateinit var ratingManager: RatingManager
 
     private val requestCameraPermission =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
@@ -80,6 +84,12 @@ class MainActivity : AppCompatActivity() {
         announcementManager = AnnouncementManager(this)
         announcementManager.startPolling()
         Log.d("TemiBridge", "AnnouncementManager polling iniciado")
+        
+        // Iniciar RatingManager para polling de evaluaciones de salones
+        Log.d("TemiBridge", "Inicializando RatingManager...")
+        ratingManager = RatingManager(this)
+        ratingManager.startPolling()
+        Log.d("TemiBridge", "RatingManager polling iniciado")
 
         Log.d("TemiBridge", "MainActivity iniciada con nuevo diseño grid")
     }
@@ -360,6 +370,7 @@ class MainActivity : AppCompatActivity() {
         super.onDestroy()
         cameraExecutor.shutdown()
         announcementManager.destroy()
+        ratingManager.destroy()
     }
 
     private fun handleQrContent(content: String) {

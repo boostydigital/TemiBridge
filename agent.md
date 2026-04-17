@@ -195,3 +195,242 @@ const response = await fetch(
 | Robot no patrulla | Verificar que waypoints existen en el robot |
 | TTS no funciona | Verificar volumen y permisos |
 | Anuncio no se detecta | Verificar conectividad y logs de polling |
+
+---
+
+## Modo Rating/Evaluación de Salones
+
+### Descripción
+
+El robot Temi puede recibir **evaluaciones programadas** de reuniones en salones. Cuando una reunión está por terminar, el robot:
+- Navega al salón **3 minutos antes** del fin de la reunión
+- Muestra la **pantalla de rating** con 5 estrellas interactivas
+- Permanece **15 minutos** esperando la evaluación
+- Habla un **TTS de invitación** cada 60 segundos
+- Envía la evaluación a un **sistema externo**
+- Agradece y vuelve a **home base**
+
+### Arquitectura
+
+```
+┌─────────────────┐     POST      ┌──────────────────────────┐
+│  Sistema        │ ────────────► │  Edge Function           │
+│  Externo        │               │  programar-evaluacion    │
+└─────────────────┘               └──────────┬───────────────┘
+                                             │
+                                             ▼
+                                  ┌──────────────────────────┐
+                                  │  Tabla:                  │
+                                  │  evaluaciones_programadas│
+                                  └──────────┬───────────────┘
+                                             │
+                        Polling cada 30s     │
+                                             ▼
+┌─────────────────┐               ┌──────────────────────────┐
+│  Robot Temi     │ ◄──────────── │  Edge Function           │
+│  (App Android)  │    GET        │  evaluacion-pendiente    │
+└─────────────────┘               └──────────────────────────┘
+         │
+         │ POST (al recibir rating)
+         ▼
+┌─────────────────────────────────────────────────────────────┐
+│  API Externa: create-evaluation                             │
+│  https://fojrqrkbzsgcefsnwldk.supabase.co/functions/v1/...  │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### Componentes
+
+#### 1. Edge Functions (Supabase - supabase-temi)
+
+| Función | Método | Descripción |
+|---------|--------|-------------|
+| `programar-evaluacion` | POST | Programa una evaluación para un salón |
+| `evaluacion-pendiente` | GET | Retorna evaluación pendiente (hora_llegada <= now) |
+
+#### 2. Tabla `evaluaciones_programadas`
+
+```sql
+CREATE TABLE evaluaciones_programadas (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  salon TEXT NOT NULL,                    -- Nombre del salón
+  waypoint TEXT NOT NULL,                 -- Waypoint mapeado
+  hora_fin TIMESTAMPTZ NOT NULL,          -- Hora fin de reunión
+  hora_llegada TIMESTAMPTZ NOT NULL,      -- hora_fin - 3 minutos
+  nombre_reserva TEXT NOT NULL,           -- Nombre del cliente
+  estado TEXT DEFAULT 'programada',       -- programada|en_proceso|completada|timeout
+  rating INTEGER CHECK (rating BETWEEN 1 AND 5),
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+```
+
+#### 3. Mapeo de Salones a Waypoints
+
+| Salón | Waypoint |
+|-------|----------|
+| Sala Duarte | salonduarte |
+| Sala Enriquillo | salonenriquillo |
+| Sala Multimedia | salonmultimedia |
+| Sala Quisqueya | salonquisqueya |
+| Sala Santo Domingo | salonsantodomingo |
+
+#### 4. Componentes Android
+
+| Archivo | Descripción |
+|---------|-------------|
+| `RatingManager.kt` | Polling, navegación, control de timeout, envío a API externa |
+| `RatingActivity.kt` | UI de rating con 5 estrellas (existente, extendido) |
+| `rating.html` | WebView con estrellas interactivas |
+
+### API de Programación
+
+**Endpoint:** `POST https://mkakxmjkwcymwosfrwkl.supabase.co/functions/v1/programar-evaluacion`
+
+#### Programar nueva evaluación:
+**Request Body:**
+```json
+{
+  "salon": "Sala Santo Domingo",
+  "hora_fin": "2026-04-17T21:00:00Z",
+  "nombre_reserva": "Juan Pérez"
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "action": "programada",
+  "evaluacion": {
+    "id": "uuid",
+    "salon": "Sala Santo Domingo",
+    "waypoint": "salonsantodomingo",
+    "hora_fin": "2026-04-17T21:00:00Z",
+    "hora_llegada": "2026-04-17T20:57:00Z",
+    "nombre_reserva": "Juan Pérez",
+    "estado": "programada",
+    "rating": null,
+    "created_at": "2026-04-17T20:50:00Z"
+  }
+}
+```
+
+#### Cancelar evaluación (reunión cancelada):
+**Request Body:**
+```json
+{
+  "salon": "Sala Santo Domingo",
+  "hora_fin": "2026-04-17T21:00:00Z",
+  "nombre_reserva": "Juan Pérez",
+  "estado": "cancelado"
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "action": "cancelada",
+  "evaluaciones_canceladas": 1,
+  "evaluaciones": [...]
+}
+```
+
+### API Externa de Evaluación
+
+**Endpoint:** `POST https://fojrqrkbzsgcefsnwldk.supabase.co/functions/v1/create-evaluation`
+
+**Request Body (enviado por el robot):**
+```json
+{
+  "rating": 5,
+  "customer_name": "Juan Pérez",
+  "salon": "Sala Santo Domingo",
+  "feedback_text": "Excelente servicio",
+  "category": "Sala Santo Domingo"
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Feedback registrado exitosamente",
+  "data": {
+    "id": "uuid",
+    "rating": 5,
+    "salon": "Sala Santo Domingo",
+    "customer_name": "Juan Pérez",
+    "feedback_text": "Excelente servicio",
+    "created_at": "2026-04-17T21:01:49Z"
+  }
+}
+```
+
+### Flujo de Ejecución
+
+1. Sistema externo llama a `programar-evaluacion` con salon, hora_fin, nombre_reserva
+2. Edge Function calcula `hora_llegada = hora_fin - 3 minutos` e inserta en BD
+3. App Android hace polling cada 30s a `evaluacion-pendiente`
+4. Al detectar evaluación pendiente (hora_llegada <= now):
+   - Activa Kiosk Mode
+   - Navega al waypoint del salón
+   - Abre `RatingActivity` con pantalla de estrellas
+   - Inicia TTS de invitación cada 60 segundos
+   - Configura timeout de 15 minutos
+5. Si usuario toca una estrella:
+   - Envía POST a `create-evaluation` con rating y datos
+   - Muestra página de agradecimiento
+   - TTS: "¡Muchas gracias por tu evaluación!"
+   - Vuelve a home base
+6. Si pasan 15 minutos sin evaluación:
+   - TTS: "Gracias por visitarnos. Hasta pronto."
+   - Actualiza estado a "timeout"
+   - Vuelve a home base
+
+### Parámetros Configurables
+
+| Parámetro | Valor | Ubicación |
+|-----------|-------|-----------|
+| Intervalo de polling | 30 segundos | `RatingManager.kt` |
+| Tiempo antes de llegada | 3 minutos | Edge Function |
+| Timeout de rating | 15 minutos | `RatingManager.kt` |
+| Intervalo de TTS | 60 segundos | `RatingManager.kt` |
+
+### Mapeo de Rating a Feedback
+
+| Rating | Feedback Text |
+|--------|---------------|
+| 1 | Necesita mejorar |
+| 2 | Regular |
+| 3 | Bueno |
+| 4 | Muy bueno |
+| 5 | Excelente servicio |
+
+### Integración con Sistemas Externos
+
+```javascript
+// Ejemplo: Programar evaluación cuando termina una reunión
+const response = await fetch(
+  'https://mkakxmjkwcymwosfrwkl.supabase.co/functions/v1/programar-evaluacion',
+  {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      salon: 'Sala Santo Domingo',
+      hora_fin: '2026-04-17T21:00:00Z',
+      nombre_reserva: 'Juan Pérez'
+    })
+  }
+);
+```
+
+### Troubleshooting
+
+| Problema | Solución |
+|----------|----------|
+| Robot no navega | Verificar que waypoint existe en el robot |
+| Evaluación no se envía | Verificar conectividad y logs de RatingManager |
+| Botones no funcionan | En modo RatingManager, back/skip/home están deshabilitados (15 min) |
+| TTS no habla | Verificar volumen y permisos de TTS |
+| Timeout inmediato | Verificar que hora_fin no esté en el pasado |

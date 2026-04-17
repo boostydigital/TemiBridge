@@ -1,95 +1,97 @@
-# Proposal: Modo Anuncio con Patrullaje
+# Proposal: Rating Mode - Evaluación de Servicio en Salones
 
 ## Título
-API de Anuncios con Modo Patrullaje para Robot Temi
+Modo Rating para Evaluación de Servicio Post-Reunión
 
 ## Problema a Resolver
-El coworking necesita una forma de comunicar eventos y anuncios a los usuarios de manera activa. Actualmente el robot Temi solo responde a interacciones directas (QR, comandos). No existe un mecanismo para que el robot patrulla las instalaciones anunciando información de forma proactiva durante un período determinado.
+El sistema necesita que el robot Temi vaya automáticamente a un salón 3 minutos antes de que termine una reunión, muestre una pantalla de rating/evaluación, detecte personas cercanas para invitarlas a evaluar el servicio, y envíe la evaluación a un sistema externo.
 
 ## Objetivo
-Crear una API que permita activar un "modo anuncio" donde el robot:
-1. Recibe texto de anuncio, imagen opcional y duración en minutos
-2. Entra en modo patrullaje (visita waypoints secuencialmente)
-3. En cada waypoint, anuncia el texto en voz alta
-4. Muestra la imagen del evento en pantalla durante el anuncio
-5. Continúa el ciclo hasta que expire el tiempo configurado
+Implementar un modo de evaluación donde:
+1. Un sistema externo notifica al robot sobre una reunión próxima a terminar
+2. El robot va al salón correspondiente 3 minutos antes del fin
+3. Muestra pantalla de rating con estrellas (1-5)
+4. Detecta personas cercanas y las invita a evaluar con TTS personalizado
+5. Al recibir evaluación, agradece y envía datos al sistema externo
+6. Después de 15 minutos o evaluación completada, vuelve a base de carga
 
 ## Alcance Incluido
-- **Edge Function** en Supabase como endpoint API
-- **Tabla `anuncios`** para persistir anuncios activos
-- **AnnouncementSkill** en Android para ejecutar el patrullaje
-- **UI de anuncio** mostrando imagen + texto mientras habla
-- **Polling desde la app** para detectar anuncios activos
-- **Lógica de patrullaje** visitando waypoints de `salones`
+- Edge Function `programar-evaluacion` para recibir datos de reunión
+- Edge Function `evaluacion-pendiente` para polling del robot
+- `RatingManager.kt` (NUEVO) para programar y controlar el modo rating
+- Modificar `RatingActivity.kt` para recibir extras y enviar a API externa
+- Detección de personas cercanas (SDK Temi)
+- TTS personalizado por salón
+- Envío de evaluación a API externa (create-evaluation)
+- Mapeo de salones a waypoints
 
 ## Alcance Excluido
-- Dashboard web para gestionar anuncios (futuro)
-- Múltiples anuncios simultáneos (v1 = 1 anuncio activo)
-- Priorización de anuncios
-- Historial de anuncios completados
-- Notificaciones push al robot (usaremos polling)
+- **Rediseño de RatingActivity** (ya existe con WebView y estrellas)
+- **Rediseño de rating.html** (ya tiene UI funcional)
+- Gestión de reuniones (viene del sistema externo)
+- Historial local de evaluaciones (se envía al sistema externo)
+- Múltiples evaluaciones simultáneas
+- Modificación del sistema externo
 
 ## Enfoque Propuesto
+1. Edge Function recibe: salon, hora_fin, nombre_reserva
+2. Calcular tiempo de espera (hora_fin - 3 minutos - ahora)
+3. Programar navegación al waypoint del salón
+4. Mostrar RatingActivity con estrellas interactivas
+5. Activar detección de personas → TTS invitación
+6. Al tocar estrella: enviar POST a create-evaluation, agradecer, ir a base
+7. Timeout 15 minutos → ir a base sin evaluación
 
-### Backend (Supabase)
-1. **Tabla `anuncios`**:
-   - `id`, `texto`, `imagen_url`, `duracion_minutos`, `activo`, `created_at`, `expires_at`
-   
-2. **Edge Function `activar-anuncio`**:
-   - POST con `texto`, `imagen_url`, `duracion_minutos`
-   - Desactiva anuncios previos
-   - Crea nuevo anuncio con `expires_at` calculado
-   - Retorna el anuncio creado
+## Mapeo de Salones
 
-3. **Edge Function `anuncio-activo`** (o query directo):
-   - GET retorna anuncio activo si `activo=true` y `expires_at > now()`
+| Salón | Waypoint |
+|-------|----------|
+| Sala Duarte | salonduarte |
+| Sala Enriquillo | salonenriquillo |
+| Sala Multimedia | salonmultimedia |
+| Sala Quisqueya | salonquisqueya |
+| Sala Santo Domingo | salonsantodomingo |
 
-### Android (TemiBridge)
+## API Externa para Envío de Evaluación
 
-**DESCUBRIMIENTO CLAVE:** El SDK de Temi (1.129.1+) tiene método `patrol()` nativo:
-```kotlin
-boolean patrol(List<String> locations, boolean nonstop, int times, int waiting)
+**Endpoint:** `POST https://fojrqrkbzsgcefsnwldk.supabase.co/functions/v1/create-evaluation`
+
+**Request Body:**
+```json
+{
+  "rating": 5,
+  "customer_name": "Juan Pérez",
+  "salon": "Sala Santo Domingo",
+  "feedback_text": "Excelente servicio"
+}
 ```
-- `locations`: Mínimo 3 ubicaciones, pueden repetirse
-- `nonstop`: Si true, no espera en cada ubicación
-- `times`: 0 = infinito, 1 = una vez
-- `waiting`: Segundos de espera (3-60)
 
-1. **AnnouncementService** (o coroutine en MainActivity):
-   - Polling cada 30s a `anuncio-activo`
-   - Si hay anuncio activo → inicia modo patrullaje con `patrol()`
-   
-2. **PatrolMode usando SDK nativo**:
-   - **Velocidad lenta**: `setGoToSpeed(SpeedLevel.SLOW)` antes de iniciar
-   - Usar `Robot.getInstance().patrol(locations, nonstop=false, times=0, waiting=10)`
-   - Escuchar `OnGoToLocationStatusChangedListener` para detectar llegada (descriptionId=500)
-   - En cada llegada: `speak(texto)` (imagen ya visible en pantalla)
-   - Usar `stopMovement()` cuando expire el anuncio
-   - Restaurar velocidad original al finalizar
-
-3. **AnnouncementActivity** (pantalla de anuncio):
-   - Pantalla fullscreen con imagen del evento + texto
-   - **Se muestra al iniciar el patrullaje y permanece visible durante TODO el recorrido**
-   - No se oculta entre waypoints
-   - Se cierra solo cuando el anuncio expira
+**Mapeo de feedback_text por rating:**
+| Rating | Texto |
+|--------|-------|
+| 1 ⭐ | "Necesita mejorar" |
+| 2 ⭐⭐ | "Regular" |
+| 3 ⭐⭐⭐ | "Bueno" |
+| 4 ⭐⭐⭐⭐ | "Muy bueno" |
+| 5 ⭐⭐⭐⭐⭐ | "Excelente servicio" |
 
 ## Riesgos Principales
+
 | Riesgo | Mitigación |
 |--------|------------|
-| Robot ocupado en otra tarea | Verificar estado antes de iniciar patrullaje |
-| Polling consume batería | Intervalo de 30-60s, solo cuando app activa |
-| Waypoints no existen | Validar contra `TemiController.getSavedLocations()` |
-| Imagen no carga | Placeholder por defecto, timeout de carga |
-| Anuncio expira mid-patrol | Verificar `expires_at` en cada ciclo |
+| Robot ocupado en otra tarea | Verificar estado antes de iniciar |
+| Persona no evalúa | Timeout 15 minutos, volver a base |
+| API externa no responde | Retry con backoff, agradecer igual |
+| Waypoint no existe | Validar mapeo, loggear error |
 
 ## Supuestos Abiertos
-- ¿Qué hacer si el robot está navegando? → Propuesta: esperar o cancelar navegación actual
-- ¿Mostrar imagen en pantalla del robot o solo hablar? → Propuesta: ambos
-- ¿Intervalo de polling? → Propuesta: 30 segundos
+- Los waypoints de salones ya están configurados en el robot
+- El sistema externo enviará hora_fin en formato ISO 8601
+- La API create-evaluation está disponible y funcional
 
 ## Decisiones Confirmadas
-1. **Imagen**: Se sube a Supabase Storage, la API recibe la URL del storage
-2. **Al terminar**: El robot vuelve a "home base"
-3. **Autenticación API**: No requerida (pública)
-4. **Waypoints**: Se envían en el JSON de la API (no se leen de tabla `salones`)
-5. **Anuncio activo**: Si se envía nuevo anuncio, reemplaza al anterior
+1. **Tiempo de anticipación**: 3 minutos antes del fin de reunión
+2. **Tiempo en salón**: Máximo 15 minutos
+3. **Al evaluar**: Agradecer y volver a base de carga
+4. **Sin evaluación**: Después de 15 min, volver a base
+5. **TTS**: Personalizado por salón, invitando a evaluar
