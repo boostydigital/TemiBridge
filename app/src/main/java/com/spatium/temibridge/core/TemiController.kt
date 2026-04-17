@@ -113,8 +113,10 @@ object TemiController {
         return try {
             val namesAny = runCatching { robot.javaClass.getMethod("getAllLocations").invoke(robot) }.getOrNull()
                 ?: runCatching { robot.javaClass.getMethod("getLocations").invoke(robot) }.getOrNull()
+            Log.d(TAG, "getSavedLocations raw: $namesAny")
             val names = (namesAny as? List<*>)?.mapNotNull { it?.toString()?.trim() }?.filter { it.isNotEmpty() }
                 ?: emptyList()
+            Log.d(TAG, "getSavedLocations parsed: $names")
 
             if (names.isEmpty()) return emptyList()
 
@@ -754,6 +756,340 @@ object TemiController {
                 }
         } catch (t: Throwable) {
             Log.w(TAG, "No se pudieron listar métodos: ${t.message}")
+        }
+    }
+
+    // --- Patrol Mode (SDK 1.129.1+) ---
+    
+    /**
+     * Inicia modo patrullaje visitando las ubicaciones en loop.
+     * @param locations Lista de waypoints (mínimo 3)
+     * @param nonstop Si true, no espera en cada ubicación
+     * @param times Número de repeticiones (0 = infinito)
+     * @param waiting Segundos de espera en cada ubicación (3-60)
+     * @return true si el patrullaje inició correctamente
+     */
+    fun patrol(
+        locations: List<String>,
+        nonstop: Boolean = false,
+        times: Int = 0,
+        waiting: Int = 10
+    ): Boolean {
+        val robot = robotInstance() ?: return false
+        return try {
+            Log.d(TAG, "=== INICIANDO PATROL ===")
+            Log.d(TAG, "Locations: ${locations.joinToString()}")
+            Log.d(TAG, "nonstop=$nonstop, times=$times, waiting=$waiting")
+            
+            ensureGoToListener()
+            
+            val patrolMethod = robot.javaClass.getMethod(
+                "patrol",
+                java.util.List::class.java,
+                Boolean::class.javaPrimitiveType,
+                Int::class.javaPrimitiveType,
+                Int::class.javaPrimitiveType
+            )
+            
+            val result = patrolMethod.invoke(robot, locations, nonstop, times, waiting)
+            val success = (result as? Boolean) ?: true
+            
+            if (success) {
+                Log.d(TAG, "✓ Patrol iniciado exitosamente")
+            } else {
+                Log.w(TAG, "⚠ Patrol retornó false")
+            }
+            success
+        } catch (t: Throwable) {
+            Log.e(TAG, "❌ patrol fallo: ${t.message}", t)
+            false
+        }
+    }
+
+    /**
+     * Detiene cualquier movimiento activo (goTo, patrol, follow, etc.)
+     */
+    fun stopMovement(): Boolean {
+        val robot = robotInstance() ?: return false
+        return try {
+            Log.d(TAG, "Deteniendo movimiento...")
+            val stopMethod = robot.javaClass.getMethod("stopMovement")
+            stopMethod.invoke(robot)
+            Log.d(TAG, "✓ Movimiento detenido")
+            true
+        } catch (t: Throwable) {
+            Log.e(TAG, "❌ stopMovement fallo: ${t.message}", t)
+            false
+        }
+    }
+
+    // --- Speed Control (SDK 0.10.70+) ---
+    
+    /**
+     * Enum para niveles de velocidad de navegación.
+     * VERY_HIGH y VERY_SLOW disponibles desde SDK 1.137.1
+     */
+    enum class SpeedLevel {
+        VERY_HIGH, HIGH, MEDIUM, SLOW, VERY_SLOW
+    }
+
+    /**
+     * Obtiene el nivel de velocidad actual de navegación.
+     * @return SpeedLevel actual o null si falla
+     */
+    fun getGoToSpeed(): SpeedLevel? {
+        val robot = robotInstance() ?: return null
+        return try {
+            val getMethod = robot.javaClass.getMethod("getGoToSpeed")
+            val result = getMethod.invoke(robot)
+            val speedName = result?.toString()?.uppercase() ?: return null
+            SpeedLevel.values().find { it.name == speedName }
+        } catch (t: Throwable) {
+            Log.w(TAG, "getGoToSpeed fallo: ${t.message}")
+            null
+        }
+    }
+
+    /**
+     * Configura el nivel de velocidad de navegación.
+     * Requiere permiso SETTINGS.
+     * @param level Nivel de velocidad deseado
+     * @return true si se configuró correctamente
+     */
+    fun setGoToSpeed(level: SpeedLevel): Boolean {
+        val robot = robotInstance() ?: return false
+        return try {
+            Log.d(TAG, "Configurando velocidad: $level")
+            
+            val speedLevelCls = Class.forName("com.robotemi.sdk.navigation.model.SpeedLevel")
+            val speedValue = speedLevelCls.getField(level.name).get(null)
+            
+            val setMethod = robot.javaClass.getMethod("setGoToSpeed", speedLevelCls)
+            setMethod.invoke(robot, speedValue)
+            
+            Log.d(TAG, "✓ Velocidad configurada: $level")
+            true
+        } catch (t: Throwable) {
+            Log.e(TAG, "❌ setGoToSpeed fallo: ${t.message}", t)
+            false
+        }
+    }
+
+    // --- Settings Permission ---
+    
+    fun hasSettingsPermission(): Boolean {
+        try {
+            val robotCls = Class.forName("com.robotemi.sdk.Robot")
+            val robot = robotCls.getMethod("getInstance").invoke(null)
+            val permCls = runCatching { Class.forName("com.robotemi.sdk.permission.Permission") }.getOrNull()
+                ?: Class.forName("com.robotemi.sdk.Permission")
+            
+            val settings = runCatching { permCls.getField("SETTINGS").get(null) }.getOrNull()
+            
+            if (settings != null) {
+                val check = runCatching { robot.javaClass.getMethod("checkSelfPermission", permCls) }.getOrNull()
+                    ?: runCatching { robot.javaClass.getMethod("hasPermission", permCls) }.getOrNull()
+                
+                if (check != null) {
+                    val res = check.invoke(robot, settings)
+                    return when (res) {
+                        is java.lang.Boolean -> res.booleanValue()
+                        is java.lang.Integer -> res.toInt() != 0
+                        else -> {
+                            val grantStatusCls = runCatching { Class.forName("com.robotemi.sdk.permission.Permission\$GrantStatus") }.getOrNull()
+                                ?: runCatching { Class.forName("com.robotemi.sdk.Permission\$GrantStatus") }.getOrNull()
+                            val granted = runCatching { grantStatusCls?.getField("GRANTED")?.get(null) }.getOrNull()
+                            granted != null && res == granted
+                        }
+                    }
+                }
+            }
+        } catch (t: Throwable) {
+            Log.w(TAG, "hasSettingsPermission fallo: ${t.message}")
+        }
+        return false
+    }
+
+    fun requestSettingsPermission(): Boolean {
+        if (hasSettingsPermission()) return true
+        val robot = robotInstance() ?: return false
+        return try {
+            Log.d(TAG, "Solicitando permiso SETTINGS...")
+            val permClass = runCatching { Class.forName("com.robotemi.sdk.permission.Permission") }.getOrNull()
+                ?: Class.forName("com.robotemi.sdk.Permission")
+            
+            val settings = runCatching { permClass.getField("SETTINGS").get(null) }.getOrNull()
+            
+            if (settings != null) {
+                val list = java.util.ArrayList<Any>()
+                list.add(settings)
+                
+                val reqWithCode = runCatching { robot.javaClass.getMethod("requestPermissions", java.util.List::class.java, Int::class.javaPrimitiveType) }.getOrNull()
+                if (reqWithCode != null) {
+                    reqWithCode.invoke(robot, list, 1003)
+                    Log.d(TAG, "✓ Permiso SETTINGS solicitado")
+                    return true
+                }
+                
+                val reqNoCode = runCatching { robot.javaClass.getMethod("requestPermissions", java.util.List::class.java) }.getOrNull()
+                if (reqNoCode != null) {
+                    reqNoCode.invoke(robot, list)
+                    Log.d(TAG, "✓ Permiso SETTINGS solicitado")
+                    return true
+                }
+            }
+            Log.w(TAG, "No se pudo solicitar permiso SETTINGS")
+            false
+        } catch (t: Throwable) {
+            Log.e(TAG, "requestSettingsPermission fallo: ${t.message}", t)
+            false
+        }
+    }
+
+    /**
+     * Obtiene la lista de ubicaciones guardadas en el robot.
+     * Útil para validar waypoints antes de iniciar patrol.
+     */
+    fun getLocations(): List<String> {
+        return getSavedLocations().map { it.name }
+    }
+
+    // --- UI Control ---
+    
+    /**
+     * Oculta la barra superior de Temi.
+     */
+    fun hideTopBar(): Boolean {
+        val robot = robotInstance() ?: return false
+        return try {
+            val method = robot.javaClass.getMethod("hideTopBar")
+            method.invoke(robot)
+            Log.d(TAG, "✓ TopBar ocultada")
+            true
+        } catch (t: Throwable) {
+            Log.w(TAG, "hideTopBar fallo: ${t.message}")
+            false
+        }
+    }
+
+    /**
+     * Muestra la barra superior de Temi.
+     */
+    fun showTopBar(): Boolean {
+        val robot = robotInstance() ?: return false
+        return try {
+            val method = robot.javaClass.getMethod("showTopBar")
+            method.invoke(robot)
+            Log.d(TAG, "✓ TopBar mostrada")
+            true
+        } catch (t: Throwable) {
+            Log.w(TAG, "showTopBar fallo: ${t.message}")
+            false
+        }
+    }
+
+    /**
+     * Configura si se muestra el billboard de navegación ("Yendo a...").
+     * @param hide true para ocultar, false para mostrar
+     */
+    fun setGoToBillboardDisabled(hide: Boolean): Boolean {
+        val robot = robotInstance() ?: return false
+        return try {
+            // Método: setGoToBillboardDisabled(boolean)
+            val method = robot.javaClass.getMethod("setGoToBillboardDisabled", Boolean::class.javaPrimitiveType)
+            method.invoke(robot, hide)
+            Log.d(TAG, "✓ GoToBillboard disabled: $hide")
+            true
+        } catch (t: Throwable) {
+            Log.w(TAG, "setGoToBillboardDisabled fallo: ${t.message}")
+            false
+        }
+    }
+
+    /**
+     * Activa el modo kiosk que oculta elementos de UI de Temi.
+     * Requiere que la app esté configurada como Kiosk en la configuración del robot.
+     */
+    fun setKioskModeOn(on: Boolean): Boolean {
+        val robot = robotInstance() ?: return false
+        return try {
+            val method = robot.javaClass.getMethod("setKioskModeOn", Boolean::class.javaPrimitiveType)
+            method.invoke(robot, on)
+            Log.d(TAG, "✓ Kiosk mode: $on")
+            true
+        } catch (t: Throwable) {
+            Log.w(TAG, "setKioskModeOn fallo: ${t.message}")
+            false
+        }
+    }
+
+    /**
+     * Verifica si la app está configurada como Kiosk.
+     */
+    fun isKioskModeOn(): Boolean {
+        val robot = robotInstance() ?: return false
+        return try {
+            val method = robot.javaClass.getMethod("isKioskModeOn")
+            val result = method.invoke(robot)
+            (result as? Boolean) ?: false
+        } catch (t: Throwable) {
+            Log.w(TAG, "isKioskModeOn fallo: ${t.message}")
+            false
+        }
+    }
+
+    /**
+     * Configura la visibilidad del billboard de navegación.
+     * @param disabled true para ocultar "Yendo a...", false para mostrar
+     */
+    fun toggleNavigationBillboard(disabled: Boolean): Boolean {
+        val robot = robotInstance() ?: return false
+        return try {
+            // Intentar con toggleNavigationBillboard primero
+            val method = robot.javaClass.getMethod("toggleNavigationBillboard", Boolean::class.javaPrimitiveType)
+            method.invoke(robot, disabled)
+            Log.d(TAG, "✓ Navigation billboard disabled: $disabled")
+            true
+        } catch (t: Throwable) {
+            Log.w(TAG, "toggleNavigationBillboard fallo: ${t.message}")
+            false
+        }
+    }
+
+    // --- Volume Control ---
+    
+    /**
+     * Obtiene el volumen actual del robot (0-10).
+     */
+    fun getVolume(): Int? {
+        val robot = robotInstance() ?: return null
+        return try {
+            val getMethod = robot.javaClass.getMethod("getVolume")
+            val result = getMethod.invoke(robot)
+            (result as? Number)?.toInt()
+        } catch (t: Throwable) {
+            Log.w(TAG, "getVolume fallo: ${t.message}")
+            null
+        }
+    }
+
+    /**
+     * Configura el volumen del robot (0-10).
+     * @param level Nivel de volumen (0-10)
+     * @return true si se configuró correctamente
+     */
+    fun setVolume(level: Int): Boolean {
+        val robot = robotInstance() ?: return false
+        val clampedLevel = level.coerceIn(0, 10)
+        return try {
+            Log.d(TAG, "Configurando volumen: $clampedLevel")
+            val setMethod = robot.javaClass.getMethod("setVolume", Int::class.javaPrimitiveType)
+            setMethod.invoke(robot, clampedLevel)
+            Log.d(TAG, "✓ Volumen configurado: $clampedLevel")
+            true
+        } catch (t: Throwable) {
+            Log.e(TAG, "❌ setVolume fallo: ${t.message}", t)
+            false
         }
     }
 }

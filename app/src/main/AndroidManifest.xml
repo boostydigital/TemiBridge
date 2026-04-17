@@ -16,6 +16,7 @@
     <uses-permission android:name="android.permission.BIND_ACCESSIBILITY_SERVICE" />
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
     
     <!-- Permisos del SDK de Temi -->
     <uses-permission android:name="com.robotemi.permission.sequence" />
@@ -171,6 +172,14 @@
             android:theme="@style/Theme.TemiBridge"
             android:launchMode="singleTop"
             android:screenOrientation="landscape"/>
+
+        <activity
+            android:name=".ui.AnnouncementActivity"
+            android:exported="false"
+            android:theme="@style/Theme.TemiBridge"
+            android:launchMode="singleTop"
+            android:screenOrientation="landscape"
+            android:configChanges="orientation|screenSize|keyboardHidden"/>
 
         <provider
             android:name="androidx.core.content.FileProvider"
