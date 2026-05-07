@@ -1,4 +1,3 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
@@ -18,7 +17,7 @@ const TERMINAL_STATUSES = ["bienvenido", "menu_abierto", "notificado"];
 // robot-invitado-checkin — idempotent guest check-in via QR scan
 // POST { guest_id }
 // Called by CheckinHandler (Android) when MainActivity decodes mytemi://guest?id=UUID
-serve(async (req) => {
+Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   if (req.method !== "POST") return new Response("Method not allowed", { status: 405, headers: corsHeaders });
 

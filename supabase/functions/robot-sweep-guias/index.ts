@@ -1,4 +1,3 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
@@ -15,7 +14,7 @@ const json = (body: unknown, status = 200) =>
 // robot-sweep-guias — wrapper around sweep_stale_robot_guias() RPC
 // Called by GuiaManager.sweepStaleGuias() on startup
 // POST (no body required)
-serve(async (req) => {
+Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   if (req.method !== "POST") return new Response("Method not allowed", { status: 405, headers: corsHeaders });
 
