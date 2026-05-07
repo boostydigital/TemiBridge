@@ -119,27 +119,24 @@ class OrderConfirmationActivity : AppCompatActivity() {
                 val pedido = productName.lowercase()
                 val lugar = lastPlace.ifEmpty { "sin_lugar" }
 
-                val text = """
-🔔 Nueva Orden - Maxi Bot
+                val text = "🔔 Nueva Orden - Maxi Bot\n\n🍔 Pedido: $pedido\n📍 Lugar: $lugar\n\n⚠️ Por favor, atender de inmediato."
 
-🍔 Pedido: $pedido
-📍 Lugar: $lugar
-
-⚠️ Por favor, atender de inmediato.
-                """.trimIndent()
-
-                val jsonBody = """{"chat_id":${com.spatium.deamon.db.temi.BuildConfig.TELEGRAM_CHAT_ID},"text":"${text.replace("\"", "\\\"").replace("\n", "\\n")}"}"""
+                val json = org.json.JSONObject().apply {
+                    put("chat_id", com.spatium.deamon.db.temi.BuildConfig.TELEGRAM_CHAT_ID.toLong())
+                    put("text", text)
+                }
+                val jsonBody = json.toString().toByteArray(Charsets.UTF_8)
                 val telegramUrl = "https://api.telegram.org/bot${com.spatium.deamon.db.temi.BuildConfig.TELEGRAM_BOT_TOKEN}/sendMessage"
 
                 Log.d(TAG, "=== ENVIANDO TELEGRAM === lugar=$lugar pedido=$pedido")
 
                 val connection = java.net.URL(telegramUrl).openConnection() as java.net.HttpURLConnection
                 connection.requestMethod = "POST"
-                connection.setRequestProperty("Content-Type", "application/json")
+                connection.setRequestProperty("Content-Type", "application/json; charset=utf-8")
                 connection.doOutput = true
                 connection.connectTimeout = 10000
                 connection.readTimeout = 10000
-                connection.outputStream.use { it.write(jsonBody.toByteArray(Charsets.UTF_8)) }
+                connection.outputStream.use { it.write(jsonBody) }
                 val responseCode = connection.responseCode
                 Log.d(TAG, "Telegram response: $responseCode")
                 connection.disconnect()
