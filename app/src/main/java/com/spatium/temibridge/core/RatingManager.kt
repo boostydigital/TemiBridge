@@ -54,7 +54,7 @@ class RatingManager(
         private const val CREATE_EVALUATION_URL = "https://fojrqrkbzsgcefsnwldk.supabase.co/functions/v1/create-evaluation"
 
         private const val POLLING_INTERVAL_MS = 30_000L // 30 segundos
-        private const val CONSTRAINT_TIMEOUT_MS = 10 * 60 * 1000L // 10 minutos
+        private const val CONSTRAINT_TIMEOUT_MS = 15 * 60 * 1000L // 15 minutos
     }
 
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
