@@ -1,4 +1,3 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
@@ -6,62 +5,62 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response("ok", { headers: corsHeaders });
-  }
+const json = (body: unknown, status = 200) =>
+  new Response(JSON.stringify(body), {
+    status,
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
+
+// evaluacion-pendiente — polled by RatingManager every 30s
+// GET — returns oldest programada evaluation due for arrival; CAS flips programada→en_proceso
+Deno.serve(async (req) => {
+  if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+  if (req.method !== "GET") return new Response("Method not allowed", { status: 405, headers: corsHeaders });
 
   try {
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const supabase = createClient(supabaseUrl, supabaseKey);
+    const supabase = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+    );
 
     const now = new Date().toISOString();
 
-    // Buscar evaluación programada donde hora_llegada <= now
     const { data, error } = await supabase
-      .from("evaluaciones_programadas")
+      .from("robot_evaluaciones")
       .select("*")
       .eq("estado", "programada")
       .lte("hora_llegada", now)
       .order("hora_llegada", { ascending: true })
       .limit(1)
-      .single();
+      .maybeSingle();
 
-    if (error && error.code !== "PGRST116") {
-      // PGRST116 = no rows returned
-      console.error("Error consultando:", error);
-      return new Response(
-        JSON.stringify({ error: "Error al consultar", details: error.message }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+    if (error) {
+      console.error("Error consultando robot_evaluaciones:", error);
+      return json({ error: "DB_ERROR", message: error.message }, 500);
     }
 
     if (!data) {
-      return new Response(
-        JSON.stringify({ pendiente: false, evaluacion: null }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      return json({ pendiente: false, evaluacion: null });
     }
 
-    // Marcar como en_proceso para que no se vuelva a tomar
-    await supabase
-      .from("evaluaciones_programadas")
+    // CAS flip: programada → en_proceso
+    const { data: claimed, error: updateError } = await supabase
+      .from("robot_evaluaciones")
       .update({ estado: "en_proceso" })
-      .eq("id", data.id);
+      .eq("id", data.id)
+      .eq("estado", "programada")
+      .select()
+      .single();
 
-    return new Response(
-      JSON.stringify({
-        pendiente: true,
-        evaluacion: data,
-      }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    if (updateError || !claimed) {
+      console.warn("Lost CAS race for evaluacion", data.id);
+      return json({ pendiente: false, evaluacion: null });
+    }
+
+    console.log(`Evaluacion claimed: id=${claimed.id} salon=${claimed.salon}`);
+    return json({ pendiente: true, evaluacion: claimed });
   } catch (err) {
-    console.error("Error:", err);
-    return new Response(
-      JSON.stringify({ error: "Error interno", details: String(err) }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    console.error("Unhandled error:", err);
+    return json({ error: "INTERNAL_ERROR", message: String(err) }, 500);
   }
 });

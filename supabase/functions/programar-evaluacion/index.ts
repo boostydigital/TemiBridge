@@ -1,4 +1,3 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
@@ -6,7 +5,12 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-// Mapeo de salones a waypoints
+const json = (body: unknown, status = 200) =>
+  new Response(JSON.stringify(body), {
+    status,
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
+
 const SALON_WAYPOINT_MAP: Record<string, string> = {
   "Sala Duarte": "salonduarte",
   "Sala Enriquillo": "salonenriquillo",
@@ -15,115 +19,91 @@ const SALON_WAYPOINT_MAP: Record<string, string> = {
   "Sala Santo Domingo": "salonsantodomingo",
 };
 
-serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response("ok", { headers: corsHeaders });
-  }
+// programar-evaluacion
+// POST { id, estado, rating? }          → update robot_evaluaciones by id
+// POST { salon, hora_fin, nombre_reserva, estado?: "cancelado" } → create or cancel
+Deno.serve(async (req) => {
+  if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+  if (req.method !== "POST") return new Response("Method not allowed", { status: 405, headers: corsHeaders });
 
   try {
-    const { salon, hora_fin, nombre_reserva, estado } = await req.json();
+    const supabase = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+    );
 
-    // Validaciones básicas
-    if (!salon || !hora_fin || !nombre_reserva) {
-      return new Response(
-        JSON.stringify({ error: "Faltan campos requeridos: salon, hora_fin, nombre_reserva" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+    const body = await req.json();
+    const { id, salon, hora_fin, nombre_reserva, estado, rating } = body;
+
+    // ── Path A: update by id (called by RatingManager on completion/timeout/cancel) ──
+    if (id && estado) {
+      const updates: Record<string, unknown> = { estado };
+      if (rating != null) updates.rating = rating;
+
+      const { error } = await supabase
+        .from("robot_evaluaciones")
+        .update(updates)
+        .eq("id", id);
+
+      if (error) {
+        console.error("Error updating robot_evaluaciones:", error);
+        return json({ error: "DB_ERROR", message: error.message }, 500);
+      }
+
+      console.log(`robot_evaluaciones id=${id} updated to estado=${estado}`);
+      return json({ success: true, action: "updated" });
     }
 
-    const waypoint = SALON_WAYPOINT_MAP[salon];
-    if (!waypoint) {
-      return new Response(
-        JSON.stringify({ 
-          error: `Salón no válido: ${salon}`,
-          salones_validos: Object.keys(SALON_WAYPOINT_MAP)
-        }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const supabase = createClient(supabaseUrl, supabaseKey);
-
-    // Si estado es "cancelado", cancelar evaluaciones pendientes para ese salón y hora
-    if (estado === "cancelado") {
-      const horaFinDate = new Date(hora_fin);
-      
+    // ── Path B: cancel by salon + hora_fin ──
+    if (estado === "cancelado" && salon && hora_fin) {
       const { data, error } = await supabase
-        .from("evaluaciones_programadas")
+        .from("robot_evaluaciones")
         .update({ estado: "cancelada" })
         .eq("salon", salon)
-        .eq("hora_fin", horaFinDate.toISOString())
+        .eq("hora_fin", new Date(hora_fin).toISOString())
         .in("estado", ["programada", "en_proceso"])
         .select();
 
       if (error) {
-        console.error("Error cancelando:", error);
-        return new Response(
-          JSON.stringify({ error: "Error al cancelar evaluación", details: error.message }),
-          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
+        console.error("Error cancelling:", error);
+        return json({ error: "DB_ERROR", message: error.message }, 500);
       }
 
-      return new Response(
-        JSON.stringify({
-          success: true,
-          action: "cancelada",
-          evaluaciones_canceladas: data?.length || 0,
-          evaluaciones: data,
-        }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      return json({ success: true, action: "cancelada", canceladas: data?.length ?? 0 });
     }
 
-    // Flujo normal: programar nueva evaluación
-    const horaFinDate = new Date(hora_fin);
-    const horaLlegadaDate = new Date(horaFinDate.getTime() - 3 * 60 * 1000);
-
-    // Validar que hora_llegada no sea en el pasado
-    if (horaLlegadaDate < new Date()) {
-      return new Response(
-        JSON.stringify({ error: "La hora de fin ya pasó o es muy pronto" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+    // ── Path C: create new evaluation ──
+    if (!salon || !hora_fin || !nombre_reserva) {
+      return json({ error: "INVALID_PAYLOAD", message: "Required: salon, hora_fin, nombre_reserva" }, 400);
     }
 
-    // Insertar evaluación programada
+    const waypoint = SALON_WAYPOINT_MAP[salon];
+    if (!waypoint) {
+      return json({ error: "INVALID_SALON", message: `Salon not mapped: ${salon}`, valid: Object.keys(SALON_WAYPOINT_MAP) }, 400);
+    }
+
+    const horaFin = new Date(hora_fin);
+    const horaLlegada = new Date(horaFin.getTime() - 5 * 60 * 1000);
+
+    if (horaLlegada < new Date()) {
+      return json({ error: "PAST_TIME", message: "hora_llegada is already in the past" }, 400);
+    }
+
     const { data, error } = await supabase
-      .from("evaluaciones_programadas")
-      .insert({
-        salon,
-        waypoint,
-        hora_fin: horaFinDate.toISOString(),
-        hora_llegada: horaLlegadaDate.toISOString(),
-        nombre_reserva,
-        estado: "programada",
-      })
+      .from("robot_evaluaciones")
+      .insert({ salon, waypoint, hora_fin: horaFin.toISOString(), hora_llegada: horaLlegada.toISOString(), nombre_reserva, estado: "programada" })
       .select()
       .single();
 
     if (error) {
-      console.error("Error insertando:", error);
-      return new Response(
-        JSON.stringify({ error: "Error al programar evaluación", details: error.message }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      console.error("Error inserting robot_evaluaciones:", error);
+      return json({ error: "DB_ERROR", message: error.message }, 500);
     }
 
-    return new Response(
-      JSON.stringify({
-        success: true,
-        action: "programada",
-        evaluacion: data,
-      }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    console.log(`robot_evaluaciones created: id=${data.id} salon=${salon}`);
+    return json({ success: true, action: "programada", evaluacion: data });
   } catch (err) {
-    console.error("Error:", err);
-    return new Response(
-      JSON.stringify({ error: "Error interno", details: String(err) }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    console.error("Unhandled error:", err);
+    return json({ error: "INTERNAL_ERROR", message: String(err) }, 500);
   }
 });
