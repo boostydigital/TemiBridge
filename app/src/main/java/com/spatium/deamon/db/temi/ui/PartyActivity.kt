@@ -75,7 +75,7 @@ class PartyActivity : AppCompatActivity() {
 
         // Inicializar Robot SDK
         robot = Robot.getInstance()
-        
+
         // Desactivar seguimiento de cara y hacer que el robot hable
         disableFaceTrackingAndSpeak()
 
@@ -91,8 +91,11 @@ class PartyActivity : AppCompatActivity() {
 
             // Desactivar detección de personas para que el robot se quede quieto
             try {
-                robot?.javaClass?.getMethod("setDetectionModeOn",
-                    Boolean::class.javaPrimitiveType, Float::class.javaPrimitiveType)
+                robot?.javaClass?.getMethod(
+                    "setDetectionModeOn",
+                    Boolean::class.javaPrimitiveType,
+                    Float::class.javaPrimitiveType,
+                )
                     ?.invoke(robot, false, 1.0f)
                 Log.d(TAG, "[ROBOT] ✓ Modo detección desactivado")
             } catch (t: Throwable) {
@@ -151,7 +154,7 @@ class PartyActivity : AppCompatActivity() {
     private fun checkCameraPermission() {
         when {
             ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) ==
-                    PackageManager.PERMISSION_GRANTED -> {
+                PackageManager.PERMISSION_GRANTED -> {
                 Log.d(TAG, "[CAMERA] Permiso ya concedido")
                 startCamera()
             }
@@ -180,7 +183,10 @@ class PartyActivity : AppCompatActivity() {
 
                 cameraProvider.unbindAll()
                 camera = cameraProvider.bindToLifecycle(
-                    this, currentCameraSelector, preview, imageCapture
+                    this,
+                    currentCameraSelector,
+                    preview,
+                    imageCapture,
                 )
                 isCameraReady = true
                 Log.d(TAG, "[CAMERA] ✓ Cámara lista: $currentCameraSelector")
@@ -254,7 +260,7 @@ class PartyActivity : AppCompatActivity() {
                     Log.e(TAG, "[CAPTURE] ✗ Error capturando foto: ${exception.message}", exception)
                     Toast.makeText(this@PartyActivity, "Error al tomar foto: ${exception.message}", Toast.LENGTH_SHORT).show()
                 }
-            }
+            },
         )
     }
 
@@ -277,11 +283,11 @@ class PartyActivity : AppCompatActivity() {
         val timestamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(System.currentTimeMillis())
         val storageDir = getExternalFilesDir(android.os.Environment.DIRECTORY_PICTURES)
             ?: throw IllegalStateException("No se puede acceder al directorio de almacenamiento")
-        
+
         if (!storageDir.exists() && !storageDir.mkdirs()) {
             throw IllegalStateException("No se puede crear directorio de almacenamiento")
         }
-        
+
         return File.createTempFile("PARTY_${timestamp}_", ".jpg", storageDir).also {
             Log.d(TAG, "[FILE] Archivo de foto creado: ${it.absolutePath}")
         }

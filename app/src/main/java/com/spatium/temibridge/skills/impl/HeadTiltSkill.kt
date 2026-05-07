@@ -18,12 +18,13 @@ import kotlinx.coroutines.withContext
  * Ejemplo uso via SkillManager:
  *   SkillManager.execute(context, "head_tilt", mapOf("angle" to 20))
  */
-class HeadTiltSkill : BaseTemiSkill(
-    skillId = "head_tilt",
-    skillName = "Head Tilt",
-    description = "Controla el ángulo de inclinación de la cabeza del robot Temi",
-    category = SkillCategory.SYSTEM
-) {
+class HeadTiltSkill :
+    BaseTemiSkill(
+        skillId = "head_tilt",
+        skillName = "Head Tilt",
+        description = "Controla el ángulo de inclinación de la cabeza del robot Temi",
+        category = SkillCategory.SYSTEM,
+    ) {
 
     companion object {
         private const val ANGLE_MIN = -25

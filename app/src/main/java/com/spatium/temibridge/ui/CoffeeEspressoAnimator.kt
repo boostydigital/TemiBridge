@@ -21,7 +21,7 @@ class CoffeeEspressoAnimator(private val scope: CoroutineScope) {
      */
     fun animateCoffeeEspresso(
         view: ImageView,
-        duration: Long = 3000
+        duration: Long = 3000,
     ) {
         scope.launch(Dispatchers.Main) {
             // Animación de escala suave (respiración)
@@ -68,7 +68,7 @@ class CoffeeEspressoAnimator(private val scope: CoroutineScope) {
      */
     fun animateSteamRise(
         view: View,
-        duration: Long = 2500
+        duration: Long = 2500,
     ) {
         scope.launch(Dispatchers.Main) {
             val translateY = ObjectAnimator.ofFloat(view, "translationY", 0f, -80f).apply {
@@ -104,7 +104,7 @@ class CoffeeEspressoAnimator(private val scope: CoroutineScope) {
      */
     fun animateCremaRipples(
         view: View,
-        duration: Long = 3500
+        duration: Long = 3500,
     ) {
         scope.launch(Dispatchers.Main) {
             val scaleX = ObjectAnimator.ofFloat(view, "scaleX", 0.3f, 1.2f).apply {
@@ -140,7 +140,7 @@ class CoffeeEspressoAnimator(private val scope: CoroutineScope) {
      */
     fun animateGlintFlash(
         view: View,
-        duration: Long = 6000
+        duration: Long = 6000,
     ) {
         scope.launch(Dispatchers.Main) {
             val alpha = ObjectAnimator.ofFloat(view, "alpha", 0f, 1f, 0f).apply {
@@ -159,7 +159,7 @@ class CoffeeEspressoAnimator(private val scope: CoroutineScope) {
      */
     fun animateCastShadow(
         view: View,
-        duration: Long = 5000
+        duration: Long = 5000,
     ) {
         scope.launch(Dispatchers.Main) {
             val scaleX = ObjectAnimator.ofFloat(view, "scaleX", 1f, 1.05f, 1f).apply {
@@ -189,7 +189,7 @@ class CoffeeEspressoAnimator(private val scope: CoroutineScope) {
     fun animateMicroBubbles(
         view: View,
         duration: Long = 4000,
-        delayMs: Long = 0
+        delayMs: Long = 0,
     ) {
         scope.launch(Dispatchers.Main) {
             delay(delayMs)
@@ -228,7 +228,7 @@ class CoffeeEspressoAnimator(private val scope: CoroutineScope) {
     fun animateCremaSwirl(
         view: View,
         duration: Long = 14000,
-        clockwise: Boolean = true
+        clockwise: Boolean = true,
     ) {
         scope.launch(Dispatchers.Main) {
             val rotation = if (clockwise) {

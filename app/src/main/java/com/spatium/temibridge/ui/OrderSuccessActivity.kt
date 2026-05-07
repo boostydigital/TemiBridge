@@ -49,12 +49,12 @@ class OrderSuccessActivity : AppCompatActivity() {
         successCircle.scaleY = 0f
         successCircle.alpha = 0f
         successCircle.rotation = -45f
-        
+
         val scaleXAnimator = ObjectAnimator.ofFloat(successCircle, "scaleX", 0f, 1.2f, 1f)
         val scaleYAnimator = ObjectAnimator.ofFloat(successCircle, "scaleY", 0f, 1.2f, 1f)
         val alphaAnimator = ObjectAnimator.ofFloat(successCircle, "alpha", 0f, 1f)
         val rotationAnimator = ObjectAnimator.ofFloat(successCircle, "rotation", -45f, 0f)
-        
+
         val animatorSet = AnimatorSet().apply {
             playTogether(scaleXAnimator, scaleYAnimator, alphaAnimator, rotationAnimator)
             duration = 1000
@@ -68,7 +68,7 @@ class OrderSuccessActivity : AppCompatActivity() {
             val farewellSequenceId = prefs.getString(KEY_FAREWELL_SEQUENCE_ID, DEFAULT_FAREWELL_SEQUENCE_ID)
                 ?: DEFAULT_FAREWELL_SEQUENCE_ID
             executeFarewellSequence(farewellSequenceId)
-            
+
             // Volver a MainActivity después de ejecutar la secuencia
             Handler(Looper.getMainLooper()).postDelayed({
                 Log.d(TAG, "5 segundos transcurridos, volviendo a MainActivity...")
@@ -120,7 +120,7 @@ class OrderSuccessActivity : AppCompatActivity() {
                 }
                 Log.d(TAG, "Permiso de secuencias otorgado")
             }
-            
+
             val success = com.spatium.deamon.db.temi.core.TemiController.playSequenceById(sequenceId)
             Log.d(TAG, "playSequenceById resultado: $success")
             if (!success) Log.e(TAG, "ERROR: No se pudo ejecutar la secuencia $sequenceId")

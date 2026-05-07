@@ -18,12 +18,13 @@ import kotlinx.coroutines.withContext
  * Ejemplo uso via SkillManager:
  *   SkillManager.execute(context, "tour", mapOf("tourName" to "Tour Oficina"))
  */
-class TourSkill : BaseTemiSkill(
-    skillId = "tour",
-    skillName = "Tour",
-    description = "Inicia tours predefinidos del robot Temi por ubicaciones del mapa",
-    category = SkillCategory.TOUR
-) {
+class TourSkill :
+    BaseTemiSkill(
+        skillId = "tour",
+        skillName = "Tour",
+        description = "Inicia tours predefinidos del robot Temi por ubicaciones del mapa",
+        category = SkillCategory.TOUR,
+    ) {
 
     override suspend fun executeSkill(context: Context, params: Map<String, Any>): SkillResult {
         val tourId = params["tourId"] as? String

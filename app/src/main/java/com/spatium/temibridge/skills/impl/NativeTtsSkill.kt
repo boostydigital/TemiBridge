@@ -30,12 +30,13 @@ import kotlinx.coroutines.withContext
  *  - No requiere conexión a internet
  *  - Los parámetros de speed y pitch pueden no ser soportados en todas las versiones del SDK
  */
-class NativeTtsSkill : BaseTemiSkill(
-    skillId = "native_tts",
-    skillName = "Native TTS",
-    description = "Síntesis de voz usando el TTS nativo integrado del robot Temi",
-    category = SkillCategory.SPEECH
-) {
+class NativeTtsSkill :
+    BaseTemiSkill(
+        skillId = "native_tts",
+        skillName = "Native TTS",
+        description = "Síntesis de voz usando el TTS nativo integrado del robot Temi",
+        category = SkillCategory.SPEECH,
+    ) {
 
     override suspend fun executeSkill(context: Context, params: Map<String, Any>): SkillResult {
         val text = params["text"] as? String
@@ -82,7 +83,7 @@ class NativeTtsSkill : BaseTemiSkill(
         text: String,
         language: String?,
         speed: Float,
-        pitch: Float
+        pitch: Float,
     ): Boolean {
         return try {
             val cls = Class.forName("com.robotemi.sdk.Robot")
@@ -99,13 +100,13 @@ class NativeTtsSkill : BaseTemiSkill(
 
             if (builderMethod != null) {
                 val ttsRequest = builderMethod.invoke(null, text, false)
-                
+
                 // Intentar establecer parámetros avanzados
                 runCatching {
                     ttsRequest?.javaClass?.getMethod("setSpeed", Float::class.javaPrimitiveType)
                         ?.invoke(ttsRequest, speed)
                 }
-                
+
                 runCatching {
                     ttsRequest?.javaClass?.getMethod("setPitch", Float::class.javaPrimitiveType)
                         ?.invoke(ttsRequest, pitch)

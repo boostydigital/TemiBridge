@@ -2,10 +2,10 @@ package com.spatium.deamon.db.temi.skills.impl
 
 import android.content.Context
 import android.content.Intent
-import com.spatium.deamon.db.temi.ui.KioskWebActivity
 import com.spatium.deamon.db.temi.skills.base.BaseTemiSkill
 import com.spatium.deamon.db.temi.skills.base.SkillCategory
 import com.spatium.deamon.db.temi.skills.base.SkillResult
+import com.spatium.deamon.db.temi.ui.KioskWebActivity
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
@@ -19,12 +19,13 @@ import kotlinx.coroutines.withContext
  * Ejemplo uso via SkillManager:
  *   SkillManager.execute(context, "webview", mapOf("url" to "https://spatium-desk.lovable.app"))
  */
-class WebViewSkill : BaseTemiSkill(
-    skillId = "webview",
-    skillName = "WebView",
-    description = "Muestra contenido web en pantalla completa usando KioskWebActivity",
-    category = SkillCategory.INTERACTION
-) {
+class WebViewSkill :
+    BaseTemiSkill(
+        skillId = "webview",
+        skillName = "WebView",
+        description = "Muestra contenido web en pantalla completa usando KioskWebActivity",
+        category = SkillCategory.INTERACTION,
+    ) {
 
     override suspend fun executeSkill(context: Context, params: Map<String, Any>): SkillResult {
         val url = params["url"] as? String
@@ -45,7 +46,7 @@ class WebViewSkill : BaseTemiSkill(
                     addFlags(
                         Intent.FLAG_ACTIVITY_NEW_TASK or
                             Intent.FLAG_ACTIVITY_CLEAR_TOP or
-                            Intent.FLAG_ACTIVITY_SINGLE_TOP
+                            Intent.FLAG_ACTIVITY_SINGLE_TOP,
                     )
                 }
                 context.startActivity(intent)

@@ -23,6 +23,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
+import androidx.lifecycle.lifecycleScope
 import com.spatium.deamon.db.temi.R
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -30,7 +31,6 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import androidx.lifecycle.lifecycleScope
 
 class MenuActivity : AppCompatActivity() {
 
@@ -48,16 +48,16 @@ class MenuActivity : AppCompatActivity() {
 
     // Sabor seleccionado actualmente para el Té
     private var selectedSabor: String = "Verde"
-    
+
     // Flag para evitar activación duplicada de face tracking
     private var isFaceTrackingEnabled = false
-    
+
     // Job para control de coroutines
     private var confirmOrderJob: Job? = null
-    
+
     // Animator para variantes del Té
     private lateinit var teaVariantAnimator: TeaVariantAnimator
-    
+
     // Animator para café espresso
     private lateinit var coffeeEspressoAnimator: CoffeeEspressoAnimator
 
@@ -90,7 +90,7 @@ class MenuActivity : AppCompatActivity() {
 
         // Aplicar animaciones complejas a las variantes del Té
         applyTeaVariantAnimations()
-        
+
         // Aplicar animaciones complejas al café espresso
         applyCoffeeEspressoAnimations()
 
@@ -151,9 +151,14 @@ class MenuActivity : AppCompatActivity() {
 
             // Aplicar animación de escala continua a los iconos
             val scaleAnimation = android.view.animation.ScaleAnimation(
-                1f, 1.05f, 1f, 1.05f,
-                android.view.animation.Animation.RELATIVE_TO_SELF, 0.5f,
-                android.view.animation.Animation.RELATIVE_TO_SELF, 0.5f
+                1f,
+                1.05f,
+                1f,
+                1.05f,
+                android.view.animation.Animation.RELATIVE_TO_SELF,
+                0.5f,
+                android.view.animation.Animation.RELATIVE_TO_SELF,
+                0.5f,
             ).apply {
                 duration = 2000
                 repeatCount = android.view.animation.Animation.INFINITE
@@ -177,7 +182,7 @@ class MenuActivity : AppCompatActivity() {
             // Intentar solicitar permiso directamente
             val granted = com.spatium.deamon.db.temi.core.TemiController.requestSequencePermission(this)
             Log.d(TAG, "requestSequencePermission retornó: $granted")
-            
+
             if (com.spatium.deamon.db.temi.core.TemiController.isSequencePermissionGranted()) {
                 Log.d(TAG, "✓ Permiso de secuencias ya está otorgado")
             } else {
@@ -289,7 +294,7 @@ class MenuActivity : AppCompatActivity() {
         panelGenerico.findViewById<ImageView>(R.id.ivGenericoIcon).setImageResource(iconRes)
         val tint = if (nombre == "Café") R.color.amber_400 else R.color.blue_400
         panelGenerico.findViewById<ImageView>(R.id.ivGenericoIcon).setColorFilter(
-            resources.getColor(tint, theme)
+            resources.getColor(tint, theme),
         )
         val sub = if (nombre == "Café") "Espresso • Latte" else "Mineral • Gas"
         panelGenerico.findViewById<TextView>(R.id.tvGenericoSub).text = sub
@@ -307,11 +312,11 @@ class MenuActivity : AppCompatActivity() {
 
     private fun showConfirmDialog(productName: String, iconRes: Int, sabor: String?) {
         Log.d(TAG, "=== MOSTRANDO PANTALLA DE CONFIRMACION === Producto=$productName sabor=$sabor")
-        
+
         // Activar face tracking para orientar al robot hacia el usuario cuando presiona "Pedir"
         Log.d(TAG, "=== USUARIO PRESIONÓ PEDIR - ACTIVANDO FACE TRACKING ===")
         enableFaceTrackingAndHeadTilting()
-        
+
         val nombreCompleto = if (sabor != null) "$productName $sabor" else productName
         val intent = Intent(this, OrderConfirmationActivity::class.java).apply {
             putExtra("productName", nombreCompleto)
@@ -319,7 +324,7 @@ class MenuActivity : AppCompatActivity() {
             putExtra(OrderConfirmationActivity.EXTRA_PLACE, lastPlace)
             addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
         }
-        
+
         // Aplicar transición de Material Design si es Android 5.0+
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
             val options = ActivityOptions.makeSceneTransitionAnimation(this)
@@ -332,7 +337,7 @@ class MenuActivity : AppCompatActivity() {
     private fun confirmOrder(productName: String, sabor: String?) {
         // Cancelar job anterior si existe
         confirmOrderJob?.cancel()
-        
+
         val farewellSequenceId = prefs.getString(KEY_FAREWELL_SEQUENCE_ID, DEFAULT_FAREWELL_SEQUENCE_ID)
             ?: DEFAULT_FAREWELL_SEQUENCE_ID
 
@@ -363,12 +368,11 @@ class MenuActivity : AppCompatActivity() {
                     // porque finish() cancela lifecycleScope
                     Log.d(TAG, "Ejecutando secuencia de despedida ANTES de cambiar de pantalla")
                     executeFarewellSequence(farewellSequenceId)
-                    
+
                     // Ahora abrir la pantalla de éxito
                     delay(500)
                     openSuccessScreen(if (normalizedSabor != null) "$productName $sabor" else productName)
                 }
-
             } catch (e: Exception) {
                 Log.e(TAG, "=== ERROR EN PEDIDO === ${e.message}", e)
                 withContext(Dispatchers.Main) {
@@ -383,30 +387,30 @@ class MenuActivity : AppCompatActivity() {
 
     private suspend fun sendWebhookWithRetry(webhookUrl: String, maxRetries: Int = 3) {
         var lastException: Exception? = null
-        
+
         for (attempt in 1..maxRetries) {
             try {
                 val connection = java.net.URL(webhookUrl).openConnection() as java.net.HttpURLConnection
                 connection.requestMethod = "GET"
                 connection.connectTimeout = 10000
                 connection.readTimeout = 10000
-                
+
                 val responseCode = connection.responseCode
                 Log.d(TAG, "Webhook response (intento $attempt): $responseCode")
                 connection.disconnect()
-                
+
                 // Si la respuesta es exitosa (2xx), retornar
                 if (responseCode in 200..299) {
                     Log.d(TAG, "✓ Webhook exitoso en intento $attempt")
                     return
                 }
-                
+
                 lastException = Exception("HTTP $responseCode")
             } catch (e: Exception) {
                 lastException = e
                 Log.w(TAG, "Intento $attempt falló: ${e.message}")
             }
-            
+
             // Si no es el último intento, esperar con exponential backoff
             if (attempt < maxRetries) {
                 val delayMs = (1000 * Math.pow(2.0, (attempt - 1).toDouble())).toLong()
@@ -414,7 +418,7 @@ class MenuActivity : AppCompatActivity() {
                 delay(delayMs)
             }
         }
-        
+
         // Si llegamos aquí, todos los reintentos fallaron
         throw lastException ?: Exception("Webhook falló después de $maxRetries intentos")
     }
@@ -432,7 +436,7 @@ class MenuActivity : AppCompatActivity() {
         val accents = mapOf(
             'á' to 'a', 'é' to 'e', 'í' to 'i', 'ó' to 'o', 'ú' to 'u',
             'Á' to 'A', 'É' to 'E', 'Í' to 'I', 'Ó' to 'O', 'Ú' to 'U',
-            'ñ' to 'n', 'Ñ' to 'N', 'ü' to 'u', 'Ü' to 'U'
+            'ñ' to 'n', 'Ñ' to 'N', 'ü' to 'u', 'Ü' to 'U',
         )
         return input.map { accents[it] ?: it }.joinToString("")
     }
@@ -443,30 +447,30 @@ class MenuActivity : AppCompatActivity() {
             // Verificar si tenemos permiso de secuencias
             var hasPermission = com.spatium.deamon.db.temi.core.TemiController.isSequencePermissionGranted()
             Log.d(TAG, "Permiso de secuencias verificado (1er intento): $hasPermission")
-            
+
             if (!hasPermission) {
                 Log.w(TAG, "Permiso de secuencias no concedido, solicitando...")
                 val granted = com.spatium.deamon.db.temi.core.TemiController.requestSequencePermission(this)
                 Log.d(TAG, "Resultado de solicitud de permiso: $granted")
-                
+
                 // Esperar un poco para que el permiso se procese
                 Thread.sleep(500)
-                
+
                 // Verificar nuevamente
                 hasPermission = com.spatium.deamon.db.temi.core.TemiController.isSequencePermissionGranted()
                 Log.d(TAG, "Permiso de secuencias verificado (2do intento): $hasPermission")
-                
+
                 if (!hasPermission) {
                     Log.e(TAG, "ERROR: No se pudo obtener permiso de secuencias después de 2 intentos")
                     return
                 }
                 Log.d(TAG, "✓ Permiso de secuencias otorgado en 2do intento")
             }
-            
+
             Log.d(TAG, "Llamando a playSequenceById con ID: $sequenceId")
             val success = com.spatium.deamon.db.temi.core.TemiController.playSequenceById(sequenceId)
             Log.d(TAG, "playSequenceById resultado: $success")
-            
+
             if (success) {
                 Log.d(TAG, "✓✓✓ SECUENCIA DE DESPEDIDA EJECUTADA EXITOSAMENTE ✓✓✓")
             } else {
@@ -492,13 +496,15 @@ class MenuActivity : AppCompatActivity() {
         scrollView.addView(layout)
 
         // ── Sección: Secuencia de Despedida ──
-        layout.addView(TextView(this).apply {
-            text = "SECUENCIA DE DESPEDIDA"
-            setTextColor(android.graphics.Color.parseColor("#94a3b8"))
-            textSize = 11f
-            letterSpacing = 0.15f
-            setPadding(0, 0, 0, 12)
-        })
+        layout.addView(
+            TextView(this).apply {
+                text = "SECUENCIA DE DESPEDIDA"
+                setTextColor(android.graphics.Color.parseColor("#94a3b8"))
+                textSize = 11f
+                letterSpacing = 0.15f
+                setPadding(0, 0, 0, 12)
+            },
+        )
         val etSequenceId = EditText(this).apply {
             setText(currentId)
             hint = "ID de secuencia"
@@ -510,28 +516,38 @@ class MenuActivity : AppCompatActivity() {
         layout.addView(etSequenceId)
 
         // Separador
-        layout.addView(View(this).apply {
-            layoutParams = LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT, 1
-            ).also { it.topMargin = 28; it.bottomMargin = 20 }
-            setBackgroundColor(android.graphics.Color.parseColor("#334155"))
-        })
+        layout.addView(
+            View(this).apply {
+                layoutParams = LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    1,
+                ).also {
+                    it.topMargin = 28
+                    it.bottomMargin = 20
+                }
+                setBackgroundColor(android.graphics.Color.parseColor("#334155"))
+            },
+        )
 
         // ── Sección: Rating ──
-        layout.addView(TextView(this).apply {
-            text = "CONFIGURACIÓN RATING"
-            setTextColor(android.graphics.Color.parseColor("#94a3b8"))
-            textSize = 11f
-            letterSpacing = 0.15f
-            setPadding(0, 0, 0, 12)
-        })
+        layout.addView(
+            TextView(this).apply {
+                text = "CONFIGURACIÓN RATING"
+                setTextColor(android.graphics.Color.parseColor("#94a3b8"))
+                textSize = 11f
+                letterSpacing = 0.15f
+                setPadding(0, 0, 0, 12)
+            },
+        )
 
-        layout.addView(TextView(this).apply {
-            text = "Nombre del evento"
-            setTextColor(android.graphics.Color.parseColor("#cbd5e1"))
-            textSize = 13f
-            setPadding(0, 0, 0, 6)
-        })
+        layout.addView(
+            TextView(this).apply {
+                text = "Nombre del evento"
+                setTextColor(android.graphics.Color.parseColor("#cbd5e1"))
+                textSize = 13f
+                setPadding(0, 0, 0, 6)
+            },
+        )
         val etEventName = EditText(this).apply {
             setText(currentEventName)
             hint = "Ej: TALLER DE INNOVACIÓN 2026"
@@ -542,18 +558,23 @@ class MenuActivity : AppCompatActivity() {
         }
         layout.addView(etEventName)
 
-        layout.addView(View(this).apply {
-            layoutParams = LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT, 0
-            ).also { it.topMargin = 16 }
-        })
+        layout.addView(
+            View(this).apply {
+                layoutParams = LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    0,
+                ).also { it.topMargin = 16 }
+            },
+        )
 
-        layout.addView(TextView(this).apply {
-            text = "URL Webhook (envío de rating)"
-            setTextColor(android.graphics.Color.parseColor("#cbd5e1"))
-            textSize = 13f
-            setPadding(0, 0, 0, 6)
-        })
+        layout.addView(
+            TextView(this).apply {
+                text = "URL Webhook (envío de rating)"
+                setTextColor(android.graphics.Color.parseColor("#cbd5e1"))
+                textSize = 13f
+                setPadding(0, 0, 0, 6)
+            },
+        )
         val etWebhookUrl = EditText(this).apply {
             setText(currentWebhookUrl)
             hint = "https://hook.us1.make.com/..."
@@ -603,13 +624,13 @@ class MenuActivity : AppCompatActivity() {
             Log.d(TAG, "Face tracking ya está habilitado, ignorando activación duplicada")
             return
         }
-        
+
         Log.d(TAG, "=== HABILITANDO FACE TRACKING ===")
-        
+
         // Habilitar face tracking automático
         val faceTrackingEnabled = com.spatium.deamon.db.temi.core.TemiController.enableFaceTracking()
         Log.d(TAG, "Face tracking habilitado: $faceTrackingEnabled")
-        
+
         if (faceTrackingEnabled) {
             isFaceTrackingEnabled = true
             Log.d(TAG, "✓ Face tracking activado exitosamente")
@@ -624,13 +645,13 @@ class MenuActivity : AppCompatActivity() {
             Log.d(TAG, "Face tracking no está habilitado, ignorando desactivación")
             return
         }
-        
+
         Log.d(TAG, "=== DESHABILITANDO FACE TRACKING ===")
-        
+
         // Deshabilitar face tracking
         val faceTrackingDisabled = com.spatium.deamon.db.temi.core.TemiController.disableFaceTracking()
         Log.d(TAG, "Face tracking deshabilitado: $faceTrackingDisabled")
-        
+
         if (faceTrackingDisabled) {
             isFaceTrackingEnabled = false
             Log.d(TAG, "✓ Face tracking desactivado exitosamente")

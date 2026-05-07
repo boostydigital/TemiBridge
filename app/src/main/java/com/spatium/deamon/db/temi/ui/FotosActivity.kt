@@ -43,14 +43,14 @@ class FotosActivity : AppCompatActivity() {
     private val phrases = listOf(
         "¡Tírate una foto conmigo! 📸",
         "¡Ey! ¿Nos tomamos una selfie?",
-        "¡Inmortaliza este momento con temi!"
+        "¡Inmortaliza este momento con temi!",
     )
 
     private val byePhrases = listOf(
         "Está bien... seguiré buscando a alguien más fotogénico.",
         "No te preocupes, no me afecta para nada.",
         "Ok, me voy. Tú te lo pierdes.",
-        "La próxima persona seguro quiere foto conmigo."
+        "La próxima persona seguro quiere foto conmigo.",
     )
 
     // ── Listeners con reflexión para compatibilidad entre versiones del SDK ──
@@ -65,7 +65,9 @@ class FotosActivity : AppCompatActivity() {
 
         setupFullscreen()
 
-        robot = try { Robot.getInstance() } catch (t: Throwable) {
+        robot = try {
+            Robot.getInstance()
+        } catch (t: Throwable) {
             Log.e(TAG, "[ROBOT] Error obteniendo instancia: ${t.message}")
             null
         }
@@ -99,7 +101,7 @@ class FotosActivity : AppCompatActivity() {
     private fun loadLocationsAndStart() {
         // Intentar obtener lista de ubicaciones seleccionadas
         val selectedLocations = intent.getStringArrayListExtra(EXTRA_SELECTED_LOCATIONS)
-        
+
         if (selectedLocations != null && selectedLocations.isNotEmpty()) {
             // Usar ubicaciones seleccionadas directamente
             Log.d(TAG, "[LOCATIONS] Usando ubicaciones seleccionadas: $selectedLocations")
@@ -110,9 +112,9 @@ class FotosActivity : AppCompatActivity() {
             startWandering()
         } else {
             // Fallback: usar prefijo si no hay ubicaciones seleccionadas
-            val selectedPrefix = intent.getStringExtra(EXTRA_LOCATION_PREFIX) 
+            val selectedPrefix = intent.getStringExtra(EXTRA_LOCATION_PREFIX)
                 ?: LocationManager.EVENT_PREFIX
-            
+
             Log.d(TAG, "[LOCATIONS] Usando prefijo: $selectedPrefix")
 
             locationManager = LocationManager(
@@ -132,12 +134,12 @@ class FotosActivity : AppCompatActivity() {
                         Log.w(TAG, "[LOCATIONS] Sin puntos configurados para: $selectedPrefix")
                         updateStatusText(
                             "⚠️ No hay puntos configurados.\n\n" +
-                            "Agrega puntos en la web de Temi con el prefijo:\n" +
-                            "\"$selectedPrefix\"\n\n" +
-                            "Ejemplo: ${selectedPrefix}entrada"
+                                "Agrega puntos en la web de Temi con el prefijo:\n" +
+                                "\"$selectedPrefix\"\n\n" +
+                                "Ejemplo: ${selectedPrefix}entrada",
                         )
                     }
-                }
+                },
             )
 
             val r = robot
@@ -162,8 +164,11 @@ class FotosActivity : AppCompatActivity() {
 
         try {
             robot?.let {
-                it.javaClass.getMethod("setDetectionModeOn",
-                    Boolean::class.javaPrimitiveType, Float::class.javaPrimitiveType)
+                it.javaClass.getMethod(
+                    "setDetectionModeOn",
+                    Boolean::class.javaPrimitiveType,
+                    Float::class.javaPrimitiveType,
+                )
                     .invoke(it, true, DETECTION_DISTANCE)
                 Log.d(TAG, "[WANDER] ✓ Detección activada a ${DETECTION_DISTANCE}m")
             }
@@ -319,7 +324,8 @@ class FotosActivity : AppCompatActivity() {
         try {
             val listenerCls = Class.forName("com.robotemi.sdk.listeners.OnGoToLocationStatusChangedListener")
             goToListenerProxy = java.lang.reflect.Proxy.newProxyInstance(
-                listenerCls.classLoader, arrayOf(listenerCls),
+                listenerCls.classLoader,
+                arrayOf(listenerCls),
                 java.lang.reflect.InvocationHandler { _, method, args ->
                     if (method.name == "onGoToLocationStatusChanged" && args != null && args.size >= 2) {
                         val status = args[1]?.toString()?.uppercase() ?: ""
@@ -333,7 +339,7 @@ class FotosActivity : AppCompatActivity() {
                         }
                     }
                     null
-                }
+                },
             )
             r.javaClass.getMethod("addOnGoToLocationStatusChangedListener", listenerCls)
                 .invoke(r, goToListenerProxy)
@@ -348,13 +354,16 @@ class FotosActivity : AppCompatActivity() {
         try {
             val listenerCls = Class.forName("com.robotemi.sdk.listeners.OnDetectionDataChangedListener")
             detectionListenerProxy = java.lang.reflect.Proxy.newProxyInstance(
-                listenerCls.classLoader, arrayOf(listenerCls),
+                listenerCls.classLoader,
+                arrayOf(listenerCls),
                 java.lang.reflect.InvocationHandler { _, method, args ->
                     if (method.name == "onDetectionDataChanged" && args != null && args.isNotEmpty()) {
                         val data = args[0] ?: return@InvocationHandler null
                         val isDetected = try {
                             data.javaClass.getMethod("isDetected").invoke(data) as? Boolean ?: false
-                        } catch (t: Throwable) { false }
+                        } catch (t: Throwable) {
+                            false
+                        }
 
                         Log.d(TAG, "[DETECTION] isDetected=$isDetected state=$currentState")
 
@@ -383,7 +392,7 @@ class FotosActivity : AppCompatActivity() {
                         }
                     }
                     null
-                }
+                },
             )
             r.javaClass.getMethod("addOnDetectionDataChangedListener", listenerCls)
                 .invoke(r, detectionListenerProxy)
@@ -398,13 +407,16 @@ class FotosActivity : AppCompatActivity() {
         try {
             val listenerCls = Class.forName("com.robotemi.sdk.Robot\$TtsListener")
             ttsListenerProxy = java.lang.reflect.Proxy.newProxyInstance(
-                listenerCls.classLoader, arrayOf(listenerCls),
+                listenerCls.classLoader,
+                arrayOf(listenerCls),
                 java.lang.reflect.InvocationHandler { _, method, args ->
                     if (method.name == "onTtsStatusChanged" && args != null && args.isNotEmpty()) {
                         val ttsReq = args[0] ?: return@InvocationHandler null
                         val statusObj = try {
                             ttsReq.javaClass.getMethod("getStatus").invoke(ttsReq)
-                        } catch (t: Throwable) { null }
+                        } catch (t: Throwable) {
+                            null
+                        }
                         val isCompleted = statusObj?.toString()?.uppercase()?.contains("COMPLET") == true
                         Log.d(TAG, "[TTS] status=$statusObj state=$currentState goodbye=$isSayingGoodbye")
                         if (isCompleted) {
@@ -412,7 +424,7 @@ class FotosActivity : AppCompatActivity() {
                         }
                     }
                     null
-                }
+                },
             )
             r.javaClass.getMethod("addTtsListener", listenerCls).invoke(r, ttsListenerProxy)
             Log.d(TAG, "[LISTENERS] ✓ TTS listener registrado")
@@ -442,8 +454,11 @@ class FotosActivity : AppCompatActivity() {
             }
         } catch (t: Throwable) { }
         try {
-            r.javaClass.getMethod("setDetectionModeOn",
-                Boolean::class.javaPrimitiveType, Float::class.javaPrimitiveType)
+            r.javaClass.getMethod(
+                "setDetectionModeOn",
+                Boolean::class.javaPrimitiveType,
+                Float::class.javaPrimitiveType,
+            )
                 .invoke(r, false, 1.0f)
         } catch (t: Throwable) { }
         Log.d(TAG, "[LISTENERS] Listeners removidos")

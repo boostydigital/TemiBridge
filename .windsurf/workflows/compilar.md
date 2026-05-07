@@ -27,9 +27,9 @@ C:\Users\samir\AppData\Local\Android\Sdk
 Remove-Item -Recurse -Force "app\build" -ErrorAction SilentlyContinue; $env:JAVA_HOME = "C:\Program Files\Android\Android Studio\jbr"; .\gradlew.bat assembleDebug --no-daemon 2>&1 | Select-Object -Last 30
 
 
-IP Temi:  192.168.191.67
+IP Temi:  192.168.191.10
   ```
 
 asegurate siempre de antes de instalar la compilacion del apk desintalar la version anterior
 
-ip temi : 192.168.191.67
+ip temi : 192.168.191.10

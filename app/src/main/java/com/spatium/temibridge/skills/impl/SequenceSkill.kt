@@ -23,12 +23,13 @@ import kotlinx.coroutines.withContext
  * Ejemplo uso via SkillManager:
  *   SkillManager.execute(context, "sequence", mapOf("sequenceName" to "Bienvenida"))
  */
-class SequenceSkill : BaseTemiSkill(
-    skillId = "sequence",
-    skillName = "Sequence",
-    description = "Ejecuta secuencias predefinidas del robot Temi (animaciones, movimientos)",
-    category = SkillCategory.SEQUENCE
-) {
+class SequenceSkill :
+    BaseTemiSkill(
+        skillId = "sequence",
+        skillName = "Sequence",
+        description = "Ejecuta secuencias predefinidas del robot Temi (animaciones, movimientos)",
+        category = SkillCategory.SEQUENCE,
+    ) {
 
     override suspend fun executeSkill(context: Context, params: Map<String, Any>): SkillResult {
         val sequenceId = params["sequenceId"] as? String

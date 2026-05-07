@@ -31,7 +31,7 @@ object SupabaseClientProvider {
                 Log.d(TAG, "Inicializando SupabaseClient...")
                 val created = createSupabaseClient(
                     supabaseUrl = url,
-                    supabaseKey = anonKey
+                    supabaseKey = anonKey,
                 ) {
                     install(Postgrest) {
                         defaultSchema = "public"

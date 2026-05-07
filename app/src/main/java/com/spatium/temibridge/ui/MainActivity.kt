@@ -1,70 +1,100 @@
 ﻿package com.spatium.deamon.db.temi.ui
 
 import android.Manifest
-import android.content.pm.PackageManager
 import android.content.Intent
+import android.content.pm.PackageManager
+import android.media.AudioManager
 import android.media.MediaPlayer
 import android.media.ToneGenerator
-import android.media.AudioManager
 import android.net.Uri
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.util.Log
+import android.view.View
+import android.view.WindowManager
+import android.view.animation.DecelerateInterpolator
 import android.widget.Button
 import android.widget.FrameLayout
 import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
-import android.util.Log
-import android.view.animation.DecelerateInterpolator
-import android.view.View
-import android.view.WindowManager
-import androidx.core.view.WindowCompat
-import androidx.core.view.WindowInsetsCompat
-import androidx.core.view.WindowInsetsControllerCompat
-import java.net.URLDecoder
-import java.nio.charset.StandardCharsets
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.camera.core.*
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
 import androidx.core.content.ContextCompat
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.WindowInsetsControllerCompat
 import com.google.mlkit.vision.barcode.BarcodeScanning
 import com.google.mlkit.vision.common.InputImage
+import com.robotemi.sdk.Robot
+import com.robotemi.sdk.listeners.OnRobotReadyListener
 import com.spatium.deamon.db.temi.BuildConfig
 import com.spatium.deamon.db.temi.R
-import java.util.concurrent.ExecutorService
-import java.util.concurrent.Executors
-import com.spatium.deamon.db.temi.core.TemiController
-import com.spatium.deamon.db.temi.core.GoogleTTS
 import com.spatium.deamon.db.temi.core.AnnouncementManager
+import com.spatium.deamon.db.temi.core.CheckinHandler
+import com.spatium.deamon.db.temi.core.GoogleTTS
+import com.spatium.deamon.db.temi.core.GuiaManager
+import com.spatium.deamon.db.temi.core.TemiController
+import com.spatium.deamon.db.temi.net.OkHttpSupabaseGateway
 import com.spatium.temibridge.core.RatingManager
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
+import java.net.URLDecoder
+import java.nio.charset.StandardCharsets
+import java.util.concurrent.ExecutorService
+import java.util.concurrent.Executors
 
-class MainActivity : AppCompatActivity() {
+class MainActivity :
+    AppCompatActivity(),
+    OnRobotReadyListener {
 
     private lateinit var previewView: PreviewView
     private lateinit var cameraExecutor: ExecutorService
     private var camera: Camera? = null
     private var lastScanTime = 0L
     private val SCAN_COOLDOWN_MS = 3000L // 3 segundos entre escaneos
-    
+    private var pendingFotosLaunch = false
+
     // Manager para modo anuncio con patrullaje
     private lateinit var announcementManager: AnnouncementManager
-    
+
     // Manager para modo rating/evaluación de salones
     private lateinit var ratingManager: RatingManager
 
+    // Manager para modo guia (visita guiada)
+    private lateinit var guiaManager: GuiaManager
+
     private val requestCameraPermission =
-        registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
-            if (granted) {
-                startContinuousScanning()
-            } else {
-                Toast.makeText(this, "Se requiere cámara para escanear QR codes.", Toast.LENGTH_LONG).show()
+        registerForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted ->
+            when {
+                isGranted && pendingFotosLaunch -> {
+                    TemiController.disableFaceTracking()
+                    val intent = Intent(this, com.spatium.deamon.db.temi.ui.MapSelectorActivity::class.java).apply {
+                        addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+                    }
+                    startActivity(intent)
+                    overridePendingTransition(R.anim.slide_in_right, R.anim.slide_out_left)
+                    pendingFotosLaunch = false
+                }
+                !isGranted && pendingFotosLaunch -> {
+                    Toast.makeText(this, "Se requiere permiso de cámara para usar Fotos", Toast.LENGTH_LONG).show()
+                    pendingFotosLaunch = false
+                }
+                isGranted -> {
+                    startContinuousScanning()
+                }
+                else -> {
+                    Toast.makeText(this, "Se requiere cámara para escanear QR codes.", Toast.LENGTH_LONG).show()
+                }
             }
         }
 
@@ -78,20 +108,105 @@ class MainActivity : AppCompatActivity() {
 
         setupTiles()
         setupBottomNav()
-        
+
         // Iniciar AnnouncementManager para polling de anuncios
         Log.d("TemiBridge", "Inicializando AnnouncementManager...")
         announcementManager = AnnouncementManager(this)
         announcementManager.startPolling()
         Log.d("TemiBridge", "AnnouncementManager polling iniciado")
-        
+
         // Iniciar RatingManager para polling de evaluaciones de salones
         Log.d("TemiBridge", "Inicializando RatingManager...")
         ratingManager = RatingManager(this)
         ratingManager.startPolling()
         Log.d("TemiBridge", "RatingManager polling iniciado")
 
+        // Iniciar GuiaManager para modo guia (visita guiada)
+        Log.d("TemiBridge", "Inicializando GuiaManager...")
+        guiaManager = GuiaManager(this)
+        kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO).launch {
+            guiaManager.sweepStaleGuias()
+        }
+        guiaManager.startPolling()
+        Log.d("TemiBridge", "GuiaManager polling iniciado")
+
+        checkCameraOnStart()
         Log.d("TemiBridge", "MainActivity iniciada con nuevo diseño grid")
+    }
+
+    override fun onStart() {
+        super.onStart()
+        Robot.getInstance().addOnRobotReadyListener(this)
+        Log.d("TemiBridge", "onStart - OnRobotReadyListener registrado")
+    }
+
+    override fun onStop() {
+        super.onStop()
+        // No removemos el listener para que el ready event no se pierda si MainActivity
+        // pasa a background mientras el SDK aún no emitió ready (workaround del cold-boot).
+        Log.d("TemiBridge", "onStop - OnRobotReadyListener mantenido para no perder ready event")
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        try {
+            Robot.getInstance().removeOnRobotReadyListener(this)
+            Log.d("TemiBridge", "onDestroy - OnRobotReadyListener removido")
+        } catch (t: Throwable) {
+            Log.w("TemiBridge", "onDestroy - error removiendo listener: ${t.message}")
+        }
+        cameraExecutor.shutdown()
+        announcementManager.destroy()
+        ratingManager.destroy()
+        guiaManager.destroy()
+    }
+
+    override fun onRobotReady(isReady: Boolean) {
+        Log.d("TemiBridge", "Robot ready: $isReady")
+        TemiController.notifyRobotReady(isReady)
+        if (isReady) {
+            try {
+                val activityInfo = packageManager.getActivityInfo(
+                    android.content.ComponentName(this, MainActivity::class.java),
+                    PackageManager.GET_META_DATA,
+                )
+                Robot.getInstance().onStart(activityInfo)
+                Log.d("TemiBridge", "Robot.onStart(activityInfo) llamado — handshake SDK completo")
+            } catch (t: Throwable) {
+                Log.w("TemiBridge", "Robot.onStart(activityInfo) fallo: ${t.message}", t)
+            }
+            // Activar Kiosk Mode apenas el SDK esté listo (asegura que la app
+            // se inicie en kiosko aunque onResume aún no haya corrido).
+            try {
+                TemiController.setKioskModeOn(true)
+                Log.d("TemiBridge", "Kiosk Mode activado en onRobotReady (boot)")
+            } catch (t: Throwable) {
+                Log.w("TemiBridge", "setKioskModeOn fallo: ${t.message}", t)
+            }
+        }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        // Asegurar que Kiosk Mode esté activo para mantener la app en primer plano
+        TemiController.setKioskModeOn(true)
+        Log.d("TemiBridge", "onResume - Kiosk Mode activado")
+    }
+
+    /**
+     * Solicita el permiso de cámara en el primer arranque si aún no fue concedido.
+     * Solo pide una vez de forma proactiva; no nag al usuario si ya denegó permanentemente.
+     */
+    private fun checkCameraOnStart() {
+        val granted = checkSelfPermission(android.Manifest.permission.CAMERA) == android.content.pm.PackageManager.PERMISSION_GRANTED
+        if (granted) return
+        val prefs = getSharedPreferences("camera_perm", android.content.Context.MODE_PRIVATE)
+        val askedOnce = prefs.getBoolean("asked_once", false)
+        if (!askedOnce) {
+            requestCameraPermission.launch(android.Manifest.permission.CAMERA)
+            prefs.edit().putBoolean("asked_once", true).apply()
+        }
+        // If askedOnce=true and not granted → permanently denied; no Settings nag on cold start
     }
 
     private fun setupFullscreen() {
@@ -175,14 +290,43 @@ class MainActivity : AppCompatActivity() {
 
         // Fotos: Selfie Hunter — selector de ubicaciones del mapa + deambulación
         findViewById<FrameLayout>(R.id.tileFotos).setOnClickListener {
-            Log.d("TemiBridge", "[TILE] Fotos tocado - abriendo selector de ubicaciones")
+            Log.d("TemiBridge", "[TILE] Fotos tocado - verificando permiso de cámara")
             showTileAnimation(it)
-            TemiController.disableFaceTracking()
-            val intent = Intent(this, com.spatium.deamon.db.temi.ui.MapSelectorActivity::class.java).apply {
-                addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+            val prefs = getSharedPreferences("camera_perm", android.content.Context.MODE_PRIVATE)
+            val previouslyAsked = prefs.getBoolean("asked_once", false)
+            val granted = checkSelfPermission(android.Manifest.permission.CAMERA) == android.content.pm.PackageManager.PERMISSION_GRANTED
+            val shouldShowRationale = shouldShowRequestPermissionRationale(android.Manifest.permission.CAMERA)
+            when (com.spatium.deamon.db.temi.core.CameraPermissionGate.decide(granted, shouldShowRationale, previouslyAsked)) {
+                is com.spatium.deamon.db.temi.core.CameraPermissionGate.Decision.Allow -> {
+                    TemiController.disableFaceTracking()
+                    val intent = Intent(this, com.spatium.deamon.db.temi.ui.MapSelectorActivity::class.java).apply {
+                        addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+                    }
+                    startActivity(intent)
+                    overridePendingTransition(R.anim.slide_in_right, R.anim.slide_out_left)
+                }
+                is com.spatium.deamon.db.temi.core.CameraPermissionGate.Decision.Request -> {
+                    pendingFotosLaunch = true
+                    prefs.edit().putBoolean("asked_once", true).apply()
+                    requestCameraPermission.launch(android.Manifest.permission.CAMERA)
+                }
+                is com.spatium.deamon.db.temi.core.CameraPermissionGate.Decision.ShowSettings -> {
+                    androidx.appcompat.app.AlertDialog.Builder(this)
+                        .setTitle("Permiso de cámara requerido")
+                        .setMessage("Para usar Fotos, habilitá el permiso de cámara en Configuración.")
+                        .setPositiveButton("Configuración") { _, _ ->
+                            val intent = Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                                data = android.net.Uri.fromParts("package", packageName, null)
+                            }
+                            startActivity(intent)
+                        }
+                        .setNegativeButton("Cancelar", null)
+                        .show()
+                }
+                is com.spatium.deamon.db.temi.core.CameraPermissionGate.Decision.Deny -> {
+                    Toast.makeText(this, "Se requiere permiso de cámara para usar Fotos", Toast.LENGTH_LONG).show()
+                }
             }
-            startActivity(intent)
-            overridePendingTransition(R.anim.slide_in_right, R.anim.slide_out_left)
         }
     }
 
@@ -236,7 +380,6 @@ class MainActivity : AppCompatActivity() {
                     .start()
             }.start()
     }
-    
 
     /**
      * Verifica permiso de cámara e inicia el escáner
@@ -258,16 +401,16 @@ class MainActivity : AppCompatActivity() {
      */
     private fun startContinuousScanning() {
         val cameraProviderFuture = ProcessCameraProvider.getInstance(this)
-        
+
         cameraProviderFuture.addListener({
             try {
                 val cameraProvider = cameraProviderFuture.get()
-                
+
                 Log.d("TemiBridge", "[CAMERA] Cámaras disponibles:")
                 cameraProvider.availableCameraInfos.forEachIndexed { index, info ->
-                    Log.d("TemiBridge", "[CAMERA] - Cámara $index: ${info}")
+                    Log.d("TemiBridge", "[CAMERA] - Cámara $index: $info")
                 }
-                
+
                 // Preview
                 val preview = Preview.Builder()
                     .setTargetResolution(android.util.Size(640, 480))
@@ -275,57 +418,61 @@ class MainActivity : AppCompatActivity() {
                     .also {
                         it.setSurfaceProvider(previewView.surfaceProvider)
                     }
-                
+
                 // Image analysis para ML Kit con resolución más baja
                 val imageAnalyzer = ImageAnalysis.Builder()
                     .setTargetResolution(android.util.Size(640, 480))
                     .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
                     .build()
                     .also {
-                        it.setAnalyzer(cameraExecutor, QRCodeAnalyzer { qrContent ->
-                            val currentTime = System.currentTimeMillis()
-                            if (currentTime - lastScanTime > SCAN_COOLDOWN_MS) {
-                                lastScanTime = currentTime
-                                Log.d("TemiBridge", "[ML_KIT] QR escaneado: $qrContent")
-                                runOnUiThread {
-                                    handleQrContent(qrContent)
+                        it.setAnalyzer(
+                            cameraExecutor,
+                            QRCodeAnalyzer { qrContent ->
+                                val currentTime = System.currentTimeMillis()
+                                if (currentTime - lastScanTime > SCAN_COOLDOWN_MS) {
+                                    lastScanTime = currentTime
+                                    Log.d("TemiBridge", "[ML_KIT] QR escaneado: $qrContent")
+                                    runOnUiThread {
+                                        handleQrContent(qrContent)
+                                    }
                                 }
-                            }
-                        })
+                            },
+                        )
                     }
-                
+
                 // Desvincular casos de uso anteriores
                 cameraProvider.unbindAll()
-                
+
                 // Intentar con diferentes selectores de cámara
                 val cameraSelectors = listOf(
                     CameraSelector.DEFAULT_BACK_CAMERA to "trasera",
-                    CameraSelector.DEFAULT_FRONT_CAMERA to "frontal"
+                    CameraSelector.DEFAULT_FRONT_CAMERA to "frontal",
                 )
-                
+
                 var cameraStarted = false
                 for ((selector, name) in cameraSelectors) {
                     try {
                         Log.d("TemiBridge", "[CAMERA] Intentando con cámara $name...")
-                        
+
                         camera = cameraProvider.bindToLifecycle(
-                            this, selector, preview, imageAnalyzer
+                            this,
+                            selector,
+                            preview,
+                            imageAnalyzer,
                         )
-                        
+
                         Log.d("TemiBridge", "[CAMERA] ========== CameraX + ML Kit iniciado (cámara $name) ==========")
                         Toast.makeText(this, "Cámara QR activa ✓ (ML Kit - $name)", Toast.LENGTH_SHORT).show()
                         cameraStarted = true
                         break
-                        
                     } catch (e: Exception) {
                         Log.w("TemiBridge", "[CAMERA] Cámara $name no disponible: ${e.message}")
                     }
                 }
-                
+
                 if (!cameraStarted) {
                     throw Exception("No se pudo iniciar ninguna cámara")
                 }
-                
             } catch (e: Exception) {
                 Log.e("TemiBridge", "[CAMERA] ERROR FATAL: ${e.message}", e)
                 e.printStackTrace()
@@ -333,19 +480,19 @@ class MainActivity : AppCompatActivity() {
             }
         }, ContextCompat.getMainExecutor(this))
     }
-    
+
     /**
      * Analizador de imágenes para detectar códigos QR con ML Kit
      */
     private class QRCodeAnalyzer(private val onQRCodeDetected: (String) -> Unit) : ImageAnalysis.Analyzer {
         private val scanner = BarcodeScanning.getClient()
-        
+
         @androidx.camera.core.ExperimentalGetImage
         override fun analyze(imageProxy: ImageProxy) {
             val mediaImage = imageProxy.image
             if (mediaImage != null) {
                 val image = InputImage.fromMediaImage(mediaImage, imageProxy.imageInfo.rotationDegrees)
-                
+
                 scanner.process(image)
                     .addOnSuccessListener { barcodes ->
                         for (barcode in barcodes) {
@@ -366,13 +513,6 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    override fun onDestroy() {
-        super.onDestroy()
-        cameraExecutor.shutdown()
-        announcementManager.destroy()
-        ratingManager.destroy()
-    }
-
     private fun handleQrContent(content: String) {
         // 1) Nuevo formato soportado: deep link mytemi://...
         //    Ej: mytemi://welcome?text=Hola%20Mario...&place=Salon_Duarte
@@ -380,6 +520,29 @@ class MainActivity : AppCompatActivity() {
             runCatching { Uri.parse(content) }.onSuccess { uri ->
                 if (uri != null && uri.scheme == "mytemi") {
                     when (uri.host) {
+                        "guest" -> {
+                            showSuccessAnimation()
+                            CoroutineScope(Dispatchers.Main).launch {
+                                try {
+                                    val result = checkinHandler.handle(uri)
+                                    if (result != null) {
+                                        GoogleTTS.speak(applicationContext, result.messageToSpeak)
+                                        Handler(Looper.getMainLooper()).postDelayed({
+                                            val intent = Intent(this@MainActivity, MenuActivity::class.java).apply {
+                                                putExtra(MenuActivity.EXTRA_PLACE, "Recepcion")
+                                                addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+                                            }
+                                            startActivity(intent)
+                                            overridePendingTransition(R.anim.slide_in_right, R.anim.slide_out_left)
+                                        }, 1_000)
+                                    }
+                                } catch (t: Throwable) {
+                                    Log.w("TemiBridge", "[CHECKIN] Error procesando check-in: ${t.message}", t)
+                                    Toast.makeText(this@MainActivity, "Error al procesar check-in", Toast.LENGTH_LONG).show()
+                                }
+                            }
+                            return
+                        }
                         "welcome" -> {
                             val text = decodeParam(uri.getQueryParameter("text")).trim()
                             val place = decodeParam(uri.getQueryParameter("place")).trim()
@@ -496,29 +659,29 @@ class MainActivity : AppCompatActivity() {
                             val place = decodeParam(uri.getQueryParameter("place")).trim()
                             val returnTo = decodeParam(uri.getQueryParameter("returnTo")).trim()
                             val arrivalDelayStr = decodeParam(uri.getQueryParameter("arrivalDelay")).trim()
-                            
+
                             val waitTimeSeconds = waitTimeStr.toLongOrNull() ?: 5L
                             val arrivalDelaySeconds = arrivalDelayStr.toLongOrNull() // puede ser null si no se envía
-                            
+
                             Log.d("TemiBridge", "========== ESCORT INICIADO ==========")
                             Log.d("TemiBridge", "[ESCORT] initialGreeting=$initialGreeting")
                             Log.d("TemiBridge", "[ESCORT] place=$place")
                             Log.d("TemiBridge", "[ESCORT] arrivalGreeting=$arrivalGreeting")
                             Log.d("TemiBridge", "[ESCORT] waitTime=$waitTimeSeconds, returnTo=$returnTo, arrivalDelay=$arrivalDelaySeconds")
-                            
+
                             if (initialGreeting.isNotBlank()) {
                                 showSuccessAnimation()
-                                
+
                                 // Usar applicationContext para evitar problemas de lifecycle
                                 val appContext = applicationContext
-                                
+
                                 // Guardar variables para el callback y temporizadores
                                 val savedPlace = place
                                 val savedArrivalGreeting = arrivalGreeting
                                 val savedWaitTime = waitTimeSeconds
                                 val savedReturnTo = returnTo
                                 var arrivalGreetingSpoken = false
-                                
+
                                 // Helper para programar el regreso (returnTo)
                                 val scheduleReturn: () -> Unit = {
                                     if (savedReturnTo.isNotBlank()) {
@@ -529,18 +692,18 @@ class MainActivity : AppCompatActivity() {
                                         }, savedWaitTime * 1000)
                                     }
                                 }
-                                
+
                                 // Configurar callback para cuando llegue ANTES de hablar
                                 if (savedPlace.isNotBlank()) {
                                     TemiController.setArrivalCallbackOnce {
                                         Log.d("TemiBridge", "========== CALLBACK LLEGADA EJECUTADO ==========")
                                         Log.d("TemiBridge", "[ESCORT] Llegamos a $savedPlace")
                                         Log.d("TemiBridge", "[ESCORT] arrivalGreeting a reproducir: $savedArrivalGreeting")
-                                        
+
                                         // Ejecutar en hilo principal
                                         Handler(Looper.getMainLooper()).post {
                                             Log.d("TemiBridge", "[ESCORT] En hilo principal (callback de llegada)")
-                                            
+
                                             if (savedArrivalGreeting.isNotBlank()) {
                                                 if (!arrivalGreetingSpoken) {
                                                     arrivalGreetingSpoken = true
@@ -575,11 +738,11 @@ class MainActivity : AppCompatActivity() {
                                         }
                                     }, arrivalDelaySeconds * 1000)
                                 }
-                                
+
                                 // 1. Decir saludo inicial con voz natural de Google
                                 Log.d("TemiBridge", "[ESCORT] Reproduciendo greeting inicial con GoogleTTS...")
                                 GoogleTTS.speak(appContext, initialGreeting)
-                                
+
                                 // 2. Navegar al destino después de un delay
                                 if (savedPlace.isNotBlank()) {
                                     Handler(Looper.getMainLooper()).postDelayed({
@@ -604,6 +767,11 @@ class MainActivity : AppCompatActivity() {
         return
     }
 
+    // --- CheckinHandler para flujo mytemi://guest ---
+    private val checkinHandler by lazy {
+        CheckinHandler(OkHttpSupabaseGateway(BuildConfig.TEMI_EDGE_BASE_URL, BuildConfig.SUPABASE_ANON_KEY))
+    }
+
     // --- Webhook + flujo de recepciÃ³n ---
     private val httpClient by lazy { OkHttpClient() }
 
@@ -612,7 +780,8 @@ class MainActivity : AppCompatActivity() {
         if (raw.isNullOrEmpty()) return ""
         var prev: String = raw
         var curr: String
-        repeat(3) { // hasta 3 pasadas por seguridad
+        repeat(3) {
+            // hasta 3 pasadas por seguridad
             curr = try {
                 URLDecoder.decode(prev, StandardCharsets.UTF_8.name())
             } catch (_: Throwable) {
@@ -777,5 +946,4 @@ class MainActivity : AppCompatActivity() {
             }
             .start()
     }
-
 }

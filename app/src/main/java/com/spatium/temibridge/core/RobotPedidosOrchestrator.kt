@@ -13,7 +13,7 @@ data class RobotPedido(
     val say: String?,
     @SerialName("orden_action")
     val ordenAction: String?,
-    val place: String? = null
+    val place: String? = null,
 )
 
 /**
@@ -32,7 +32,7 @@ object RobotPedidosOrchestrator {
      * Ejecuta un pedido de forma SÍNCRONA, esperando a que termine.
      * SIEMPRE abre la app primero, luego ejecuta los comandos en orden.
      * Los comandos se ejecutarán en orden con delays apropiados entre ellos.
-     * 
+     *
      * @return true si todos los comandos se ejecutaron, false si hubo timeout
      */
     fun executePedidoAndWait(context: Context, pedido: RobotPedido): Boolean {
@@ -47,7 +47,7 @@ object RobotPedidosOrchestrator {
         Log.d(TAG, "=== PEDIDO id=${pedido.id} ${if (result) "COMPLETADO" else "TIMEOUT/ERROR"} ===")
         return result
     }
-    
+
     /**
      * Versión legacy que no espera (para compatibilidad con código existente)
      */

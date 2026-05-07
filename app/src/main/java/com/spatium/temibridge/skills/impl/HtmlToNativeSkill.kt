@@ -30,12 +30,13 @@ import kotlinx.coroutines.withContext
  *  9. Iconos: emojis Unicode o drawables vectoriales (no Material Icons web font)
  * 10. Fullscreen: WindowInsetsControllerCompat.hide(systemBars) en setupFullscreen()
  */
-class HtmlToNativeSkill : BaseTemiSkill(
-    skillId = "html_to_native",
-    skillName = "HTML to Native",
-    description = "Convierte diseños HTML/Tailwind a layouts Android nativos para Temi",
-    category = SkillCategory.INTERACTION
-) {
+class HtmlToNativeSkill :
+    BaseTemiSkill(
+        skillId = "html_to_native",
+        skillName = "HTML to Native",
+        description = "Convierte diseños HTML/Tailwind a layouts Android nativos para Temi",
+        category = SkillCategory.INTERACTION,
+    ) {
 
     companion object {
         /**
@@ -82,7 +83,7 @@ class HtmlToNativeSkill : BaseTemiSkill(
             "glass-button" to "background=\"@drawable/bg_glass_button\"",
             "bottom nav rounded-full" to "background=\"@drawable/bg_bottom_nav\"",
             "gradient indigo→purple" to "background=\"@drawable/bg_btn_confirm\"",
-            "gradient blue→purple" to "background=\"@drawable/tile_opinar\""
+            "gradient blue→purple" to "background=\"@drawable/tile_opinar\"",
         )
 
         /**
@@ -102,7 +103,7 @@ class HtmlToNativeSkill : BaseTemiSkill(
             "✅ Mantener IDs existentes al actualizar pantallas ya implementadas",
             "✅ Animación de tap en setOnClickListener de cada tile",
             "✅ Registrar Activity en AndroidManifest.xml",
-            "✅ Compilar y verificar con gradlew assembleDebug"
+            "✅ Compilar y verificar con gradlew assembleDebug",
         )
 
         /**
@@ -156,7 +157,7 @@ class HtmlToNativeSkill : BaseTemiSkill(
 
             SkillResult.PartialSuccess(
                 "HtmlToNative: '$htmlDescription' → '$targetActivity' | " +
-                "${CONVERSION_CHECKLIST.size} pasos | ${TAILWIND_TO_ANDROID.size} mappings Tailwind→Android"
+                    "${CONVERSION_CHECKLIST.size} pasos | ${TAILWIND_TO_ANDROID.size} mappings Tailwind→Android",
             )
         }
     }

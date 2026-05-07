@@ -10,8 +10,8 @@ import android.view.WindowManager
 import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
-import androidx.appcompat.app.AppCompatActivity
 import androidx.activity.OnBackPressedCallback
+import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
@@ -52,9 +52,7 @@ class KioskWebActivity : AppCompatActivity() {
             ws.loadWithOverviewMode = true
             ws.useWideViewPort = true
             wv.webViewClient = object : WebViewClient() {
-                override fun shouldOverrideUrlLoading(view: WebView?, url: String?): Boolean {
-                    return false
-                }
+                override fun shouldOverrideUrlLoading(view: WebView?, url: String?): Boolean = false
 
                 override fun onPageStarted(view: WebView?, url: String?, favicon: android.graphics.Bitmap?) {
                     super.onPageStarted(view, url, favicon)
@@ -90,15 +88,18 @@ class KioskWebActivity : AppCompatActivity() {
         handler.postDelayed(autoClose, 120_000)
 
         // Manejo de back usando OnBackPressedDispatcher (evita API deprecada)
-        onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
-            override fun handleOnBackPressed() {
-                if (webView?.canGoBack() == true) {
-                    webView?.goBack()
-                } else {
-                    // Ignorar botón físico; se usa el botón visual de la UI
+        onBackPressedDispatcher.addCallback(
+            this,
+            object : OnBackPressedCallback(true) {
+                override fun handleOnBackPressed() {
+                    if (webView?.canGoBack() == true) {
+                        webView?.goBack()
+                    } else {
+                        // Ignorar botón físico; se usa el botón visual de la UI
+                    }
                 }
-            }
-        })
+            },
+        )
     }
 
     override fun onNewIntent(intent: Intent) {

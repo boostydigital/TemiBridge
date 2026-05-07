@@ -22,11 +22,11 @@ class TeaVariantAnimator(private val scope: CoroutineScope) {
     fun animateTeaVariant(
         view: ImageView,
         duration: Long = 2000,
-        delayMs: Long = 0
+        delayMs: Long = 0,
     ) {
         scope.launch(Dispatchers.Main) {
             delay(delayMs)
-            
+
             // Animación de escala
             val scaleX = ObjectAnimator.ofFloat(view, "scaleX", 1f, 1.1f, 1f).apply {
                 this.duration = duration
@@ -72,13 +72,13 @@ class TeaVariantAnimator(private val scope: CoroutineScope) {
     fun animateTeaVariantsCascade(
         variantViews: List<ImageView>,
         duration: Long = 2000,
-        cascadeDelayMs: Long = 150
+        cascadeDelayMs: Long = 150,
     ) {
         variantViews.forEachIndexed { index, view ->
             animateTeaVariant(
                 view,
                 duration = duration,
-                delayMs = index * cascadeDelayMs
+                delayMs = index * cascadeDelayMs,
             )
         }
     }
@@ -89,7 +89,7 @@ class TeaVariantAnimator(private val scope: CoroutineScope) {
     fun animatePulseEffect(
         view: View,
         duration: Long = 600,
-        pulseCount: Int = 3
+        pulseCount: Int = 3,
     ) {
         scope.launch(Dispatchers.Main) {
             repeat(pulseCount) {
@@ -133,7 +133,7 @@ class TeaVariantAnimator(private val scope: CoroutineScope) {
      */
     fun animateGlowEffect(
         view: View,
-        duration: Long = 1500
+        duration: Long = 1500,
     ) {
         scope.launch(Dispatchers.Main) {
             val alphaGlow = ObjectAnimator.ofFloat(view, "alpha", 0.8f, 1f, 0.8f).apply {
@@ -153,7 +153,7 @@ class TeaVariantAnimator(private val scope: CoroutineScope) {
     fun animateFloatingEffect(
         view: View,
         duration: Long = 2000,
-        floatDistance: Float = 10f
+        floatDistance: Float = 10f,
     ) {
         scope.launch(Dispatchers.Main) {
             val floatUp = ObjectAnimator.ofFloat(view, "translationY", 0f, -floatDistance).apply {

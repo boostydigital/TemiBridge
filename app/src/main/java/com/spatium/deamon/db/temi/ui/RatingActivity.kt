@@ -39,12 +39,12 @@ class RatingActivity : AppCompatActivity() {
     private lateinit var webView: WebView
     private var eventName = DEFAULT_EVENT_NAME
     private var webhookUrl = ""
-    
+
     // Modo RatingManager (viene de evaluación programada)
     private var isRatingManagerMode = false
     private var customerName = ""
     private var salon = ""
-    
+
     // Receiver para cerrar la activity desde RatingManager
     private val closeReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
@@ -62,9 +62,9 @@ class RatingActivity : AppCompatActivity() {
         isRatingManagerMode = intent.getBooleanExtra("rating_manager_mode", false)
         customerName = intent.getStringExtra("customer_name") ?: ""
         salon = intent.getStringExtra("salon") ?: ""
-        
+
         Log.d(TAG, "[CONFIG] isRatingManagerMode=$isRatingManagerMode, salon=$salon, customer=$customerName")
-        
+
         // Registrar receiver para cerrar desde RatingManager
         if (isRatingManagerMode) {
             val filter = IntentFilter("com.spatium.deamon.db.temi.CLOSE_RATING")
@@ -170,7 +170,7 @@ class RatingActivity : AppCompatActivity() {
         @JavascriptInterface
         fun submitRating(rating: Int) {
             Log.d(TAG, "[BRIDGE] Rating submitted: $rating")
-            
+
             if (isRatingManagerMode) {
                 // Notificar al RatingManager (singleton en MainActivity)
                 Log.d(TAG, "[BRIDGE] Modo RatingManager - notificando rating")
@@ -217,7 +217,7 @@ class RatingActivity : AppCompatActivity() {
      */
     private fun notifyRatingManager(rating: Int) {
         Log.d(TAG, "[NOTIFY] Enviando rating=$rating al RatingManager")
-        
+
         // Enviar broadcast con los datos del rating
         val intent = Intent("com.spatium.deamon.db.temi.RATING_SUBMITTED").apply {
             putExtra("rating", rating)
@@ -225,7 +225,7 @@ class RatingActivity : AppCompatActivity() {
             putExtra("salon", salon)
         }
         sendBroadcast(intent)
-        
+
         // Mostrar página de agradecimiento mientras RatingManager procesa
         loadThankYouPage()
     }

@@ -46,7 +46,9 @@ class SelfieHunterActivity : AppCompatActivity() {
 
         setupFullscreen()
 
-        robot = try { Robot.getInstance() } catch (t: Throwable) {
+        robot = try {
+            Robot.getInstance()
+        } catch (t: Throwable) {
             Log.e(TAG, "[ROBOT] Error obteniendo instancia: ${t.message}")
             null
         }
@@ -86,21 +88,21 @@ class SelfieHunterActivity : AppCompatActivity() {
         Log.d(TAG, "[LOAD] Iniciando loadLocationsAndStart()")
         selectedLocations = intent.getStringArrayListExtra(EXTRA_SELECTED_LOCATIONS) ?: emptyList()
         Log.d(TAG, "[LOAD] Ubicaciones recibidas: ${selectedLocations.size} - $selectedLocations")
-        
+
         if (selectedLocations.isNotEmpty()) {
             Log.d(TAG, "[LOCATIONS] Ubicaciones seleccionadas: ${selectedLocations.size}")
-            
+
             // Inicializar WanderingController con callbacks
             wanderingController = WanderingController(
                 robot = robot,
-                personDetectedCallback = { 
+                personDetectedCallback = {
                     Log.d(TAG, "[DETECTION] Callback personDetected - cambiando a SPEAKING")
                     currentState = State.SPEAKING
                 },
                 onNavigationStart = { location ->
                     Log.d(TAG, "[NAVIGATION] Navegando a: $location (CTA permanece visible)")
                     // NO ocultar CTA durante navegación - siempre visible
-                },  
+                },
                 onNavigationComplete = {
                     Log.d(TAG, "[NAVIGATION] Navegación completada")
                 },
@@ -109,15 +111,15 @@ class SelfieHunterActivity : AppCompatActivity() {
                     currentState = State.WAITING_TOUCH
                     // CTA ya está visible, solo asegurar
                     runOnUiThread { showCTAScreen() }
-                }
+                },
             )
-            
+
             // Inicializar listeners del WanderingController
             wanderingController?.initialize()
-            
+
             // Mostrar CTA overlay INMEDIATAMENTE (siempre visible durante deambulación)
             showCTAScreen()
-            
+
             // Iniciar deambulación INMEDIATAMENTE
             wanderingController?.startWandering(selectedLocations)
             Log.d(TAG, "[WANDER] Deambulación iniciada con ${selectedLocations.size} ubicaciones")
@@ -204,8 +206,11 @@ class SelfieHunterActivity : AppCompatActivity() {
             Log.w(TAG, "[EXIT] Error stopMovement: ${e.message}")
         }
         try {
-            robot?.javaClass?.getMethod("setDetectionModeOn",
-                Boolean::class.javaPrimitiveType, Float::class.javaPrimitiveType)
+            robot?.javaClass?.getMethod(
+                "setDetectionModeOn",
+                Boolean::class.javaPrimitiveType,
+                Float::class.javaPrimitiveType,
+            )
                 ?.invoke(robot, false, DETECTION_DISTANCE)
             Log.d(TAG, "[EXIT] ✓ Detección desactivada")
         } catch (t: Throwable) {
@@ -238,8 +243,11 @@ class SelfieHunterActivity : AppCompatActivity() {
     private fun disableDetectionMode() {
         val r = robot ?: return
         try {
-            r.javaClass.getMethod("setDetectionModeOn",
-                Boolean::class.javaPrimitiveType, Float::class.javaPrimitiveType)
+            r.javaClass.getMethod(
+                "setDetectionModeOn",
+                Boolean::class.javaPrimitiveType,
+                Float::class.javaPrimitiveType,
+            )
                 .invoke(r, false, DETECTION_DISTANCE)
             Log.d(TAG, "[DETECTION] Modo detección DESACTIVADO")
         } catch (t: Throwable) {
@@ -250,8 +258,11 @@ class SelfieHunterActivity : AppCompatActivity() {
     private fun enableDetectionMode() {
         val r = robot ?: return
         try {
-            r.javaClass.getMethod("setDetectionModeOn",
-                Boolean::class.javaPrimitiveType, Float::class.javaPrimitiveType)
+            r.javaClass.getMethod(
+                "setDetectionModeOn",
+                Boolean::class.javaPrimitiveType,
+                Float::class.javaPrimitiveType,
+            )
                 .invoke(r, true, DETECTION_DISTANCE)
             Log.d(TAG, "[DETECTION] Modo detección ACTIVADO")
         } catch (t: Throwable) {
@@ -259,15 +270,13 @@ class SelfieHunterActivity : AppCompatActivity() {
         }
     }
 
-    private fun createTtsRequest(text: String): Any? {
-        return try {
-            val cls = Class.forName("com.robotemi.sdk.TtsRequest")
-            val create = cls.getMethod("create", String::class.java, Boolean::class.javaPrimitiveType)
-            create.invoke(null, text, false)
-        } catch (t: Throwable) {
-            Log.w(TAG, "[TTS] TtsRequest no disponible: ${t.message}")
-            null
-        }
+    private fun createTtsRequest(text: String): Any? = try {
+        val cls = Class.forName("com.robotemi.sdk.TtsRequest")
+        val create = cls.getMethod("create", String::class.java, Boolean::class.javaPrimitiveType)
+        create.invoke(null, text, false)
+    } catch (t: Throwable) {
+        Log.w(TAG, "[TTS] TtsRequest no disponible: ${t.message}")
+        null
     }
 
     // ──────────────────────────────────────────
@@ -275,10 +284,10 @@ class SelfieHunterActivity : AppCompatActivity() {
     // ──────────────────────────────────────────
     private fun registerListeners() {
         val r = robot ?: return
-        
+
         registerGoToListener()
         registerDetectionListener()
-        
+
         Log.d(TAG, "[LISTENERS] ✓ Todos los listeners registrados")
     }
 
@@ -287,7 +296,8 @@ class SelfieHunterActivity : AppCompatActivity() {
         try {
             val listenerCls = Class.forName("com.robotemi.sdk.listeners.OnGoToLocationStatusChangedListener")
             goToListenerProxy = java.lang.reflect.Proxy.newProxyInstance(
-                listenerCls.classLoader, arrayOf(listenerCls),
+                listenerCls.classLoader,
+                arrayOf(listenerCls),
                 java.lang.reflect.InvocationHandler { _, method, args ->
                     if (method.name == "onGoToLocationStatusChanged" && args != null && args.size >= 2) {
                         val status = args[1]?.toString()?.uppercase() ?: ""
@@ -299,7 +309,7 @@ class SelfieHunterActivity : AppCompatActivity() {
                         }
                     }
                     null
-                }
+                },
             )
             r.javaClass.getMethod("addOnGoToLocationStatusChangedListener", listenerCls)
                 .invoke(r, goToListenerProxy)
@@ -314,13 +324,16 @@ class SelfieHunterActivity : AppCompatActivity() {
         try {
             val listenerCls = Class.forName("com.robotemi.sdk.listeners.OnDetectionDataChangedListener")
             detectionListenerProxy = java.lang.reflect.Proxy.newProxyInstance(
-                listenerCls.classLoader, arrayOf(listenerCls),
+                listenerCls.classLoader,
+                arrayOf(listenerCls),
                 java.lang.reflect.InvocationHandler { _, method, args ->
                     if (method.name == "onDetectionDataChanged" && args != null && args.isNotEmpty()) {
                         val data = args[0] ?: return@InvocationHandler null
                         val isDetected = try {
                             data.javaClass.getMethod("isDetected").invoke(data) as? Boolean ?: false
-                        } catch (t: Throwable) { false }
+                        } catch (t: Throwable) {
+                            false
+                        }
 
                         Log.d(TAG, "[DETECTION] isDetected=$isDetected state=$currentState")
 
@@ -354,7 +367,7 @@ class SelfieHunterActivity : AppCompatActivity() {
                         }
                     }
                     null
-                }
+                },
             )
             r.javaClass.getMethod("addOnDetectionDataChangedListener", listenerCls)
                 .invoke(r, detectionListenerProxy)
@@ -364,7 +377,6 @@ class SelfieHunterActivity : AppCompatActivity() {
         }
     }
 
-    
     private fun unregisterListeners() {
         val r = robot ?: return
         try {
@@ -380,8 +392,11 @@ class SelfieHunterActivity : AppCompatActivity() {
             }
         } catch (t: Throwable) { }
         try {
-            r.javaClass.getMethod("setDetectionModeOn",
-                Boolean::class.javaPrimitiveType, Float::class.javaPrimitiveType)
+            r.javaClass.getMethod(
+                "setDetectionModeOn",
+                Boolean::class.javaPrimitiveType,
+                Float::class.javaPrimitiveType,
+            )
                 .invoke(r, false, 1.0f)
         } catch (t: Throwable) { }
         Log.d(TAG, "[LISTENERS] Listeners removidos")

@@ -35,7 +35,9 @@ class MapSelectorActivity : AppCompatActivity() {
 
         setupFullscreen()
 
-        robot = try { Robot.getInstance() } catch (t: Throwable) {
+        robot = try {
+            Robot.getInstance()
+        } catch (t: Throwable) {
             Log.e(TAG, "[ROBOT] Error obteniendo instancia: ${t.message}")
             null
         }
@@ -93,7 +95,6 @@ class MapSelectorActivity : AppCompatActivity() {
             Log.d(TAG, "[LOCATIONS] Ubicaciones: $allLocations")
             updateStatusText("Selecciona las ubicaciones para deambular:")
             displayLocationCheckboxes(allLocations.sorted())
-
         } catch (t: Throwable) {
             Log.e(TAG, "[LOCATIONS] Error cargando ubicaciones: ${t.message}", t)
             updateStatusText("⚠️ Error cargando ubicaciones: ${t.message}")
@@ -109,7 +110,7 @@ class MapSelectorActivity : AppCompatActivity() {
             val checkboxContainer = LinearLayout(this).apply {
                 layoutParams = LinearLayout.LayoutParams(
                     LinearLayout.LayoutParams.MATCH_PARENT,
-                    80
+                    80,
                 ).apply { setMargins(0, 0, 0, 8) }
                 background = resources.getDrawable(R.drawable.bg_glass_panel_rounded, null)
                 orientation = LinearLayout.HORIZONTAL
@@ -122,7 +123,7 @@ class MapSelectorActivity : AppCompatActivity() {
             val checkbox = CheckBox(this).apply {
                 layoutParams = LinearLayout.LayoutParams(
                     LinearLayout.LayoutParams.WRAP_CONTENT,
-                    LinearLayout.LayoutParams.WRAP_CONTENT
+                    LinearLayout.LayoutParams.WRAP_CONTENT,
                 )
                 isChecked = false
                 setOnCheckedChangeListener { _, isChecked ->
@@ -144,7 +145,7 @@ class MapSelectorActivity : AppCompatActivity() {
                 layoutParams = LinearLayout.LayoutParams(
                     0,
                     LinearLayout.LayoutParams.WRAP_CONTENT,
-                    1f
+                    1f,
                 ).apply { marginStart = 16 }
             }
 
@@ -166,7 +167,7 @@ class MapSelectorActivity : AppCompatActivity() {
     private fun updateCounterText() {
         val count = selectedLocations.size
         try {
-            findViewById<TextView>(R.id.tvMapCounter)?.text = 
+            findViewById<TextView>(R.id.tvMapCounter)?.text =
                 "Seleccionadas: $count ubicaciones"
         } catch (t: Throwable) { }
     }
@@ -199,12 +200,12 @@ class MapSelectorActivity : AppCompatActivity() {
         val intent = Intent(this, SelfieHunterActivity::class.java).apply {
             putStringArrayListExtra(
                 SelfieHunterActivity.EXTRA_SELECTED_LOCATIONS,
-                ArrayList(selectedLocations.toList())
+                ArrayList(selectedLocations.toList()),
             )
             // No usar CLEAR_TOP para mantener el stack de actividades intacto
             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         }
-        
+
         Log.d(TAG, "[START] ✅ Intent creado - Component: ${intent.component}")
         Log.d(TAG, "[START] ✅ Intent extras: ${intent.extras}")
         Log.d(TAG, "[START] 🚀 Llamando a startActivity(SelfieHunterActivity)")

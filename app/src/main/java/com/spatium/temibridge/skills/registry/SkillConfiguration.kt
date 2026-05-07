@@ -12,7 +12,7 @@ data class SkillMetadata(
     val requiredPermissions: List<String> = emptyList(),
     val timeoutMillis: Long = 30_000L,
     val retryable: Boolean = false,
-    val enabled: Boolean = true
+    val enabled: Boolean = true,
 )
 
 data class ParameterSpec(
@@ -20,7 +20,7 @@ data class ParameterSpec(
     val type: ParameterType,
     val required: Boolean,
     val description: String,
-    val defaultValue: Any? = null
+    val defaultValue: Any? = null,
 )
 
 enum class ParameterType {
@@ -28,7 +28,7 @@ enum class ParameterType {
     NUMBER,
     BOOLEAN,
     LIST,
-    MAP
+    MAP,
 }
 
 object SkillConfiguration {

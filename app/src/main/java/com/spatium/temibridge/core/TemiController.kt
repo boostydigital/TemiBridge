@@ -10,9 +10,56 @@ object TemiController {
     private const val TAG = "TemiController"
 
     private var pendingArrival: (() -> Unit)? = null
+    private var pendingAbort: (() -> Unit)? = null
     private var goToListenerProxy: Any? = null
     private var permListenerProxy: Any? = null
     private var lastTarget: String? = null
+
+    @Volatile private var robotReady: Boolean = false
+
+    @Volatile private var pendingGoTo: String? = null
+
+    // Anti-auto-return: si el SDK del Temi dispara un goTo("home base") por su cuenta
+    // (auto-return-to-charger del firmware tras ~60 s sin actividad), lo redirigimos al
+    // waypoint que YO controlaba antes. Este flag indica que estamos en un modo que NO
+    // tolera auto-return — GuiaManager lo activa al iniciar.
+    @Volatile private var autoReturnGuard: Boolean = false
+
+    @Volatile private var guardedTarget: String? = null
+
+    fun enableAutoReturnGuard(target: String) {
+        guardedTarget = target
+        autoReturnGuard = true
+        Log.d(TAG, "[GUARD] auto-return-guard activado para waypoint='$target'")
+    }
+
+    fun disableAutoReturnGuard() {
+        autoReturnGuard = false
+        guardedTarget = null
+        Log.d(TAG, "[GUARD] auto-return-guard desactivado")
+    }
+
+    fun updateGuardedTarget(target: String) {
+        if (autoReturnGuard) {
+            guardedTarget = target
+            Log.d(TAG, "[GUARD] guarded target actualizado a '$target'")
+        }
+    }
+
+    fun notifyRobotReady(isReady: Boolean) {
+        Log.d(TAG, "[READY] notifyRobotReady($isReady)")
+        robotReady = isReady
+        if (isReady) {
+            val pending = pendingGoTo
+            pendingGoTo = null
+            if (pending != null) {
+                Log.d(TAG, "[READY] Drenando goTo encolado: $pending")
+                goTo(pending)
+            }
+        }
+    }
+
+    fun isRobotReady(): Boolean = robotReady
 
     private fun robotInstance(): Any? = try {
         val cls = Class.forName("com.robotemi.sdk.Robot")
@@ -30,8 +77,13 @@ object TemiController {
         Log.d(TAG, "[CALLBACK] pendingArrival ahora está SET")
     }
 
+    fun setAbortCallback(callback: () -> Unit) {
+        pendingAbort = callback
+    }
+
     fun clearArrivalCallback() {
         pendingArrival = null
+        pendingAbort = null
     }
 
     private fun ensureGoToListener(): Boolean {
@@ -47,7 +99,7 @@ object TemiController {
                         try {
                             // Log de TODOS los métodos que llegan al proxy
                             Log.d(TAG, "[LISTENER] Método llamado: ${method.name}, args=${args?.contentToString()}")
-                            
+
                             if (method.name == "onGoToLocationStatusChanged" && args != null && args.size >= 2) {
                                 val location = args[0]?.toString() ?: ""
                                 val statusStr = args[1]?.toString()?.uppercase() ?: ""
@@ -57,26 +109,70 @@ object TemiController {
                                         is java.lang.Integer -> v.toInt()
                                         else -> -1
                                     }
-                                } else -1
-                                
+                                } else {
+                                    -1
+                                }
+
                                 Log.d(TAG, "[GOTO] location=$location, status=$statusStr, descId=$descId, pending=${if (pendingArrival != null) "YES" else "NO"}")
-                                
+
+                                // ANTI-AUTO-RETURN: si el firmware del Temi dispara un goTo("home base")
+                                // por su cuenta mientras estamos en un waypoint protegido, lo cancelamos
+                                // y redirigimos al guardedTarget. Sólo aplica al status START (cuando
+                                // recién comienza la nav espuria) y SOLO si el goTo no fue iniciado por
+                                // nosotros (lastTarget != "home base").
+                                if (autoReturnGuard &&
+                                    location.equals("home base", ignoreCase = true) &&
+                                    statusStr == "START" &&
+                                    (lastTarget == null || !lastTarget.equals("home base", ignoreCase = true))
+                                ) {
+                                    val target = guardedTarget
+                                    Log.w(TAG, "[GUARD] ⚠ SDK auto-return-to-charger detectado — abortando y redirigiendo a '$target'")
+                                    try {
+                                        robot.javaClass.getMethod("stopMovement").invoke(robot)
+                                    } catch (t: Throwable) {
+                                        Log.w(TAG, "[GUARD] stopMovement fallo: ${t.message}")
+                                    }
+                                    if (target != null) {
+                                        // Re-disparar goTo al waypoint protegido tras un pequeño delay
+                                        // para dar tiempo al SDK a procesar el stopMovement.
+                                        Thread {
+                                            try {
+                                                Thread.sleep(800)
+                                                Log.d(TAG, "[GUARD] Re-disparando goTo('$target') para anular auto-return")
+                                                goTo(target)
+                                            } catch (t: Throwable) {
+                                                Log.e(TAG, "[GUARD] Error re-disparando goTo: ${t.message}")
+                                            }
+                                        }.start()
+                                    }
+                                    return@InvocationHandler null
+                                }
+
                                 // Detectar llegada: COMPLETE o descId 500
                                 // El SDK de Temi usa "COMPLETE" cuando llega al destino
                                 val isComplete = statusStr == "COMPLETE" || descId == 500
-                                
+                                // Detectar abort: ABORT, GOING (navegación interrumpida por OS)
+                                val isAbort = statusStr == "ABORT" || statusStr == "ABORTED" || descId == 2 || descId == 3
+
                                 if (isComplete && pendingArrival != null) {
                                     Log.d(TAG, "[GOTO] *** LLEGADA DETECTADA *** Ejecutando arrivalCallback...")
                                     val callback = pendingArrival
-                                    pendingArrival = null // Limpiar ANTES de ejecutar para evitar doble ejecución
+                                    pendingArrival = null
+                                    pendingAbort = null
                                     callback?.invoke()
+                                } else if (isAbort) {
+                                    Log.d(TAG, "[GOTO] *** NAVEGACIÓN ABORTADA *** status=$statusStr, descId=$descId")
+                                    val abortCallback = pendingAbort
+                                    pendingArrival = null
+                                    pendingAbort = null
+                                    abortCallback?.invoke()
                                 }
                             }
                         } catch (e: Throwable) {
                             Log.e(TAG, "[LISTENER] Error en callback: ${e.message}")
                         }
                         null
-                    }
+                    },
                 )
                 val addMethod = robot.javaClass.getMethod("addOnGoToLocationStatusChangedListener", listenerCls)
                 addMethod.invoke(robot, goToListenerProxy)
@@ -185,6 +281,13 @@ object TemiController {
 
     fun goTo(place: String) {
         val robot = robotInstance() ?: return
+        if (!robotReady) {
+            Log.w(TAG, "[GOTO] SDK aun no esta ready — encolando goTo($place)")
+            ensureGoToListener()
+            pendingGoTo = place
+            lastTarget = place
+            return
+        }
         try {
             ensureGoToListener()
             lastTarget = place
@@ -192,6 +295,34 @@ object TemiController {
             goTo.invoke(robot, place)
         } catch (t: Throwable) {
             Log.w(TAG, "goTo fallo: ${t.message}")
+        }
+    }
+
+    /**
+     * Navigate to [place] walking backwards (screen faces toward the follower).
+     * Uses the two-param overload of Robot.goTo(String, Boolean) introduced in SDK 1.130+.
+     * Falls back to regular goTo if the overload is not available.
+     */
+    fun goToBackwards(place: String) {
+        val robot = robotInstance() ?: return
+        if (!robotReady) {
+            Log.w(TAG, "[GOTO_BW] SDK aun no esta ready — encolando goToBackwards($place)")
+            ensureGoToListener()
+            pendingGoTo = place
+            lastTarget = place
+            return
+        }
+        try {
+            ensureGoToListener()
+            lastTarget = place
+            // SDK 1.136.0: Robot.goTo(location: String, backwards: java.lang.Boolean)
+            // El segundo parámetro es Boolean BOXED (java.lang.Boolean), NO primitive
+            val goToMethod = robot.javaClass.getMethod("goTo", String::class.java, java.lang.Boolean::class.java)
+            goToMethod.invoke(robot, place, java.lang.Boolean.TRUE)
+            Log.d(TAG, "[GOTO_BW] Navegando BACKWARDS (Personal User Lead) a: $place")
+        } catch (t: Throwable) {
+            Log.w(TAG, "goToBackwards no disponible en este SDK, usando goTo normal: ${t.message}")
+            goTo(place)
         }
     }
 
@@ -413,18 +544,18 @@ object TemiController {
         sequenceId: String,
         withPlayer: Boolean = true,
         repeat: Int = 0,
-        startFromStep: Int = 1
+        startFromStep: Int = 1,
     ): Boolean {
         Log.d(TAG, "=== playSequenceById INICIADO === ID: $sequenceId, withPlayer=$withPlayer, repeat=$repeat, startFromStep=$startFromStep")
-        
+
         val robot = robotInstance()
         if (robot == null) {
             Log.e(TAG, "❌ Robot instance es null, no se puede ejecutar secuencia")
             return false
         }
-        
+
         Log.d(TAG, "Robot instance obtenido: $robot")
-        
+
         return try {
             Log.d(TAG, "Buscando método playSequence con parámetros...")
             val mWithParams = runCatching {
@@ -433,7 +564,7 @@ object TemiController {
                     String::class.java,
                     Boolean::class.javaPrimitiveType,
                     Int::class.javaPrimitiveType,
-                    Int::class.javaPrimitiveType
+                    Int::class.javaPrimitiveType,
                 )
             }.getOrNull()
 
@@ -442,7 +573,7 @@ object TemiController {
                 Log.d(TAG, "Invocando: playSequence($sequenceId, $withPlayer, $repeat, $startFromStep)")
                 val result = mWithParams.invoke(robot, sequenceId, withPlayer, repeat, startFromStep)
                 Log.d(TAG, "Resultado de invocación: $result (tipo: ${result?.javaClass?.simpleName})")
-                
+
                 val ok = (result as? Int)?.let { it == 0 } ?: true
                 if (!ok) {
                     Log.w(TAG, "⚠ playSequence retornó código no-cero: $result para id=$sequenceId")
@@ -457,7 +588,7 @@ object TemiController {
                 Log.d(TAG, "Invocando: playSequence($sequenceId)")
                 val result = legacy.invoke(robot, sequenceId) as? Int
                 Log.d(TAG, "Resultado de invocación: $result")
-                
+
                 val ok = (result == 0)
                 if (!ok) {
                     Log.w(TAG, "⚠ playSequence retornó código no-cero: $result para id=$sequenceId")
@@ -532,7 +663,7 @@ object TemiController {
                             }
                         } catch (_: Throwable) {}
                         null
-                    }
+                    },
                 )
                 val add = robot.javaClass.getMethod("addOnRequestPermissionResultListener", listenerCls)
                 add.invoke(robot, permListenerProxy)
@@ -551,15 +682,15 @@ object TemiController {
             val robot = robotCls.getMethod("getInstance").invoke(null)
             val permCls = runCatching { Class.forName("com.robotemi.sdk.permission.Permission") }.getOrNull()
                 ?: Class.forName("com.robotemi.sdk.Permission")
-            
+
             // Intentar obtener el permiso FACE_RECOGNITION
             val faceRecognition = runCatching { permCls.getField("FACE_RECOGNITION").get(null) }.getOrNull()
                 ?: runCatching { permCls.getField("FACE").get(null) }.getOrNull()
-            
+
             if (faceRecognition != null) {
                 val check = runCatching { robot.javaClass.getMethod("checkSelfPermission", permCls) }.getOrNull()
                     ?: runCatching { robot.javaClass.getMethod("hasPermission", permCls) }.getOrNull()
-                
+
                 if (check != null) {
                     val res = check.invoke(robot, faceRecognition)
                     return when (res) {
@@ -587,21 +718,21 @@ object TemiController {
             Log.d(TAG, "Solicitando permiso de reconocimiento facial...")
             val permClass = runCatching { Class.forName("com.robotemi.sdk.permission.Permission") }.getOrNull()
                 ?: Class.forName("com.robotemi.sdk.Permission")
-            
+
             val faceRecognition = runCatching { permClass.getField("FACE_RECOGNITION").get(null) }.getOrNull()
                 ?: runCatching { permClass.getField("FACE").get(null) }.getOrNull()
-            
+
             if (faceRecognition != null) {
                 val list = java.util.ArrayList<Any>()
                 list.add(faceRecognition)
-                
+
                 val reqWithCode = runCatching { robot.javaClass.getMethod("requestPermissions", java.util.List::class.java, Int::class.javaPrimitiveType) }.getOrNull()
                 if (reqWithCode != null) {
                     reqWithCode.invoke(robot, list, 1002)
                     Log.d(TAG, "✓ Permiso de reconocimiento facial solicitado")
                     return true
                 }
-                
+
                 val reqNoCode = runCatching { robot.javaClass.getMethod("requestPermissions", java.util.List::class.java) }.getOrNull()
                 if (reqNoCode != null) {
                     reqNoCode.invoke(robot, list)
@@ -624,17 +755,17 @@ object TemiController {
             Log.d(TAG, "=== HABILITANDO FACE TRACKING CON constraintBeWith ===")
             Log.d(TAG, "Robot instance: $robot")
             Log.d(TAG, "Robot class: ${robot.javaClass.name}")
-            
+
             // constraintBeWith() - robot gira y tilta en su eje hacia el usuario sin moverse
             // No requiere permisos especiales. Disponible desde SDK 0.10.53
             Log.d(TAG, "Buscando método constraintBeWith()...")
             val constraintBeWithMethod = robot.javaClass.getMethod("constraintBeWith")
             Log.d(TAG, "Método encontrado: $constraintBeWithMethod")
-            
+
             Log.d(TAG, "Invocando constraintBeWith()...")
             constraintBeWithMethod.invoke(robot)
             Log.d(TAG, "✓ constraintBeWith() ejecutado - Robot se orienta hacia el usuario")
-            
+
             Log.d(TAG, "✓✓✓ FACE TRACKING HABILITADO COMPLETAMENTE ✓✓✓")
             true
         } catch (t: Throwable) {
@@ -649,17 +780,17 @@ object TemiController {
         val robot = robotInstance() ?: return false
         return try {
             Log.d(TAG, "Deshabilitando face tracking con stopMovement...")
-            
+
             // stopMovement() detiene constraintBeWith y cualquier movimiento activo
             val stopMovementMethod = robot.javaClass.getMethod("stopMovement")
             stopMovementMethod.invoke(robot)
             Log.d(TAG, "✓ stopMovement() ejecutado")
-            
+
             // 2. Detener reconocimiento facial
             val stopFaceRecognitionMethod = robot.javaClass.getMethod("stopFaceRecognition")
             stopFaceRecognitionMethod.invoke(robot)
             Log.d(TAG, "✓ stopFaceRecognition() ejecutado")
-            
+
             Log.d(TAG, "✓ Face tracking deshabilitado completamente")
             true
         } catch (t: Throwable) {
@@ -672,13 +803,13 @@ object TemiController {
         val robot = robotInstance() ?: return false
         return try {
             Log.d(TAG, "Intentando inclinar cabeza: $angle grados...")
-            
+
             // Intentar con Float primero, luego con Double
             var method = runCatching { robot.javaClass.getMethod("tiltHead", Float::class.javaPrimitiveType) }.getOrNull()
             if (method == null) {
                 method = runCatching { robot.javaClass.getMethod("tiltHead", Double::class.javaPrimitiveType) }.getOrNull()
             }
-            
+
             if (method != null) {
                 method.invoke(robot, angle)
                 Log.d(TAG, "✓ Cabeza inclinada: $angle grados")
@@ -698,12 +829,12 @@ object TemiController {
         val robot = robotInstance() ?: return false
         return try {
             Log.d(TAG, "Intentando girar cabeza: $angle grados...")
-            
+
             var method = runCatching { robot.javaClass.getMethod("turnHead", Float::class.javaPrimitiveType) }.getOrNull()
             if (method == null) {
                 method = runCatching { robot.javaClass.getMethod("turnHead", Double::class.javaPrimitiveType) }.getOrNull()
             }
-            
+
             if (method != null) {
                 method.invoke(robot, angle)
                 Log.d(TAG, "✓ Cabeza girada: $angle grados")
@@ -722,12 +853,12 @@ object TemiController {
         val robot = robotInstance() ?: return false
         return try {
             Log.d(TAG, "Intentando girar robot: $angle grados...")
-            
+
             var method = runCatching { robot.javaClass.getMethod("turnByAngle", Float::class.javaPrimitiveType) }.getOrNull()
             if (method == null) {
                 method = runCatching { robot.javaClass.getMethod("turnByAngle", Double::class.javaPrimitiveType) }.getOrNull()
             }
-            
+
             if (method != null) {
                 method.invoke(robot, angle)
                 Log.d(TAG, "✓ Robot girado: $angle grados")
@@ -746,11 +877,13 @@ object TemiController {
         try {
             val methods = robot.javaClass.methods
             Log.d(TAG, "=== MÉTODOS DISPONIBLES EN ROBOT ===")
-            methods.filter { it.name.contains("track", ignoreCase = true) || 
-                            it.name.contains("face", ignoreCase = true) ||
-                            it.name.contains("head", ignoreCase = true) ||
-                            it.name.contains("turn", ignoreCase = true) ||
-                            it.name.contains("tilt", ignoreCase = true) }
+            methods.filter {
+                it.name.contains("track", ignoreCase = true) ||
+                    it.name.contains("face", ignoreCase = true) ||
+                    it.name.contains("head", ignoreCase = true) ||
+                    it.name.contains("turn", ignoreCase = true) ||
+                    it.name.contains("tilt", ignoreCase = true)
+            }
                 .forEach { method ->
                     Log.d(TAG, "  - ${method.name}(${method.parameterTypes.joinToString { it.simpleName }})")
                 }
@@ -760,7 +893,7 @@ object TemiController {
     }
 
     // --- Patrol Mode (SDK 1.129.1+) ---
-    
+
     /**
      * Inicia modo patrullaje visitando las ubicaciones en loop.
      * @param locations Lista de waypoints (mínimo 3)
@@ -773,27 +906,27 @@ object TemiController {
         locations: List<String>,
         nonstop: Boolean = false,
         times: Int = 0,
-        waiting: Int = 10
+        waiting: Int = 10,
     ): Boolean {
         val robot = robotInstance() ?: return false
         return try {
             Log.d(TAG, "=== INICIANDO PATROL ===")
             Log.d(TAG, "Locations: ${locations.joinToString()}")
             Log.d(TAG, "nonstop=$nonstop, times=$times, waiting=$waiting")
-            
+
             ensureGoToListener()
-            
+
             val patrolMethod = robot.javaClass.getMethod(
                 "patrol",
                 java.util.List::class.java,
                 Boolean::class.javaPrimitiveType,
                 Int::class.javaPrimitiveType,
-                Int::class.javaPrimitiveType
+                Int::class.javaPrimitiveType,
             )
-            
+
             val result = patrolMethod.invoke(robot, locations, nonstop, times, waiting)
             val success = (result as? Boolean) ?: true
-            
+
             if (success) {
                 Log.d(TAG, "✓ Patrol iniciado exitosamente")
             } else {
@@ -824,13 +957,17 @@ object TemiController {
     }
 
     // --- Speed Control (SDK 0.10.70+) ---
-    
+
     /**
      * Enum para niveles de velocidad de navegación.
      * VERY_HIGH y VERY_SLOW disponibles desde SDK 1.137.1
      */
     enum class SpeedLevel {
-        VERY_HIGH, HIGH, MEDIUM, SLOW, VERY_SLOW
+        VERY_HIGH,
+        HIGH,
+        MEDIUM,
+        SLOW,
+        VERY_SLOW,
     }
 
     /**
@@ -860,13 +997,13 @@ object TemiController {
         val robot = robotInstance() ?: return false
         return try {
             Log.d(TAG, "Configurando velocidad: $level")
-            
+
             val speedLevelCls = Class.forName("com.robotemi.sdk.navigation.model.SpeedLevel")
             val speedValue = speedLevelCls.getField(level.name).get(null)
-            
+
             val setMethod = robot.javaClass.getMethod("setGoToSpeed", speedLevelCls)
             setMethod.invoke(robot, speedValue)
-            
+
             Log.d(TAG, "✓ Velocidad configurada: $level")
             true
         } catch (t: Throwable) {
@@ -876,20 +1013,20 @@ object TemiController {
     }
 
     // --- Settings Permission ---
-    
+
     fun hasSettingsPermission(): Boolean {
         try {
             val robotCls = Class.forName("com.robotemi.sdk.Robot")
             val robot = robotCls.getMethod("getInstance").invoke(null)
             val permCls = runCatching { Class.forName("com.robotemi.sdk.permission.Permission") }.getOrNull()
                 ?: Class.forName("com.robotemi.sdk.Permission")
-            
+
             val settings = runCatching { permCls.getField("SETTINGS").get(null) }.getOrNull()
-            
+
             if (settings != null) {
                 val check = runCatching { robot.javaClass.getMethod("checkSelfPermission", permCls) }.getOrNull()
                     ?: runCatching { robot.javaClass.getMethod("hasPermission", permCls) }.getOrNull()
-                
+
                 if (check != null) {
                     val res = check.invoke(robot, settings)
                     return when (res) {
@@ -917,20 +1054,20 @@ object TemiController {
             Log.d(TAG, "Solicitando permiso SETTINGS...")
             val permClass = runCatching { Class.forName("com.robotemi.sdk.permission.Permission") }.getOrNull()
                 ?: Class.forName("com.robotemi.sdk.Permission")
-            
+
             val settings = runCatching { permClass.getField("SETTINGS").get(null) }.getOrNull()
-            
+
             if (settings != null) {
                 val list = java.util.ArrayList<Any>()
                 list.add(settings)
-                
+
                 val reqWithCode = runCatching { robot.javaClass.getMethod("requestPermissions", java.util.List::class.java, Int::class.javaPrimitiveType) }.getOrNull()
                 if (reqWithCode != null) {
                     reqWithCode.invoke(robot, list, 1003)
                     Log.d(TAG, "✓ Permiso SETTINGS solicitado")
                     return true
                 }
-                
+
                 val reqNoCode = runCatching { robot.javaClass.getMethod("requestPermissions", java.util.List::class.java) }.getOrNull()
                 if (reqNoCode != null) {
                     reqNoCode.invoke(robot, list)
@@ -950,12 +1087,10 @@ object TemiController {
      * Obtiene la lista de ubicaciones guardadas en el robot.
      * Útil para validar waypoints antes de iniciar patrol.
      */
-    fun getLocations(): List<String> {
-        return getSavedLocations().map { it.name }
-    }
+    fun getLocations(): List<String> = getSavedLocations().map { it.name }
 
     // --- UI Control ---
-    
+
     /**
      * Oculta la barra superior de Temi.
      */
@@ -1024,6 +1159,76 @@ object TemiController {
     }
 
     /**
+     * Habilita o deshabilita la detección de usuarios del SDK Temi.
+     * Cuando está OFF, el robot NO detecta personas cercanas y por lo tanto
+     * no gira hacia ellas ni reacciona a su presencia.
+     */
+    fun setDetectionModeOn(on: Boolean): Boolean {
+        val robot = robotInstance() ?: return false
+        return try {
+            val method = robot.javaClass.getMethod("setDetectionModeOn", Boolean::class.javaPrimitiveType)
+            method.invoke(robot, on)
+            Log.d(TAG, "✓ Detection mode: $on")
+            true
+        } catch (t: Throwable) {
+            Log.w(TAG, "setDetectionModeOn fallo: ${t.message}")
+            false
+        }
+    }
+
+    /**
+     * Habilita o deshabilita el "track user" del SDK Temi.
+     * Cuando está OFF, el robot NO sigue con la cabeza/torso al usuario detectado.
+     * Combinarlo con setDetectionModeOn(false) para que el robot quede totalmente
+     * inmóvil aunque alguien se le acerque.
+     */
+    fun setTrackUserOn(on: Boolean): Boolean {
+        val robot = robotInstance() ?: return false
+        return try {
+            val method = robot.javaClass.getMethod("setTrackUserOn", Boolean::class.javaPrimitiveType)
+            method.invoke(robot, on)
+            Log.d(TAG, "✓ Track user: $on")
+            true
+        } catch (t: Throwable) {
+            Log.w(TAG, "setTrackUserOn fallo: ${t.message}")
+            false
+        }
+    }
+
+    /**
+     * Controla el comportamiento de "auto return to charger" del Temi.
+     * Cuando está ON (default), el robot vuelve a la base de carga tras inactividad.
+     * Para mantener el robot esperando en un waypoint indefinidamente, llamar con `false`.
+     */
+    fun setAutoReturnOn(on: Boolean): Boolean {
+        val robot = robotInstance() ?: return false
+        return try {
+            val method = robot.javaClass.getMethod("setAutoReturnOn", Boolean::class.javaPrimitiveType)
+            method.invoke(robot, on)
+            Log.d(TAG, "✓ Auto return: $on")
+            true
+        } catch (t: Throwable) {
+            Log.w(TAG, "setAutoReturnOn fallo: ${t.message}")
+            false
+        }
+    }
+
+    /**
+     * Lee el estado actual de auto-return-to-charger del Temi.
+     */
+    fun isAutoReturnOn(): Boolean {
+        val robot = robotInstance() ?: return true // assume default true if cannot read
+        return try {
+            val method = robot.javaClass.getMethod("isAutoReturnOn")
+            val result = method.invoke(robot)
+            (result as? Boolean) ?: true
+        } catch (t: Throwable) {
+            Log.w(TAG, "isAutoReturnOn fallo: ${t.message}")
+            true
+        }
+    }
+
+    /**
      * Verifica si la app está configurada como Kiosk.
      */
     fun isKioskModeOn(): Boolean {
@@ -1057,7 +1262,7 @@ object TemiController {
     }
 
     // --- Volume Control ---
-    
+
     /**
      * Obtiene el volumen actual del robot (0-10).
      */

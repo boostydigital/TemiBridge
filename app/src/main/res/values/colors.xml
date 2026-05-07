@@ -44,4 +44,7 @@
     <color name="category_active_bg">#331E3A5F</color>
     <color name="success_green">#10B981</color>
     <color name="btn_cancel_bg">#1AFFFFFF</color>
+
+    <!-- Guia Mode -->
+    <color name="accent_primary">#2DD4BF</color>
 </resources>

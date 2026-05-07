@@ -10,7 +10,7 @@ import android.view.View
 class CountdownRingView @JvmOverloads constructor(
     context: Context,
     attrs: AttributeSet? = null,
-    defStyleAttr: Int = 0
+    defStyleAttr: Int = 0,
 ) : View(context, attrs, defStyleAttr) {
 
     private val bgPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {

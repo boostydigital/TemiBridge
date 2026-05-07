@@ -40,12 +40,13 @@ import kotlinx.coroutines.withContext
  *     "waitTimeMs" to 10000
  *   ))
  */
-class EscortSkill : BaseTemiSkill(
-    skillId = "escort",
-    skillName = "Escort",
-    description = "Escolta visitantes a su destino con saludo inicial, mensaje de llegada y retorno automático",
-    category = SkillCategory.COMPOSITE
-) {
+class EscortSkill :
+    BaseTemiSkill(
+        skillId = "escort",
+        skillName = "Escort",
+        description = "Escolta visitantes a su destino con saludo inicial, mensaje de llegada y retorno automático",
+        category = SkillCategory.COMPOSITE,
+    ) {
 
     override suspend fun executeSkill(context: Context, params: Map<String, Any>): SkillResult {
         val greeting = params["greeting"] as? String

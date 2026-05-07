@@ -1,0 +1,54 @@
+schema: spec-driven
+
+context: |
+  Tech stack: Android / Kotlin / Gradle KTS, Temi SDK 1.136.0
+  Backend: Supabase-kt 2.4.2 + Ktor Android, Edge Functions on supabase-temi
+  Architecture: Skills pattern (TemiSkill), ExclusiveModeArbiter, RobotGateway (hexagonal seam)
+  Testing: JUnit 4 unit tests, FakeRobotGateway as test seam
+  App ID: com.spatium.deamon.db.temi
+
+strict_tdd: true
+
+artifact_store: hybrid
+
+rules:
+  proposal:
+    - Include rollback plan for risky changes
+    - Identify affected modules/packages
+  specs:
+    - Use Given/When/Then format for scenarios
+    - Use RFC 2119 keywords (MUST, SHALL, SHOULD, MAY)
+  design:
+    - Include sequence diagrams for complex flows
+    - Document architecture decisions with rationale
+  tasks:
+    - Group tasks by phase (infrastructure, implementation, testing)
+    - Use hierarchical numbering (1.1, 1.2, etc.)
+    - Keep tasks small enough to complete in one session
+  apply:
+    - Follow existing code patterns and conventions
+    - New activities go under com.spatium.deamon.db.temi.*
+    - All SDK calls route through TemiController / RobotGateway
+  verify:
+    - Run ./gradlew test before marking done
+    - Compare implementation against every spec scenario
+  archive:
+    - Warn before merging destructive deltas
+
+testing:
+  strict_tdd: true
+  test_runner:
+    command: ./gradlew test
+    framework: JUnit 4
+  layers:
+    unit: { available: true, tool: JUnit 4 + kotlinx-coroutines-test }
+    integration: { available: false, note: "not applicable — Activities coupled to Temi SDK; FakeRobotGateway is the correct seam" }
+    e2e: { available: false, note: "not applicable — robot hardware IS the E2E environment" }
+  coverage: { available: true, command: "./gradlew jacocoTestReport", tool: JaCoCo, report: build/reports/jacoco }
+  quality:
+    linter: { available: true, command: "./gradlew spotlessCheck", tool: ktlint 1.3.1 via Spotless 6.25.0 }
+    type_checker: { available: true, command: Kotlin compiler }
+    formatter: { available: true, command: "./gradlew spotlessApply", tool: ktlint 1.3.1 via Spotless 6.25.0 }
+  seams:
+    - FakeRobotGateway in test/ for RobotGateway interface
+    - BuildConfig.USE_FAKE_ROBOT exists but hardcoded false

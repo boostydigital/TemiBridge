@@ -26,14 +26,14 @@ object SkillManager {
     data class SkillExecution(
         val skillId: String,
         val params: Map<String, Any>,
-        val callback: ((SkillResult) -> Unit)?
+        val callback: ((SkillResult) -> Unit)?,
     )
 
     fun execute(
         context: Context,
         skillId: String,
         params: Map<String, Any> = emptyMap(),
-        callback: ((SkillResult) -> Unit)? = null
+        callback: ((SkillResult) -> Unit)? = null,
     ) {
         Log.d(TAG, "execute() encolando skill=$skillId params=${params.keys}")
         queue.offer(SkillExecution(skillId, params, callback))
@@ -44,7 +44,7 @@ object SkillManager {
         context: Context,
         skillId: String,
         params: Map<String, Any> = emptyMap(),
-        callback: ((SkillResult) -> Unit)? = null
+        callback: ((SkillResult) -> Unit)? = null,
     ) {
         Log.d(TAG, "executeImmediate() skill=$skillId")
         val skill = SkillRegistry.getSkill(skillId)

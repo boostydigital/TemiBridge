@@ -16,12 +16,13 @@ import kotlinx.coroutines.withContext
  * Ejemplo uso via SkillManager:
  *   SkillManager.execute(context, "volume", mapOf("level" to 7))
  */
-class VolumeSkill : BaseTemiSkill(
-    skillId = "volume",
-    skillName = "Volume",
-    description = "Controla el nivel de volumen del robot Temi (0-10)",
-    category = SkillCategory.SYSTEM
-) {
+class VolumeSkill :
+    BaseTemiSkill(
+        skillId = "volume",
+        skillName = "Volume",
+        description = "Controla el nivel de volumen del robot Temi (0-10)",
+        category = SkillCategory.SYSTEM,
+    ) {
 
     companion object {
         private const val VOLUME_MIN = 0

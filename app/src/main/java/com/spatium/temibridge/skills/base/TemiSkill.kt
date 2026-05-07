@@ -21,5 +21,5 @@ enum class SkillCategory {
     INTERACTION,
     COMPOSITE,
     SYSTEM,
-    CUSTOM
+    CUSTOM,
 }

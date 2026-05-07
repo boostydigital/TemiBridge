@@ -68,18 +68,18 @@ class OrderConfirmationActivity : AppCompatActivity() {
     private fun setupUI() {
         // Cambiar icono Lottie según el producto
         val lottieView = findViewById<com.airbnb.lottie.LottieAnimationView>(R.id.ivProductIcon)
-        
+
         // Pausar la animación actual
         lottieView.pauseAnimation()
-        
+
         val lottieRes = when {
             productName.contains("Café", ignoreCase = true) -> R.raw.coffee
             productName.contains("Agua", ignoreCase = true) -> R.raw.water
             else -> R.raw.tea
         }
-        
+
         Log.d(TAG, "Cambiando animación Lottie a: $productName -> recurso: $lottieRes")
-        
+
         // Establecer la nueva animación
         lottieView.setAnimation(lottieRes)
         lottieView.cancelAnimation()
@@ -140,7 +140,6 @@ class OrderConfirmationActivity : AppCompatActivity() {
                 withContext(Dispatchers.Main) {
                     openSuccessScreen()
                 }
-
             } catch (e: Exception) {
                 Log.e(TAG, "=== ERROR EN PEDIDO === ${e.message}", e)
                 withContext(Dispatchers.Main) {
@@ -156,7 +155,7 @@ class OrderConfirmationActivity : AppCompatActivity() {
             putExtra(OrderSuccessActivity.EXTRA_PRODUCT_NAME, productName)
             addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
         }
-        
+
         // Aplicar transición de Material Design si es Android 5.0+
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
             val options = ActivityOptions.makeSceneTransitionAnimation(this)
@@ -180,7 +179,7 @@ class OrderConfirmationActivity : AppCompatActivity() {
             Log.d(TAG, "=== DESHABILITANDO FACE TRACKING ===")
             val faceTrackingDisabled = com.spatium.deamon.db.temi.core.TemiController.disableFaceTracking()
             Log.d(TAG, "Face tracking deshabilitado: $faceTrackingDisabled")
-            
+
             if (faceTrackingDisabled) {
                 Log.d(TAG, "✓ Face tracking desactivado correctamente")
             } else {

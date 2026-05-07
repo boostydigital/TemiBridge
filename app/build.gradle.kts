@@ -5,6 +5,7 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.serialization)
+    jacoco
 }
 
 // API key de Google TTS se inyecta vía propiedad de Gradle (definida en gradle.properties)
@@ -16,12 +17,14 @@ val googleTtsApiKey: String = (project.findProperty("GOOGLE_TTS_API_KEY") as? St
 val localProps = Properties()
 val localPropsFile = rootProject.file("local.properties")
 if (localPropsFile.exists()) {
-	localProps.load(localPropsFile.inputStream())
+    localProps.load(localPropsFile.inputStream())
 }
 val rawSupabaseUrl: String = localProps.getProperty("SUPABASE_URL", "").trim()
 val supabaseUrl: String = rawSupabaseUrl.substringBefore("#").trim()
 val rawSupabaseAnonKey: String = localProps.getProperty("SUPABASE_ANON_KEY", "").trim()
 val supabaseAnonKey: String = rawSupabaseAnonKey.substringBefore("#").trim()
+val rawTemiEdgeBaseUrl: String = localProps.getProperty("TEMI_EDGE_BASE_URL", "").trim()
+val temiEdgeBaseUrl: String = rawTemiEdgeBaseUrl.substringBefore("#").trim()
 val tourRecepcionId: String = localProps.getProperty("TOUR_RECEPCION_ID", "").trim()
 
 // Mover el directorio de build del mГіdulo fuera de OneDrive para evitar bloqueos en Windows
@@ -44,6 +47,7 @@ android {
         buildConfigField("String", "GOOGLE_TTS_API_KEY", "\"$googleTtsApiKey\"")
         buildConfigField("String", "SUPABASE_URL", "\"$supabaseUrl\"")
         buildConfigField("String", "SUPABASE_ANON_KEY", "\"$supabaseAnonKey\"")
+        buildConfigField("String", "TEMI_EDGE_BASE_URL", "\"$temiEdgeBaseUrl\"")
         buildConfigField("String", "TOUR_RECEPCION_ID", "\"$tourRecepcionId\"")
         // Feature flag para activar/desactivar el worker de Supabase en runtime
         buildConfigField("boolean", "ENABLE_SUPABASE_WORKER", "true")
@@ -54,12 +58,13 @@ android {
             isMinifyEnabled = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
-                "proguard-rules.pro"
+                "proguard-rules.pro",
             )
             buildConfigField("boolean", "USE_FAKE_ROBOT", "false")
         }
         debug {
             isMinifyEnabled = false
+            enableUnitTestCoverage = true
             buildConfigField("boolean", "USE_FAKE_ROBOT", "false")
         }
     }
@@ -76,6 +81,9 @@ android {
     lint {
         disable += "MissingClass"
         abortOnError = false
+    }
+    testOptions {
+        unitTests.isReturnDefaultValues = true
     }
 }
 
@@ -111,12 +119,43 @@ dependencies {
     implementation("io.github.jan-tennert.supabase:postgrest-kt")
     implementation("io.github.jan-tennert.supabase:realtime-kt")
     implementation("io.ktor:ktor-client-android:2.3.12")
-    
+
     // Lottie para animaciones
     implementation("com.airbnb.android:lottie:6.4.0")
 
     // Test dependencies
+    testImplementation("org.json:json:20231013") // real org.json — overrides Android stub so JSONObject works in JVM tests
     testImplementation("junit:junit:4.13.2")
+    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.8.1")
+    testImplementation("org.mockito.kotlin:mockito-kotlin:5.3.1")
     androidTestImplementation("androidx.test.ext:junit:1.2.1")
     androidTestImplementation("androidx.test.espresso:espresso-core:3.6.1")
+}
+
+tasks.register<JacocoReport>("jacocoTestReport") {
+    dependsOn("testDebugUnitTest")
+
+    reports {
+        xml.required = true
+        html.required = true
+    }
+
+    val excludes = listOf(
+        "**/R.class",
+        "**/R\$*.class",
+        "**/BuildConfig.*",
+        "**/Manifest*.*",
+        "**/*Test*.*",
+        "android/**/*.*",
+    )
+
+    classDirectories.setFrom(
+        fileTree("$buildDir/tmp/kotlin-classes/debug") { exclude(excludes) },
+    )
+    sourceDirectories.setFrom(files("src/main/java", "src/main/kotlin"))
+    executionData.setFrom(
+        fileTree(buildDir) {
+            include("outputs/unit_test_code_coverage/debugUnitTest/testDebugUnitTest.exec")
+        },
+    )
 }

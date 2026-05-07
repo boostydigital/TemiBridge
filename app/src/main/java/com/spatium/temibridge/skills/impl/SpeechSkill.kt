@@ -17,12 +17,13 @@ import kotlinx.coroutines.withContext
  * Ejemplo uso via SkillManager:
  *   SkillManager.execute(context, "speech", mapOf("text" to "Bienvenido al evento"))
  */
-class SpeechSkill : BaseTemiSkill(
-    skillId = "speech",
-    skillName = "Speech",
-    description = "Síntesis de voz usando TTS nativo del robot Temi",
-    category = SkillCategory.SPEECH
-) {
+class SpeechSkill :
+    BaseTemiSkill(
+        skillId = "speech",
+        skillName = "Speech",
+        description = "Síntesis de voz usando TTS nativo del robot Temi",
+        category = SkillCategory.SPEECH,
+    ) {
 
     override suspend fun executeSkill(context: Context, params: Map<String, Any>): SkillResult {
         val text = params["text"] as? String

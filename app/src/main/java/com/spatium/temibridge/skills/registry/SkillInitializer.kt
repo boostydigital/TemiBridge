@@ -4,15 +4,15 @@ import android.util.Log
 import com.spatium.deamon.db.temi.skills.base.SkillCategory
 import com.spatium.deamon.db.temi.skills.impl.EscortSkill
 import com.spatium.deamon.db.temi.skills.impl.HeadTiltSkill
-import com.spatium.deamon.db.temi.skills.impl.NavigationSkill
+import com.spatium.deamon.db.temi.skills.impl.HtmlToNativeSkill
 import com.spatium.deamon.db.temi.skills.impl.NativeTtsSkill
+import com.spatium.deamon.db.temi.skills.impl.NavigationSkill
 import com.spatium.deamon.db.temi.skills.impl.OrderSkill
 import com.spatium.deamon.db.temi.skills.impl.SequenceSkill
 import com.spatium.deamon.db.temi.skills.impl.SpeechSkill
 import com.spatium.deamon.db.temi.skills.impl.TourSkill
 import com.spatium.deamon.db.temi.skills.impl.VolumeSkill
 import com.spatium.deamon.db.temi.skills.impl.WebViewSkill
-import com.spatium.deamon.db.temi.skills.impl.HtmlToNativeSkill
 import com.spatium.deamon.db.temi.skills.impl.WelcomeWorkflowSkill
 
 /**
@@ -45,7 +45,7 @@ object SkillInitializer {
             OrderSkill(),
             EscortSkill(),
             WelcomeWorkflowSkill(),
-            HtmlToNativeSkill()
+            HtmlToNativeSkill(),
         )
     }
 
@@ -61,11 +61,11 @@ object SkillInitializer {
                     ParameterSpec("place", ParameterType.STRING, true, "Nombre del waypoint destino"),
                     ParameterSpec("returnTo", ParameterType.STRING, false, "Waypoint de retorno tras llegar"),
                     ParameterSpec("returnDelayMs", ParameterType.NUMBER, false, "Milisegundos antes de regresar", 10_000),
-                    ParameterSpec("onArrival", ParameterType.MAP, false, "Callback al llegar")
+                    ParameterSpec("onArrival", ParameterType.MAP, false, "Callback al llegar"),
                 ),
                 timeoutMillis = 60_000L,
-                retryable = false
-            )
+                retryable = false,
+            ),
         )
 
         // Speech
@@ -76,11 +76,11 @@ object SkillInitializer {
                 description = "Síntesis de voz usando TTS nativo del robot Temi",
                 category = SkillCategory.SPEECH,
                 parameters = listOf(
-                    ParameterSpec("text", ParameterType.STRING, true, "Texto a sintetizar")
+                    ParameterSpec("text", ParameterType.STRING, true, "Texto a sintetizar"),
                 ),
                 timeoutMillis = 30_000L,
-                retryable = true
-            )
+                retryable = true,
+            ),
         )
 
         // Native TTS
@@ -94,11 +94,11 @@ object SkillInitializer {
                     ParameterSpec("text", ParameterType.STRING, true, "Texto a sintetizar"),
                     ParameterSpec("language", ParameterType.STRING, false, "Código de idioma (ej: es, en, fr)"),
                     ParameterSpec("speed", ParameterType.NUMBER, false, "Velocidad de habla (0.5-2.0)", 1.0f),
-                    ParameterSpec("pitch", ParameterType.NUMBER, false, "Tono de voz (0.5-2.0)", 1.0f)
+                    ParameterSpec("pitch", ParameterType.NUMBER, false, "Tono de voz (0.5-2.0)", 1.0f),
                 ),
                 timeoutMillis = 30_000L,
-                retryable = true
-            )
+                retryable = true,
+            ),
         )
 
         // Sequence
@@ -113,12 +113,12 @@ object SkillInitializer {
                     ParameterSpec("sequenceName", ParameterType.STRING, false, "Nombre de la secuencia"),
                     ParameterSpec("withPlayer", ParameterType.BOOLEAN, false, "Mostrar reproductor", true),
                     ParameterSpec("repeat", ParameterType.NUMBER, false, "Número de repeticiones", 1),
-                    ParameterSpec("startFromStep", ParameterType.NUMBER, false, "Paso inicial", 1)
+                    ParameterSpec("startFromStep", ParameterType.NUMBER, false, "Paso inicial", 1),
                 ),
                 requiredPermissions = listOf("com.robotemi.sdk.permission.SEQUENCE"),
                 timeoutMillis = 30_000L,
-                retryable = false
-            )
+                retryable = false,
+            ),
         )
 
         // Tour
@@ -130,11 +130,11 @@ object SkillInitializer {
                 category = SkillCategory.TOUR,
                 parameters = listOf(
                     ParameterSpec("tourId", ParameterType.STRING, false, "ID del tour"),
-                    ParameterSpec("tourName", ParameterType.STRING, false, "Nombre del tour")
+                    ParameterSpec("tourName", ParameterType.STRING, false, "Nombre del tour"),
                 ),
                 timeoutMillis = 30_000L,
-                retryable = false
-            )
+                retryable = false,
+            ),
         )
 
         // Head Tilt
@@ -145,11 +145,11 @@ object SkillInitializer {
                 description = "Controla el ángulo de inclinación de la cabeza del robot",
                 category = SkillCategory.SYSTEM,
                 parameters = listOf(
-                    ParameterSpec("angle", ParameterType.NUMBER, true, "Ángulo en grados (-25 a 55)")
+                    ParameterSpec("angle", ParameterType.NUMBER, true, "Ángulo en grados (-25 a 55)"),
                 ),
                 timeoutMillis = 5_000L,
-                retryable = false
-            )
+                retryable = false,
+            ),
         )
 
         // Volume
@@ -160,11 +160,11 @@ object SkillInitializer {
                 description = "Controla el nivel de volumen del robot Temi (0-10)",
                 category = SkillCategory.SYSTEM,
                 parameters = listOf(
-                    ParameterSpec("level", ParameterType.NUMBER, true, "Nivel de volumen (0-10)")
+                    ParameterSpec("level", ParameterType.NUMBER, true, "Nivel de volumen (0-10)"),
                 ),
                 timeoutMillis = 5_000L,
-                retryable = false
-            )
+                retryable = false,
+            ),
         )
 
         // WebView
@@ -175,11 +175,11 @@ object SkillInitializer {
                 description = "Muestra contenido web en pantalla completa",
                 category = SkillCategory.INTERACTION,
                 parameters = listOf(
-                    ParameterSpec("url", ParameterType.STRING, true, "URL a mostrar (http/https)")
+                    ParameterSpec("url", ParameterType.STRING, true, "URL a mostrar (http/https)"),
                 ),
                 timeoutMillis = 10_000L,
-                retryable = true
-            )
+                retryable = true,
+            ),
         )
 
         // Order
@@ -191,11 +191,11 @@ object SkillInitializer {
                 category = SkillCategory.INTERACTION,
                 parameters = listOf(
                     ParameterSpec("place", ParameterType.STRING, false, "Ubicación del pedido", ""),
-                    ParameterSpec("comidaUrl", ParameterType.STRING, false, "URL de imagen del menú")
+                    ParameterSpec("comidaUrl", ParameterType.STRING, false, "URL de imagen del menú"),
                 ),
                 timeoutMillis = 10_000L,
-                retryable = true
-            )
+                retryable = true,
+            ),
         )
 
         // Escort
@@ -211,11 +211,11 @@ object SkillInitializer {
                     ParameterSpec("arrivalGreeting", ParameterType.STRING, false, "Mensaje al llegar"),
                     ParameterSpec("waitTimeMs", ParameterType.NUMBER, false, "Espera en destino (ms)", 10_000),
                     ParameterSpec("returnTo", ParameterType.STRING, false, "Waypoint de retorno"),
-                    ParameterSpec("greetingDelayMs", ParameterType.NUMBER, false, "Delay antes de navegar (ms)", 3_000)
+                    ParameterSpec("greetingDelayMs", ParameterType.NUMBER, false, "Delay antes de navegar (ms)", 3_000),
                 ),
                 timeoutMillis = 120_000L,
-                retryable = false
-            )
+                retryable = false,
+            ),
         )
 
         // Welcome Workflow
@@ -230,11 +230,11 @@ object SkillInitializer {
                     ParameterSpec("place", ParameterType.STRING, false, "Waypoint destino"),
                     ParameterSpec("infoUrl", ParameterType.STRING, false, "URL a mostrar tras el saludo"),
                     ParameterSpec("infoDelayMs", ParameterType.NUMBER, false, "Delay antes de abrir URL (ms)", 5_000),
-                    ParameterSpec("navDelayMs", ParameterType.NUMBER, false, "Delay antes de navegar (ms)", 3_000)
+                    ParameterSpec("navDelayMs", ParameterType.NUMBER, false, "Delay antes de navegar (ms)", 3_000),
                 ),
                 timeoutMillis = 120_000L,
-                retryable = false
-            )
+                retryable = false,
+            ),
         )
     }
 }

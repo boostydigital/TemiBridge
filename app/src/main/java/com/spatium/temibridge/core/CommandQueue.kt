@@ -22,19 +22,19 @@ object CommandQueue {
     private const val TAG = "CommandQueue"
 
     // Delays configurables entre tipos de comando (en ms)
-    private const val DELAY_OPEN_APP = 1500L       // 1.5 segundos para que la app se abra
-    private const val DELAY_AFTER_SAY = 3000L      // 3 segundos después de hablar
-    private const val DELAY_AFTER_WEB = 2000L      // 2 segundos después de abrir web
+    private const val DELAY_OPEN_APP = 1500L // 1.5 segundos para que la app se abra
+    private const val DELAY_AFTER_SAY = 3000L // 3 segundos después de hablar
+    private const val DELAY_AFTER_WEB = 2000L // 2 segundos después de abrir web
     private const val DELAY_AFTER_SEQUENCE = 8000L // 8 segundos después de secuencia (para que cargue)
-    private const val DELAY_DEFAULT = 1500L        // 1.5 segundos por defecto
-    private const val WEB_RETRY_DELAY = 500L       // 500ms entre reintentos de web
-    private const val WEB_MAX_RETRIES = 3          // Máximo 3 reintentos para abrir web
-    private const val MAX_WAIT_SECONDS = 120L      // Máximo 2 minutos de espera total
+    private const val DELAY_DEFAULT = 1500L // 1.5 segundos por defecto
+    private const val WEB_RETRY_DELAY = 500L // 500ms entre reintentos de web
+    private const val WEB_MAX_RETRIES = 3 // Máximo 3 reintentos para abrir web
+    private const val MAX_WAIT_SECONDS = 120L // Máximo 2 minutos de espera total
 
     private val handler = Handler(Looper.getMainLooper())
     private val commandQueue = ConcurrentLinkedQueue<Command>()
     private val isProcessing = AtomicBoolean(false)
-    
+
     // Latch para sincronización - permite que el caller espere a que termine todo el pedido
     @Volatile
     private var completionLatch: CountDownLatch? = null
@@ -53,14 +53,14 @@ object CommandQueue {
      * Si no, ejecuta automáticamente todos los campos que tengan datos (say, comida, secuencia).
      * IMPORTANTE: Si orden_action contiene "comida" pero el campo comida está vacío,
      * se abre MainActivity de forma forzosa.
-     * 
+     *
      * @return true si todos los comandos se ejecutaron, false si hubo timeout
      */
     fun enqueuePedidoAndWait(context: Context, pedido: RobotPedido): Boolean {
         val hasSay = !pedido.say.isNullOrBlank()
         val hasComida = !pedido.comida.isNullOrBlank()
         val hasSecuencia = !pedido.secuencia.isNullOrBlank()
-        
+
         // Verificar si orden_action incluye "comida" (para forzar apertura de app si comida está vacío)
         val ordenActionIncludesComida = pedido.ordenAction?.lowercase()?.contains("comida") == true
 
@@ -70,7 +70,7 @@ object CommandQueue {
 
         // Contar cuántos comandos vamos a encolar (incluyendo OpenApp)
         var commandCount = 1 // OpenApp siempre se ejecuta primero
-        
+
         // SIEMPRE abrir la app primero
         Log.d(TAG, "Paso 0: Abriendo app Temi Deamon DB primero")
         enqueue(Command.OpenApp(context.applicationContext))
@@ -115,7 +115,7 @@ object CommandQueue {
 
         // Iniciar procesamiento si no está activo
         processNext()
-        
+
         // Esperar a que terminen todos los comandos (máximo MAX_WAIT_SECONDS)
         return try {
             val completed = latch.await(MAX_WAIT_SECONDS, TimeUnit.SECONDS)
@@ -132,7 +132,7 @@ object CommandQueue {
             false
         }
     }
-    
+
     /**
      * Versión legacy que no espera (para compatibilidad)
      */
@@ -140,7 +140,7 @@ object CommandQueue {
         val hasSay = !pedido.say.isNullOrBlank()
         val hasComida = !pedido.comida.isNullOrBlank()
         val hasSecuencia = !pedido.secuencia.isNullOrBlank()
-        
+
         val ordenActionIncludesComida = pedido.ordenAction?.lowercase()?.contains("comida") == true
         val steps = parseStepsWithData(pedido.ordenAction, hasSay, hasComida, hasSecuencia, ordenActionIncludesComida)
         Log.d(TAG, "[Legacy] Encolando pedido id=${pedido.id} con steps=$steps")
@@ -217,33 +217,31 @@ object CommandQueue {
     /**
      * Ejecuta un comando y retorna el delay recomendado después de su ejecución.
      */
-    private fun executeCommand(command: Command): Long {
-        return when (command) {
-            is Command.OpenApp -> {
-                Log.d(TAG, "Ejecutando OPEN_APP: Abriendo MainActivity")
-                launchMainActivity(command.context)
-                DELAY_OPEN_APP
-            }
-            
-            is Command.Say -> {
-                Log.d(TAG, "Ejecutando SAY: ${command.text}")
-                TemiController.speak(command.text)
-                // Estimar duración del speech: ~100ms por carácter + base
-                val estimatedDuration = (command.text.length * 80L) + 1000L
-                maxOf(DELAY_AFTER_SAY, estimatedDuration)
-            }
+    private fun executeCommand(command: Command): Long = when (command) {
+        is Command.OpenApp -> {
+            Log.d(TAG, "Ejecutando OPEN_APP: Abriendo MainActivity")
+            launchMainActivity(command.context)
+            DELAY_OPEN_APP
+        }
 
-            is Command.Web -> {
-                Log.d(TAG, "Ejecutando WEB: ${command.url}, place=${command.place}")
-                executeWebWithRetry(command.context, command.url, 0, command.place)
-                DELAY_AFTER_WEB
-            }
+        is Command.Say -> {
+            Log.d(TAG, "Ejecutando SAY: ${command.text}")
+            TemiController.speak(command.text)
+            // Estimar duración del speech: ~100ms por carácter + base
+            val estimatedDuration = (command.text.length * 80L) + 1000L
+            maxOf(DELAY_AFTER_SAY, estimatedDuration)
+        }
 
-            is Command.Sequence -> {
-                Log.d(TAG, "Ejecutando SEQUENCE: ${command.sequenceId}")
-                executeSequence(command.sequenceId)
-                DELAY_AFTER_SEQUENCE
-            }
+        is Command.Web -> {
+            Log.d(TAG, "Ejecutando WEB: ${command.url}, place=${command.place}")
+            executeWebWithRetry(command.context, command.url, 0, command.place)
+            DELAY_AFTER_WEB
+        }
+
+        is Command.Sequence -> {
+            Log.d(TAG, "Ejecutando SEQUENCE: ${command.sequenceId}")
+            executeSequence(command.sequenceId)
+            DELAY_AFTER_SEQUENCE
         }
     }
 
@@ -274,12 +272,11 @@ object CommandQueue {
                     Intent.FLAG_ACTIVITY_NEW_TASK or
                         Intent.FLAG_ACTIVITY_CLEAR_TOP or
                         Intent.FLAG_ACTIVITY_SINGLE_TOP or
-                        Intent.FLAG_ACTIVITY_REORDER_TO_FRONT
+                        Intent.FLAG_ACTIVITY_REORDER_TO_FRONT,
                 )
             }
             context.startActivity(intent)
             Log.d(TAG, "Intent de KioskWebActivity enviado exitosamente")
-
         } catch (t: Throwable) {
             Log.e(TAG, "Error abriendo web (intento ${attempt + 1}): ${t.message}", t)
 
@@ -293,7 +290,7 @@ object CommandQueue {
             }
         }
     }
-    
+
     private fun launchMenuActivity(context: Context, place: String?) {
         try {
             val intent = Intent(context, MenuActivity::class.java).apply {
@@ -301,7 +298,7 @@ object CommandQueue {
                 addFlags(
                     Intent.FLAG_ACTIVITY_NEW_TASK or
                         Intent.FLAG_ACTIVITY_CLEAR_TOP or
-                        Intent.FLAG_ACTIVITY_SINGLE_TOP
+                        Intent.FLAG_ACTIVITY_SINGLE_TOP,
                 )
             }
             context.startActivity(intent)
@@ -318,7 +315,7 @@ object CommandQueue {
                 addFlags(
                     Intent.FLAG_ACTIVITY_NEW_TASK or
                         Intent.FLAG_ACTIVITY_CLEAR_TOP or
-                        Intent.FLAG_ACTIVITY_SINGLE_TOP
+                        Intent.FLAG_ACTIVITY_SINGLE_TOP,
                 )
             }
             context.startActivity(intent)
@@ -350,12 +347,12 @@ object CommandQueue {
      */
     private fun scheduleNext(delayMs: Long) {
         Log.d(TAG, "Esperando ${delayMs}ms antes del siguiente comando...")
-        
+
         // Notificar que un comando terminó
         completionLatch?.countDown()
         val remaining = completionLatch?.count ?: 0
         Log.d(TAG, "Comando completado. Comandos restantes en latch: $remaining")
-        
+
         handler.postDelayed({
             isProcessing.set(false)
             processNext()
@@ -374,7 +371,7 @@ object CommandQueue {
         hasSay: Boolean,
         hasComida: Boolean,
         hasSecuencia: Boolean,
-        forceComidaStep: Boolean = false
+        forceComidaStep: Boolean = false,
     ): List<String> {
         val raw = ordenAction?.trim().orEmpty()
 

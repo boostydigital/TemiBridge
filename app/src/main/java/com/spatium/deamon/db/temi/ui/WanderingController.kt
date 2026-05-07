@@ -15,7 +15,7 @@ class WanderingController(
     private val personDetectedCallback: () -> Unit,
     private val onNavigationStart: (location: String) -> Unit,
     private val onNavigationComplete: () -> Unit,
-    private val onTtsCompleted: () -> Unit
+    private val onTtsCompleted: () -> Unit,
 ) {
     companion object {
         private const val TAG = "WanderingController"
@@ -44,7 +44,7 @@ class WanderingController(
         "Tengo el honor de ofrecerle una fotografía de este instante.",
         "¿Estaría interesado en una captura de este momento?",
         "Permítame documentar este encuentro profesionalmente.",
-        "¿Nos uniríamos para una fotografía memorable?"
+        "¿Nos uniríamos para una fotografía memorable?",
     )
 
     private val byePhrases = listOf(
@@ -57,7 +57,7 @@ class WanderingController(
         "Sin preocupación. Seguiré adelante.",
         "Entendido. Continuaré con mi misión.",
         "Perfecto. Buscaré otros interesados.",
-        "No importa. Seguiré en mi camino."
+        "No importa. Seguiré en mi camino.",
     )
 
     /**
@@ -67,36 +67,34 @@ class WanderingController(
         registerTtsListener()
         testTtsSystem()
     }
-    
+
     /**
      * Crea un TtsRequest usando reflexión (como TemiController)
      */
-    private fun createTtsRequest(text: String): Any? {
-        return try {
-            val cls = Class.forName("com.robotemi.sdk.TtsRequest")
-            val create = cls.getMethod("create", String::class.java, Boolean::class.javaPrimitiveType)
-            create.invoke(null, text, false)  // Usar false como TemiController
-        } catch (t: Throwable) {
-            Log.w(TAG, "[TTS] TtsRequest no disponible: ${t.message}")
-            null
-        }
+    private fun createTtsRequest(text: String): Any? = try {
+        val cls = Class.forName("com.robotemi.sdk.TtsRequest")
+        val create = cls.getMethod("create", String::class.java, Boolean::class.javaPrimitiveType)
+        create.invoke(null, text, false) // Usar false como TemiController
+    } catch (t: Throwable) {
+        Log.w(TAG, "[TTS] TtsRequest no disponible: ${t.message}")
+        null
     }
-    
+
     /**
      * Prueba el sistema TTS para verificar si funciona
      */
     private fun testTtsSystem() {
         try {
             Log.d(TAG, "[TTS_TEST] Iniciando prueba del sistema TTS")
-            
+
             if (robot == null) {
                 Log.e(TAG, "[TTS_TEST] Robot es null - no se puede probar TTS")
                 return
             }
-            
+
             val testPhrase = "Sistema TTS activado"
             val ttsRequest = createTtsRequest(testPhrase)
-            
+
             if (ttsRequest != null && robot != null) {
                 Log.d(TAG, "[TTS_TEST] Enviando prueba: $testPhrase")
                 val speak = robot.javaClass.getMethod("speak", ttsRequest.javaClass)
@@ -105,7 +103,6 @@ class WanderingController(
             } else {
                 Log.e(TAG, "[TTS_TEST] No se pudo crear TtsRequest o robot es null")
             }
-            
         } catch (e: Exception) {
             Log.e(TAG, "[TTS_TEST] Error en prueba TTS: ${e.message}")
             e.printStackTrace()
@@ -117,7 +114,7 @@ class WanderingController(
      */
     fun startWandering(locations: List<String>) {
         Log.d(TAG, "[WANDER] Iniciando deambulación con ${locations.size} ubicaciones")
-        
+
         if (locations.isEmpty()) {
             Log.w(TAG, "[WANDER] No hay ubicaciones para deambular")
             return
@@ -127,7 +124,7 @@ class WanderingController(
         currentLocationIndex = 0
         isWandering = true
         isDetectionProcessing = false
-        
+
         enableDetection()
         navigateToNextLocation()
     }
@@ -143,12 +140,12 @@ class WanderingController(
 
         val nextLocation = selectedLocations[currentLocationIndex]
         Log.d(TAG, "[GOTO] Navegando a: $nextLocation (velocidad lenta)")
-        
+
         onNavigationStart(nextLocation)
-        
+
         try {
             goToSlow(nextLocation)
-            
+
             // Configurar timeout para navegación (60 segundos)
             navigationTimer?.removeCallbacksAndMessages(null)
             navigationTimer = Handler(Looper.getMainLooper()).apply {
@@ -173,13 +170,14 @@ class WanderingController(
             val speedLevelCls = Class.forName("com.robotemi.sdk.navigation.model.SpeedLevel")
             val speedValues = speedLevelCls.enumConstants as? Array<*>
             val slowSpeed = speedValues?.getOrNull(SPEED_LEVEL_SLOW) // SLOW = ordinal 1
-            
+
             if (slowSpeed != null) {
                 val goToMethod = r.javaClass.getMethod(
-                    "goTo", String::class.java,
+                    "goTo",
+                    String::class.java,
                     Boolean::class.javaPrimitiveType,
                     Boolean::class.javaPrimitiveType,
-                    speedLevelCls
+                    speedLevelCls,
                 )
                 goToMethod.invoke(r, location, false, false, slowSpeed)
                 Log.d(TAG, "[GOTO] goTo con SpeedLevel.SLOW exitoso")
@@ -199,8 +197,11 @@ class WanderingController(
     fun enableDetection() {
         val r = robot ?: return
         try {
-            r.javaClass.getMethod("setDetectionModeOn",
-                Boolean::class.javaPrimitiveType, Float::class.javaPrimitiveType)
+            r.javaClass.getMethod(
+                "setDetectionModeOn",
+                Boolean::class.javaPrimitiveType,
+                Float::class.javaPrimitiveType,
+            )
                 .invoke(r, true, DETECTION_DISTANCE)
             Log.d(TAG, "[DETECTION] Modo detección ACTIVADO (distancia=$DETECTION_DISTANCE)")
         } catch (t: Throwable) {
@@ -244,13 +245,13 @@ class WanderingController(
             Log.d(TAG, "[DETECTION] Ignorando detección (processing=$isDetectionProcessing)")
             return
         }
-        
+
         // La detección siempre debe procesarse para mostrar el botón selfie
         // independientemente de si la deambulación está activa
-        
+
         isDetectionProcessing = true
         Log.d(TAG, "[DETECTION] Persona detectada - iniciando procesamiento")
-        
+
         // Detener movimiento
         try {
             robot?.stopMovement()
@@ -261,7 +262,7 @@ class WanderingController(
         // Hablar frase aleatoria
         val randomPhrase = phrases.random()
         Log.d(TAG, "[TTS] Hablando: $randomPhrase")
-        
+
         try {
             // Verificar que el robot esté disponible
             if (robot == null) {
@@ -270,9 +271,9 @@ class WanderingController(
                 onTtsCompleted()
                 return
             }
-            
+
             Log.d(TAG, "[TTS] Robot disponible: ${robot?.javaClass?.simpleName}")
-            
+
             // Crear TtsRequest usando reflexión (como TemiController)
             val ttsRequest = createTtsRequest(randomPhrase)
             if (ttsRequest == null) {
@@ -281,14 +282,14 @@ class WanderingController(
                 onTtsCompleted()
                 return
             }
-            
+
             Log.d(TAG, "[TTS] TtsRequest creado con reflexión: $ttsRequest")
             Log.d(TAG, "[TTS] Llamando a robot.speak() con reflexión")
-            
+
             val speak = robot!!.javaClass.getMethod("speak", ttsRequest.javaClass)
             speak.invoke(robot, ttsRequest)
             Log.d(TAG, "[TTS] robot.speak() ejecutado con reflexión")
-            
+
             // Fallback: si TTS falla, resetear después de 3 segundos
             Handler(Looper.getMainLooper()).postDelayed({
                 if (isDetectionProcessing) {
@@ -322,15 +323,15 @@ class WanderingController(
      */
     fun resumeWandering() {
         Log.d(TAG, "[WANDER] Reanudando deambulación")
-        
+
         cancelPhotoTimer()
         isDetectionProcessing = false
-        
+
         if (selectedLocations.isEmpty()) {
             Log.w(TAG, "[WANDER] No hay ubicaciones para reanudar")
             return
         }
-        
+
         isWandering = true
         enableDetection()
         Log.d(TAG, "[WANDER] Deambulación reactivada - continuando a siguiente ubicación")
@@ -344,7 +345,7 @@ class WanderingController(
         Log.d(TAG, "[GOTO] Navegación completada")
         navigationTimer?.removeCallbacksAndMessages(null)
         onNavigationComplete()
-        
+
         // Esperar un poco antes de continuar a la siguiente ubicación
         Handler(Looper.getMainLooper()).postDelayed({
             if (isWandering) {
@@ -385,12 +386,10 @@ class WanderingController(
     /**
      * Retorna la ubicación actual
      */
-    fun getCurrentLocation(): String {
-        return if (selectedLocations.isNotEmpty() && currentLocationIndex < selectedLocations.size) {
-            selectedLocations[currentLocationIndex]
-        } else {
-            ""
-        }
+    fun getCurrentLocation(): String = if (selectedLocations.isNotEmpty() && currentLocationIndex < selectedLocations.size) {
+        selectedLocations[currentLocationIndex]
+    } else {
+        ""
     }
 
     /**
@@ -407,34 +406,37 @@ class WanderingController(
             } catch (t: Throwable) {
                 Log.d(TAG, "[LISTENERS] No había TTS listener previo que remover")
             }
-            
+
             // Registrar nuevo listener
             val listenerCls = Class.forName("com.robotemi.sdk.Robot\$TtsListener")
             ttsListenerProxy = java.lang.reflect.Proxy.newProxyInstance(
-                listenerCls.classLoader, arrayOf(listenerCls),
+                listenerCls.classLoader,
+                arrayOf(listenerCls),
                 java.lang.reflect.InvocationHandler { _, method, args ->
                     if (method.name == "onTtsStatusChanged" && args != null && args.isNotEmpty()) {
                         val ttsReq = args[0] ?: return@InvocationHandler null
                         val statusObj = try {
                             ttsReq.javaClass.getMethod("getStatus").invoke(ttsReq)
-                        } catch (t: Throwable) { null }
+                        } catch (t: Throwable) {
+                            null
+                        }
                         val statusStr = statusObj?.toString() ?: "UNKNOWN"
                         Log.d(TAG, "[TTS] status=$statusStr")
-                        
+
                         // Detectar diferentes estados de completion
-                        val isCompleted = statusStr.uppercase().contains("COMPLET") 
+                        val isCompleted = statusStr.uppercase().contains("COMPLET")
                         val isError = statusStr.uppercase().contains("ERROR")
                         val isCanceled = statusStr.uppercase().contains("CANCEL")
-                        
+
                         Log.d(TAG, "[TTS] Estados - Completed: $isCompleted, Error: $isError, Canceled: $isCanceled")
-                        
+
                         if (isCompleted || isError || isCanceled) {
                             Log.d(TAG, "[TTS] TTS finalizado (status: $statusStr) - notificando a SelfieHunterActivity")
                             onTtsCompleted()
                         }
                     }
                     null
-                }
+                },
             )
             r.javaClass.getMethod("addTtsListener", listenerCls).invoke(r, ttsListenerProxy)
             Log.d(TAG, "[LISTENERS] ✓ TTS listener registrado en WanderingController")
@@ -451,23 +453,26 @@ class WanderingController(
         isWandering = false
         isDetectionProcessing = false
         cancelAllTimers()
-        
+
         try {
             robot?.stopMovement()
             Log.d(TAG, "[CLEANUP] ✓ stopMovement ejecutado")
         } catch (e: Exception) {
             Log.w(TAG, "[CLEANUP] Error en stopMovement: ${e.message}")
         }
-        
+
         try {
-            robot?.javaClass?.getMethod("setDetectionModeOn",
-                Boolean::class.javaPrimitiveType, Float::class.javaPrimitiveType)
+            robot?.javaClass?.getMethod(
+                "setDetectionModeOn",
+                Boolean::class.javaPrimitiveType,
+                Float::class.javaPrimitiveType,
+            )
                 ?.invoke(robot, false, DETECTION_DISTANCE)
             Log.d(TAG, "[CLEANUP] ✓ Detección DESACTIVADA")
         } catch (t: Throwable) {
             Log.w(TAG, "[CLEANUP] Error desactivando detección: ${t.message}")
         }
-        
+
         try {
             ttsListenerProxy?.let {
                 val cls = Class.forName("com.robotemi.sdk.Robot\$TtsListener")
@@ -476,7 +481,7 @@ class WanderingController(
         } catch (t: Throwable) {
             Log.w(TAG, "[CLEANUP] Error removiendo TTS listener: ${t.message}")
         }
-        
+
         ttsListenerProxy = null
         Log.d(TAG, "[CLEANUP] ✓ WanderingController limpiado completamente")
     }

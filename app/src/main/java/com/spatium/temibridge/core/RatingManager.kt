@@ -6,46 +6,73 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.os.Build
 import android.util.Log
-import kotlinx.coroutines.*
+import com.spatium.deamon.db.temi.BuildConfig
+import com.spatium.deamon.db.temi.core.ExclusiveModeArbiter
+import com.spatium.deamon.db.temi.core.TemiController
+import com.spatium.deamon.db.temi.net.OkHttpSupabaseGateway
+import com.spatium.deamon.db.temi.net.SupabaseGateway
+import com.spatium.deamon.db.temi.ui.RatingActivity
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withContext
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.boolean
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
+import kotlinx.serialization.json.put
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONObject
-import com.spatium.deamon.db.temi.ui.RatingActivity
-import com.spatium.deamon.db.temi.core.TemiController
 import java.util.concurrent.TimeUnit
 
 /**
  * Gestiona el modo rating/evaluación para reuniones en salones.
  * Hace polling para detectar evaluaciones pendientes y controla el flujo.
  */
-class RatingManager(private val context: Context) {
+class RatingManager(
+    private val context: Context?,
+    private val gateway: SupabaseGateway = OkHttpSupabaseGateway(
+        BuildConfig.TEMI_EDGE_BASE_URL,
+        BuildConfig.SUPABASE_ANON_KEY,
+    ),
+) {
 
     companion object {
         private const val TAG = "RatingManager"
-        
-        // Supabase Temi
-        private const val SUPABASE_URL = "https://mkakxmjkwcymwosfrwkl.supabase.co"
-        private const val SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1rYWt4bWprd2N5bXdvc2Zyd2tsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzY5NjcyMDAsImV4cCI6MjA1MjU0MzIwMH0.CYQD8WoIZy_o9MqJFfKHsxXRlPLQoKLwwPbZOYjbuMY"
-        
-        // API externa para enviar evaluaciones
+
+        // API externa para enviar evaluaciones (proyecto Supabase distinto — no usar gateway)
         private const val CREATE_EVALUATION_URL = "https://fojrqrkbzsgcefsnwldk.supabase.co/functions/v1/create-evaluation"
-        
+
         private const val POLLING_INTERVAL_MS = 30_000L // 30 segundos
-        private const val RATING_TIMEOUT_MS = 15 * 60 * 1000L // 15 minutos
-        private const val TTS_INTERVAL_MS = 60_000L // 60 segundos
+        private const val CONSTRAINT_TIMEOUT_MS = 10 * 60 * 1000L // 10 minutos
     }
 
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
     private var pollingJob: Job? = null
     private var ratingTimeoutJob: Job? = null
     private var ttsLoopJob: Job? = null
-    
+
     private var isRatingActive = false
-    private var currentEvaluacion: JSONObject? = null
-    
-    private val httpClient = OkHttpClient.Builder()
+    internal var currentEvaluacion: JSONObject? = null
+
+    /** Injection point for tests — replaces TemiController navigation side effects. */
+    internal var navigationDispatch: ((JSONObject) -> Unit) = ::startRatingMode
+
+    @Volatile private var ratingSubmitted = false
+    private var constraintTimeoutJob: Job? = null
+
+    // OkHttp usado exclusivamente para la API externa (fojrqrkbzsgcefsnwldk.supabase.co)
+    private val externalHttpClient = OkHttpClient.Builder()
         .connectTimeout(15, TimeUnit.SECONDS)
         .readTimeout(15, TimeUnit.SECONDS)
         .build()
@@ -56,7 +83,7 @@ class RatingManager(private val context: Context) {
             val rating = intent?.getIntExtra("rating", 0) ?: 0
             val customer = intent?.getStringExtra("customer_name") ?: ""
             val salonName = intent?.getStringExtra("salon") ?: ""
-            
+
             if (rating > 0) {
                 Log.d(TAG, "Rating recibido via broadcast: $rating estrellas")
                 onRatingSubmitted(rating, customer, salonName)
@@ -70,7 +97,7 @@ class RatingManager(private val context: Context) {
         2 to "Regular",
         3 to "Bueno",
         4 to "Muy bueno",
-        5 to "Excelente servicio"
+        5 to "Excelente servicio",
     )
 
     /**
@@ -81,15 +108,15 @@ class RatingManager(private val context: Context) {
             Log.d(TAG, "Polling ya activo")
             return
         }
-        
+
         // Registrar receiver para escuchar ratings
         val filter = IntentFilter("com.spatium.deamon.db.temi.RATING_SUBMITTED")
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            context.registerReceiver(ratingReceiver, filter, Context.RECEIVER_NOT_EXPORTED)
+            context?.registerReceiver(ratingReceiver, filter, Context.RECEIVER_NOT_EXPORTED)
         } else {
-            context.registerReceiver(ratingReceiver, filter)
+            context?.registerReceiver(ratingReceiver, filter)
         }
-        
+
         Log.d(TAG, "Iniciando polling de evaluaciones...")
         pollingJob = scope.launch {
             while (isActive) {
@@ -113,28 +140,35 @@ class RatingManager(private val context: Context) {
     /**
      * Consulta si hay evaluaciones pendientes.
      */
-    private suspend fun checkForPendingEvaluation() {
-        val request = Request.Builder()
-            .url("$SUPABASE_URL/functions/v1/evaluacion-pendiente")
-            .addHeader("apikey", SUPABASE_ANON_KEY)
-            .addHeader("Authorization", "Bearer $SUPABASE_ANON_KEY")
-            .get()
-            .build()
-
+    internal suspend fun checkForPendingEvaluation() {
         try {
-            val response = httpClient.newCall(request).execute()
-            val body = response.body?.string() ?: return
-            
-            Log.d(TAG, "Respuesta evaluacion-pendiente: $body")
-            
-            val json = JSONObject(body)
-            val pendiente = json.optBoolean("pendiente", false)
-            
+            val response = gateway.get("evaluacion-pendiente")
+            val responseObj = response.jsonObject
+
+            Log.d(TAG, "Respuesta evaluacion-pendiente: $response")
+
+            val pendiente = responseObj["pendiente"]?.jsonPrimitive?.boolean == true
+
             if (pendiente) {
-                val evaluacion = json.optJSONObject("evaluacion")
-                if (evaluacion != null) {
-                    Log.d(TAG, "Evaluación pendiente detectada: ${evaluacion.optString("id")}")
-                    startRatingMode(evaluacion)
+                val evaluacionEl = responseObj["evaluacion"]
+                if (evaluacionEl != null && evaluacionEl is JsonObject) {
+                    val id = evaluacionEl["id"]?.jsonPrimitive?.content ?: ""
+                    val salon = evaluacionEl["salon"]?.jsonPrimitive?.content ?: ""
+                    val waypoint = evaluacionEl["waypoint"]?.jsonPrimitive?.content ?: ""
+                    val horaLlegada = evaluacionEl["hora_llegada"]?.jsonPrimitive?.content ?: ""
+                    val nombreReserva = evaluacionEl["nombre_reserva"]?.jsonPrimitive?.content ?: ""
+
+                    // Convertir a JSONObject para mantener compatibilidad con el resto del flujo
+                    val evaluacionJson = JSONObject().apply {
+                        put("id", id)
+                        put("salon", salon)
+                        put("waypoint", waypoint)
+                        put("hora_llegada", horaLlegada)
+                        put("nombre_reserva", nombreReserva)
+                    }
+
+                    Log.d(TAG, "Evaluación pendiente detectada: $id")
+                    navigationDispatch(evaluacionJson)
                 }
             }
         } catch (e: Exception) {
@@ -150,26 +184,43 @@ class RatingManager(private val context: Context) {
             Log.d(TAG, "Rating ya activo, ignorando")
             return
         }
-        
+
+        // Arbiter: garantiza exclusividad de modo antes de mutar cualquier estado
+        val acquired = runBlocking { ExclusiveModeArbiter.tryAcquire(ExclusiveModeArbiter.MODE_RATING) }
+        if (!acquired) {
+            Log.w(TAG, "Skipping rating activation — another mode is active: ${ExclusiveModeArbiter.currentMode()}")
+            return
+        }
+
         isRatingActive = true
         currentEvaluacion = evaluacion
-        
+
         val salon = evaluacion.optString("salon")
         val waypoint = evaluacion.optString("waypoint")
         val nombreReserva = evaluacion.optString("nombre_reserva")
-        
+
         Log.d(TAG, "Iniciando modo rating para: $salon (waypoint: $waypoint)")
-        
+
         // 1. Activar Kiosk Mode
         TemiController.setKioskModeOn(true)
         TemiController.toggleNavigationBillboard(true)
-        
+
         // 2. Configurar callback de llegada ANTES de navegar
         TemiController.setArrivalCallbackOnce {
-            Log.d(TAG, "Llegó a $waypoint, mostrando pantalla de rating")
+            Log.d(TAG, "Llegó a $waypoint, activando constraintBeWith y mostrando rating")
+            // Activar constraintBeWith para evitar retorno automático del OS
+            TemiController.enableFaceTracking()
+            // Timeout de 10 min para liberar constraintBeWith si nadie evalúa
+            startConstraintTimeout()
             showRatingScreen(salon, nombreReserva)
         }
-        
+
+        // Configurar callback de abort (OS interrumpió la navegación)
+        TemiController.setAbortCallback {
+            Log.d(TAG, "Navegación abortada por OS antes de llegar a $waypoint, limpiando modo rating")
+            emergencyCleanup()
+        }
+
         // 3. Navegar al waypoint
         Log.d(TAG, "Navegando a waypoint: $waypoint")
         TemiController.goTo(waypoint)
@@ -182,61 +233,43 @@ class RatingManager(private val context: Context) {
         // Abrir RatingActivity en el hilo principal
         android.os.Handler(android.os.Looper.getMainLooper()).post {
             Log.d(TAG, "Abriendo RatingActivity para: $salon")
-            
+
             // Guardar preferencias para RatingActivity
-            val prefs = context.getSharedPreferences(RatingActivity.PREFS_NAME, Context.MODE_PRIVATE)
-            prefs.edit()
-                .putString(RatingActivity.KEY_EVENT_NAME, salon)
-                .putString("customer_name", nombreReserva)
-                .putString("salon", salon)
-                .apply()
-            
-            val intent = Intent(context, RatingActivity::class.java).apply {
+            context?.getSharedPreferences(RatingActivity.PREFS_NAME, Context.MODE_PRIVATE)
+                ?.edit()
+                ?.putString(RatingActivity.KEY_EVENT_NAME, salon)
+                ?.putString("customer_name", nombreReserva)
+                ?.putString("salon", salon)
+                ?.apply()
+
+            val intent = Intent(context ?: return@post, RatingActivity::class.java).apply {
                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
                 putExtra("salon", salon)
                 putExtra("customer_name", nombreReserva)
                 putExtra("rating_manager_mode", true) // Indica que viene del RatingManager
             }
-            context.startActivity(intent)
+            context?.startActivity(intent)
         }
-        
-        // Iniciar TTS de invitación
-        startTTSLoop(salon)
-        
-        // Configurar timeout de 15 minutos
-        startRatingTimeout()
-    }
 
-    /**
-     * Loop de TTS que invita a evaluar cada 60 segundos.
-     */
-    private fun startTTSLoop(salon: String) {
-        ttsLoopJob?.cancel()
-        ttsLoopJob = scope.launch {
-            // TTS inicial
-            val ttsText = "Hola, espero que hayas disfrutado tu reunión en $salon. " +
-                "Por favor, evalúa nuestro servicio tocando las estrellas en mi pantalla."
-            TemiController.speak(ttsText)
-            
-            // Repetir cada 60 segundos
-            while (isActive && isRatingActive) {
-                delay(TTS_INTERVAL_MS)
-                if (isRatingActive) {
-                    TemiController.speak("Por favor, evalúa nuestro servicio tocando las estrellas.")
-                }
-            }
+        // TTS inicial de bienvenida
+        scope.launch {
+            TemiController.speak(
+                "Hola, espero que hayas disfrutado tu reunión en $salon. " +
+                    "Por favor, evalúa nuestro servicio tocando las estrellas en mi pantalla.",
+            )
         }
     }
 
     /**
-     * Configura el timeout de 15 minutos.
+     * Timeout de 10 minutos para liberar constraintBeWith si nadie evalúa.
      */
-    private fun startRatingTimeout() {
-        ratingTimeoutJob?.cancel()
-        ratingTimeoutJob = scope.launch {
-            delay(RATING_TIMEOUT_MS)
-            if (isRatingActive) {
-                Log.d(TAG, "Timeout de 15 minutos alcanzado sin evaluación")
+    private fun startConstraintTimeout() {
+        constraintTimeoutJob?.cancel()
+        constraintTimeoutJob = scope.launch {
+            delay(CONSTRAINT_TIMEOUT_MS)
+            if (isRatingActive && !ratingSubmitted) {
+                Log.d(TAG, "Timeout de 10 min alcanzado, liberando constraintBeWith")
+                updateEvaluationStatus("timeout")
                 finishRatingMode(timeout = true)
             }
         }
@@ -246,26 +279,20 @@ class RatingManager(private val context: Context) {
      * Llamado cuando el usuario envía una evaluación.
      */
     fun onRatingSubmitted(rating: Int, customerName: String, salon: String) {
+        if (ratingSubmitted) return
+        ratingSubmitted = true
+        constraintTimeoutJob?.cancel()
         Log.d(TAG, "Rating recibido: $rating estrellas para $salon")
-        
-        // Cancelar timeout y TTS
-        ratingTimeoutJob?.cancel()
-        ttsLoopJob?.cancel()
-        
-        // Enviar a API externa
+
         scope.launch {
             sendEvaluationToExternalAPI(rating, customerName, salon)
-            
-            // Actualizar estado en nuestra BD
             updateEvaluationStatus("completada", rating)
-            
-            // Agradecer
+
             withContext(Dispatchers.Main) {
                 TemiController.speak("¡Muchas gracias por tu evaluación! Tu opinión nos ayuda a mejorar.")
             }
-            
-            delay(3000) // Esperar 3 segundos
-            
+
+            delay(3000)
             finishRatingMode(timeout = false)
         }
     }
@@ -275,7 +302,7 @@ class RatingManager(private val context: Context) {
      */
     private suspend fun sendEvaluationToExternalAPI(rating: Int, customerName: String, salon: String) {
         val feedbackText = feedbackMap[rating] ?: "Gracias"
-        
+
         val jsonBody = JSONObject().apply {
             put("rating", rating)
             put("customer_name", customerName)
@@ -283,17 +310,17 @@ class RatingManager(private val context: Context) {
             put("feedback_text", feedbackText)
             put("category", salon) // El category es el nombre del salón
         }
-        
+
         val requestBody = jsonBody.toString().toRequestBody("application/json".toMediaType())
-        
+
         val request = Request.Builder()
             .url(CREATE_EVALUATION_URL)
             .post(requestBody)
             .addHeader("Content-Type", "application/json")
             .build()
-        
+
         try {
-            val response = httpClient.newCall(request).execute()
+            val response = externalHttpClient.newCall(request).execute()
             Log.d(TAG, "Evaluación enviada a API externa: ${response.code}")
             Log.d(TAG, "Response: ${response.body?.string()}")
         } catch (e: Exception) {
@@ -302,29 +329,19 @@ class RatingManager(private val context: Context) {
     }
 
     /**
-     * Actualiza el estado de la evaluación en nuestra BD.
+     * Actualiza el estado de la evaluación en nuestra BD vía edge function.
      */
-    private suspend fun updateEvaluationStatus(estado: String, rating: Int? = null) {
+    internal suspend fun updateEvaluationStatus(estado: String, rating: Int? = null) {
         val evaluacionId = currentEvaluacion?.optString("id") ?: return
-        
-        val jsonBody = JSONObject().apply {
+
+        val body = buildJsonObject {
+            put("id", evaluacionId)
             put("estado", estado)
             if (rating != null) put("rating", rating)
         }
-        
-        val requestBody = jsonBody.toString().toRequestBody("application/json".toMediaType())
-        
-        val request = Request.Builder()
-            .url("$SUPABASE_URL/rest/v1/evaluaciones_programadas?id=eq.$evaluacionId")
-            .patch(requestBody)
-            .addHeader("apikey", SUPABASE_ANON_KEY)
-            .addHeader("Authorization", "Bearer $SUPABASE_ANON_KEY")
-            .addHeader("Content-Type", "application/json")
-            .addHeader("Prefer", "return=minimal")
-            .build()
-        
+
         try {
-            httpClient.newCall(request).execute()
+            gateway.post("programar-evaluacion", body)
             Log.d(TAG, "Estado actualizado a: $estado")
         } catch (e: Exception) {
             Log.e(TAG, "Error actualizando estado: ${e.message}")
@@ -332,43 +349,86 @@ class RatingManager(private val context: Context) {
     }
 
     /**
-     * Finaliza el modo rating y vuelve a base.
+     * Limpieza de emergencia cuando el OS aborta la navegación al salón.
+     * No intenta navegar a ningún lado, solo detiene todo.
+     */
+    private fun emergencyCleanup() {
+        Log.d(TAG, "emergencyCleanup: deteniendo todo sin navegar")
+        ttsLoopJob?.cancel()
+        ratingTimeoutJob?.cancel()
+        constraintTimeoutJob?.cancel()
+
+        scope.launch {
+            updateEvaluationStatus("cancelada")
+
+            // Cerrar RatingActivity si estaba abierta
+            val closeIntent = Intent("com.spatium.deamon.db.temi.CLOSE_RATING")
+            context?.sendBroadcast(closeIntent)
+
+            // Restaurar UI
+            withContext(Dispatchers.Main) {
+                // Desactivar constraintBeWith para permitir movimiento
+                TemiController.disableFaceTracking()
+                TemiController.toggleNavigationBillboard(false)
+                // NO desactivar Kiosk Mode para mantener la app en primer plano
+
+                // Volver a MainActivity
+                val mainIntent = android.content.Intent(context ?: return@withContext, com.spatium.deamon.db.temi.ui.MainActivity::class.java).apply {
+                    addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK or android.content.Intent.FLAG_ACTIVITY_CLEAR_TOP)
+                }
+                context?.startActivity(mainIntent)
+            }
+
+            isRatingActive = false
+            currentEvaluacion = null
+
+            // Liberar el modo exclusivo
+            ExclusiveModeArbiter.release(ExclusiveModeArbiter.MODE_RATING)
+        }
+    }
+
+    /**
+     * Finaliza el modo rating limpiamente.
      */
     private fun finishRatingMode(timeout: Boolean) {
         Log.d(TAG, "Finalizando modo rating (timeout=$timeout)")
-        
-        // Cancelar jobs
+
         ttsLoopJob?.cancel()
         ratingTimeoutJob?.cancel()
-        
+        constraintTimeoutJob?.cancel()
+
         scope.launch {
-            if (timeout) {
-                // Actualizar estado a timeout
-                updateEvaluationStatus("timeout")
-                
-                // Despedirse
-                withContext(Dispatchers.Main) {
-                    TemiController.speak("Gracias por visitarnos. Hasta pronto.")
-                }
-                delay(2000)
-            }
-            
             // Cerrar RatingActivity
             val closeIntent = Intent("com.spatium.deamon.db.temi.CLOSE_RATING")
-            context.sendBroadcast(closeIntent)
-            
-            // Restaurar UI de Temi
-            TemiController.toggleNavigationBillboard(false)
-            TemiController.setKioskModeOn(false)
-            
-            // Volver a home base
-            Log.d(TAG, "Volviendo a home base...")
-            TemiController.goTo("home base")
-            
-            // Limpiar estado
+            context?.sendBroadcast(closeIntent)
+
+            // Restaurar UI
+            withContext(Dispatchers.Main) {
+                // Desactivar constraintBeWith para permitir movimiento
+                TemiController.disableFaceTracking()
+                TemiController.toggleNavigationBillboard(false)
+                // NO desactivar Kiosk Mode para mantener la app en primer plano
+
+                // Volver a MainActivity
+                val mainIntent = android.content.Intent(context ?: return@withContext, com.spatium.deamon.db.temi.ui.MainActivity::class.java).apply {
+                    addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK or android.content.Intent.FLAG_ACTIVITY_CLEAR_TOP)
+                }
+                context?.startActivity(mainIntent)
+            }
+
             isRatingActive = false
+            ratingSubmitted = false
             currentEvaluacion = null
             TemiController.clearArrivalCallback()
+
+            // Retornar a home base
+            delay(500)
+            Log.d(TAG, "Retornando a home base...")
+            TemiController.goTo("home base")
+
+            // Liberar el modo exclusivo (después de goTo para evitar que otro modo
+            // tome el arbiter mientras el robot aún está navegando a home base)
+            ExclusiveModeArbiter.release(ExclusiveModeArbiter.MODE_RATING)
         }
     }
 
@@ -380,14 +440,15 @@ class RatingManager(private val context: Context) {
         stopPolling()
         ttsLoopJob?.cancel()
         ratingTimeoutJob?.cancel()
-        
+        constraintTimeoutJob?.cancel()
+
         // Desregistrar receiver
         try {
-            context.unregisterReceiver(ratingReceiver)
+            context?.unregisterReceiver(ratingReceiver)
         } catch (e: Exception) {
             Log.w(TAG, "Error desregistrando receiver: ${e.message}")
         }
-        
+
         scope.cancel()
     }
 }

@@ -11,26 +11,26 @@ sealed class WhatsAppSendResult {
         val strategyUsed: WhatsAppConstants.SearchStrategyPriority,
         val nodeName: String,
         val timeElapsedMs: Long,
-        val retryCount: Int
+        val retryCount: Int,
     ) : WhatsAppSendResult()
 
     data class RetryableFailure(
         val reason: String,
         val attemptNumber: Int,
         val maxRetries: Int,
-        val nextRetryInMs: Long
+        val nextRetryInMs: Long,
     ) : WhatsAppSendResult()
 
     data class FatalFailure(
         val reason: String,
         val errorDetails: String,
-        val possibleSolutions: List<String>
+        val possibleSolutions: List<String>,
     ) : WhatsAppSendResult()
 
     data class Timeout(
         val stage: WhatsAppConstants.SendState,
         val timeElapsedMs: Long,
-        val lastKnownState: String
+        val lastKnownState: String,
     ) : WhatsAppSendResult()
 
     object MaxRetriesExceeded : WhatsAppSendResult() {
@@ -39,7 +39,7 @@ sealed class WhatsAppSendResult {
             "Verificar que WhatsApp esté actualizado",
             "Revisar permisos de accesibilidad",
             "Verificar conexión a internet",
-            "Reiniciar el servicio de accesibilidad"
+            "Reiniciar el servicio de accesibilidad",
         )
     }
 }
@@ -51,7 +51,7 @@ data class FoundNode(
     val node: AccessibilityNodeInfo,
     val strategy: WhatsAppConstants.SearchStrategyPriority,
     val confidence: Float,
-    val metadata: NodeMetadata
+    val metadata: NodeMetadata,
 )
 
 data class NodeMetadata(
@@ -63,7 +63,7 @@ data class NodeMetadata(
     val depth: Int,
     val isClickable: Boolean,
     val isEnabled: Boolean,
-    val isVisibleToUser: Boolean
+    val isVisibleToUser: Boolean,
 ) {
     companion object {
         fun fromNodeInfo(node: AccessibilityNodeInfo, depth: Int): NodeMetadata {
@@ -79,7 +79,7 @@ data class NodeMetadata(
                 depth = depth,
                 isClickable = node.isClickable,
                 isEnabled = node.isEnabled,
-                isVisibleToUser = node.isVisibleToUser
+                isVisibleToUser = node.isVisibleToUser,
             )
         }
     }
@@ -97,6 +97,6 @@ sealed class ClickResult {
         STANDARD_ACTION_CLICK,
         GESTURE_DISPATCH,
         FOCUS_THEN_CLICK,
-        COORDINATE_TAP
+        COORDINATE_TAP,
     }
 }

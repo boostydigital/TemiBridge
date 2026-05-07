@@ -2,8 +2,8 @@ package com.spatium.deamon.db.temi.ui
 
 import android.app.Activity
 import android.content.Intent
-import android.media.ToneGenerator
 import android.media.AudioManager
+import android.media.ToneGenerator
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
@@ -96,7 +96,9 @@ class CountdownActivity : AppCompatActivity() {
 
                 cameraProvider.unbindAll()
                 camera = cameraProvider.bindToLifecycle(
-                    this, currentCameraSelector, preview
+                    this,
+                    currentCameraSelector,
+                    preview,
                 )
 
                 Log.d(TAG, "[CAMERA] Cámara iniciada en countdown: $currentCameraSelector")

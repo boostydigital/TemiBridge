@@ -7,7 +7,7 @@ abstract class BaseTemiSkill(
     override val skillId: String,
     override val skillName: String,
     override val description: String,
-    override val category: SkillCategory = SkillCategory.CUSTOM
+    override val category: SkillCategory = SkillCategory.CUSTOM,
 ) : TemiSkill {
 
     private val tag = "Skill[$skillId]"

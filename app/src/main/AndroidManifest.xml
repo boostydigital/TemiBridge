@@ -181,6 +181,16 @@
             android:screenOrientation="landscape"
             android:configChanges="orientation|screenSize|keyboardHidden"/>
 
+        <activity
+            android:name=".ui.GuiaActivity"
+            android:exported="false"
+            android:hardwareAccelerated="true"
+            android:theme="@style/Theme.TemiBridge"
+            android:launchMode="singleTask"
+            android:screenOrientation="landscape"
+            android:excludeFromRecents="true"
+            android:configChanges="orientation|screenSize|keyboardHidden"/>
+
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.fileprovider"

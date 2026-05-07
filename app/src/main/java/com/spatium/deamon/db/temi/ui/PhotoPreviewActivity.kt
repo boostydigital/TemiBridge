@@ -11,8 +11,8 @@ import android.os.Handler
 import android.os.Looper
 import android.provider.Settings
 import android.util.Log
-import android.view.accessibility.AccessibilityManager
 import android.view.WindowManager
+import android.view.accessibility.AccessibilityManager
 import android.widget.FrameLayout
 import android.widget.ImageView
 import android.widget.Toast
@@ -33,8 +33,8 @@ class PhotoPreviewActivity : AppCompatActivity() {
 
     companion object {
         private const val TAG = "PhotoPreviewActivity"
-        private const val WHATSAPP_PHONE = "18492825765"  // Número de teléfono
-        private const val WHATSAPP_CONTACT_NAME = "SPATIUM RECEPCION FLOTA"  // Nombre del contacto en WhatsApp
+        private const val WHATSAPP_PHONE = "18492825765" // Número de teléfono
+        private const val WHATSAPP_CONTACT_NAME = "SPATIUM RECEPCION FLOTA" // Nombre del contacto en WhatsApp
         private const val REQUEST_WHATSAPP = 1001
     }
 
@@ -139,8 +139,8 @@ class PhotoPreviewActivity : AppCompatActivity() {
             // Generar URI de la foto
             val photoUri = androidx.core.content.FileProvider.getUriForFile(
                 this,
-                "${packageName}.fileprovider",
-                photoFile
+                "$packageName.fileprovider",
+                photoFile,
             )
 
             Log.d(TAG, "[WHATSAPP] 📱 Nueva estrategia: ACTION_SEND con número")
@@ -149,13 +149,13 @@ class PhotoPreviewActivity : AppCompatActivity() {
 
             // PASO ÚNICO: ACTION_SEND con número de teléfono y foto
             val cleanNumber = WHATSAPP_PHONE.replace("[^0-9]".toRegex(), "")
-            val jid = "$cleanNumber@s.whatsapp.net"  // Formato JID de WhatsApp
+            val jid = "$cleanNumber@s.whatsapp.net" // Formato JID de WhatsApp
 
             val sendIntent = Intent(Intent.ACTION_SEND).apply {
                 type = "image/jpeg"
                 putExtra(Intent.EXTRA_STREAM, photoUri)
                 putExtra(Intent.EXTRA_TEXT, "")
-                putExtra("jid", jid)  // EXTRA específico de WhatsApp para el destinatario
+                putExtra("jid", jid) // EXTRA específico de WhatsApp para el destinatario
                 setPackage(detectedPackage)
                 addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
@@ -169,7 +169,6 @@ class PhotoPreviewActivity : AppCompatActivity() {
 
             // Iniciar monitoreo del envío
             startMonitoringWhatsAppSending()
-
         } catch (e: Exception) {
             Log.e(TAG, "[WHATSAPP] ✗ Error: ${e.message}", e)
             Toast.makeText(this, "Error: ${e.message}", Toast.LENGTH_LONG).show()
@@ -185,7 +184,7 @@ class PhotoPreviewActivity : AppCompatActivity() {
 
         val handler = android.os.Handler(android.os.Looper.getMainLooper())
         val checkInterval = 500L
-        val maxChecks = 20  // 10 segundos máximo
+        val maxChecks = 20 // 10 segundos máximo
         var checkCount = 0
 
         val monitoringRunnable = object : Runnable {
@@ -218,7 +217,8 @@ class PhotoPreviewActivity : AppCompatActivity() {
                     SharedData.SendState.ERROR_GENERAL,
                     SharedData.SendState.ERROR_MAX_RETRIES,
                     SharedData.SendState.ERROR_TIMEOUT,
-                    SharedData.SendState.ERROR_NO_SEND_BUTTON -> {
+                    SharedData.SendState.ERROR_NO_SEND_BUTTON,
+                    -> {
                         Log.e(TAG, "[WHATSAPP] ❌ Error: ${SharedData.errorMessage}")
                         Toast.makeText(this@PhotoPreviewActivity, "❌ ${SharedData.errorMessage}", Toast.LENGTH_LONG).show()
                         SharedData.reset()
@@ -285,7 +285,7 @@ class PhotoPreviewActivity : AppCompatActivity() {
         val accessibilityManager = getSystemService(ACCESSIBILITY_SERVICE) as AccessibilityManager
 
         val enabledServices = accessibilityManager.getEnabledAccessibilityServiceList(
-            AccessibilityServiceInfo.FEEDBACK_ALL_MASK
+            AccessibilityServiceInfo.FEEDBACK_ALL_MASK,
         )
 
         for (service in enabledServices) {
@@ -304,11 +304,11 @@ class PhotoPreviewActivity : AppCompatActivity() {
             setTitle("Habilitar Accesibilidad")
             setMessage(
                 "Para enviar automáticamente la foto por WhatsApp, necesitas habilitar el servicio de accesibilidad.\n\n" +
-                "1. Toca 'Configurar'\n" +
-                "2. Ve a Accesibilidad\n" +
-                "3. Busca 'WhatsAppAccessibilityService'\n" +
-                "4. Actívalo\n" +
-                "5. Toca 'Reintentar'"
+                    "1. Toca 'Configurar'\n" +
+                    "2. Ve a Accesibilidad\n" +
+                    "3. Busca 'WhatsAppAccessibilityService'\n" +
+                    "4. Actívalo\n" +
+                    "5. Toca 'Reintentar'",
             )
             setPositiveButton("Configurar") { _, _ ->
                 startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))

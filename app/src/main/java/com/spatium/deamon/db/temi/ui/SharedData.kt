@@ -9,8 +9,8 @@ import java.util.concurrent.atomic.AtomicInteger
 object SharedData {
     enum class SendState {
         IDLE,
-        WAITING_FOR_CHAT_OPEN,      // Esperando a que se abra el chat directo
-        WAITING_FOR_SEND_BUTTON,    // Esperando botón de enviar
+        WAITING_FOR_CHAT_OPEN, // Esperando a que se abra el chat directo
+        WAITING_FOR_SEND_BUTTON, // Esperando botón de enviar
         SEND_BUTTON_FOUND,
         ATTEMPTING_CLICK,
         CLICK_SUCCESSFUL,
@@ -19,7 +19,7 @@ object SharedData {
         ERROR_MAX_RETRIES,
         ERROR_TIMEOUT,
         ERROR_NO_SEND_BUTTON,
-        ERROR_GENERAL
+        ERROR_GENERAL,
     }
 
     private const val MAX_RETRIES = 5
@@ -27,7 +27,7 @@ object SharedData {
 
     var photoPath: String? = null
     var photoUri: Uri? = null
-    var contactName: String? = null  // Nombre del contacto a buscar en WhatsApp
+    var contactName: String? = null // Nombre del contacto a buscar en WhatsApp
     var sendState: SendState = SendState.IDLE
     var errorMessage: String? = null
     var shouldAutoSend: Boolean = false
@@ -51,7 +51,7 @@ object SharedData {
     fun setSending(path: String, uri: Uri) {
         photoPath = path
         photoUri = uri
-        contactName = null  // No necesitamos nombre de contacto
+        contactName = null // No necesitamos nombre de contacto
         sendState = SendState.WAITING_FOR_CHAT_OPEN
         shouldAutoSend = true
         errorMessage = null
@@ -92,11 +92,12 @@ object SharedData {
         lastActivityTimeMs = System.currentTimeMillis()
     }
 
-    fun isSending(): Boolean = shouldAutoSend && sendState != SendState.COMPLETED &&
-                              sendState != SendState.ERROR_MAX_RETRIES &&
-                              sendState != SendState.ERROR_TIMEOUT &&
-                              sendState != SendState.ERROR_NO_SEND_BUTTON &&
-                              sendState != SendState.ERROR_GENERAL
+    fun isSending(): Boolean = shouldAutoSend &&
+        sendState != SendState.COMPLETED &&
+        sendState != SendState.ERROR_MAX_RETRIES &&
+        sendState != SendState.ERROR_TIMEOUT &&
+        sendState != SendState.ERROR_NO_SEND_BUTTON &&
+        sendState != SendState.ERROR_GENERAL
 
     fun incrementRetry(): Int = retryCount.incrementAndGet()
 

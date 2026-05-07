@@ -28,7 +28,7 @@ class WhatsAppClickPerformer(private val service: AccessibilityService) {
             ClickResult.ClickMethod.STANDARD_ACTION_CLICK,
             ClickResult.ClickMethod.GESTURE_DISPATCH,
             ClickResult.ClickMethod.FOCUS_THEN_CLICK,
-            ClickResult.ClickMethod.COORDINATE_TAP
+            ClickResult.ClickMethod.COORDINATE_TAP,
         )
 
         for (method in methods) {
@@ -63,55 +63,51 @@ class WhatsAppClickPerformer(private val service: AccessibilityService) {
     /**
      * Método 1: ACTION_CLICK estándar (más confiable).
      */
-    private fun performStandardClick(node: AccessibilityNodeInfo): ClickResult {
-        return try {
-            val success = node.performAction(AccessibilityNodeInfo.ACTION_CLICK)
-            if (success) {
-                ClickResult.Success(ClickResult.ClickMethod.STANDARD_ACTION_CLICK)
-            } else {
-                ClickResult.Retryable("ACTION_CLICK retornó false", ClickResult.ClickMethod.GESTURE_DISPATCH)
-            }
-        } catch (e: Exception) {
-            ClickResult.Retryable("Error en ACTION_CLICK: ${e.message}", ClickResult.ClickMethod.GESTURE_DISPATCH)
+    private fun performStandardClick(node: AccessibilityNodeInfo): ClickResult = try {
+        val success = node.performAction(AccessibilityNodeInfo.ACTION_CLICK)
+        if (success) {
+            ClickResult.Success(ClickResult.ClickMethod.STANDARD_ACTION_CLICK)
+        } else {
+            ClickResult.Retryable("ACTION_CLICK retornó false", ClickResult.ClickMethod.GESTURE_DISPATCH)
         }
+    } catch (e: Exception) {
+        ClickResult.Retryable("Error en ACTION_CLICK: ${e.message}", ClickResult.ClickMethod.GESTURE_DISPATCH)
     }
 
     /**
      * Método 2: GestureDescription con Path.
      */
-    private fun performGestureClick(node: AccessibilityNodeInfo): ClickResult {
-        return try {
-            val bounds = Rect()
-            node.getBoundsInScreen(bounds)
+    private fun performGestureClick(node: AccessibilityNodeInfo): ClickResult = try {
+        val bounds = Rect()
+        node.getBoundsInScreen(bounds)
 
-            val path = Path().apply {
-                moveTo(bounds.centerX().toFloat(), bounds.centerY().toFloat())
-            }
-
-            val stroke = GestureDescription.StrokeDescription(path, 0, 50)
-            val gesture = GestureDescription.Builder().addStroke(stroke).build()
-
-            val callback = object : AccessibilityService.GestureResultCallback() {
-                override fun onCompleted(gestureDescription: GestureDescription?) {
-                    super.onCompleted(gestureDescription)
-                    WhatsAppAccessibilityLogger.debug("Gesture completado exitosamente")
-                }
-
-                override fun onCancelled(gestureDescription: GestureDescription?) {
-                    super.onCancelled(gestureDescription)
-                    WhatsAppAccessibilityLogger.warning("Gesture fue cancelado")
-                }
-            }
-
-            val success = service.dispatchGesture(gesture, callback, null)
-            if (success) {
-                ClickResult.Success(ClickResult.ClickMethod.GESTURE_DISPATCH)
-            } else {
-                ClickResult.Retryable("dispatchGesture retornó false", ClickResult.ClickMethod.FOCUS_THEN_CLICK)
-            }
-        } catch (e: Exception) {
-            ClickResult.Retryable("Error en GestureDescription: ${e.message}", ClickResult.ClickMethod.FOCUS_THEN_CLICK)
+        val path = Path().apply {
+            moveTo(bounds.centerX().toFloat(), bounds.centerY().toFloat())
         }
+
+        val stroke = GestureDescription.StrokeDescription(path, 0, 50)
+        val gesture = GestureDescription.Builder().addStroke(stroke).build()
+
+        val callback = object : AccessibilityService.GestureResultCallback() {
+            override fun onCompleted(gestureDescription: GestureDescription?) {
+                super.onCompleted(gestureDescription)
+                WhatsAppAccessibilityLogger.debug("Gesture completado exitosamente")
+            }
+
+            override fun onCancelled(gestureDescription: GestureDescription?) {
+                super.onCancelled(gestureDescription)
+                WhatsAppAccessibilityLogger.warning("Gesture fue cancelado")
+            }
+        }
+
+        val success = service.dispatchGesture(gesture, callback, null)
+        if (success) {
+            ClickResult.Success(ClickResult.ClickMethod.GESTURE_DISPATCH)
+        } else {
+            ClickResult.Retryable("dispatchGesture retornó false", ClickResult.ClickMethod.FOCUS_THEN_CLICK)
+        }
+    } catch (e: Exception) {
+        ClickResult.Retryable("Error en GestureDescription: ${e.message}", ClickResult.ClickMethod.FOCUS_THEN_CLICK)
     }
 
     /**
@@ -145,39 +141,37 @@ class WhatsAppClickPerformer(private val service: AccessibilityService) {
     /**
      * Método 4: Click por coordenadas (último recurso).
      */
-    private fun performCoordinateTap(node: AccessibilityNodeInfo): ClickResult {
-        return try {
-            val bounds = Rect()
-            node.getBoundsInScreen(bounds)
+    private fun performCoordinateTap(node: AccessibilityNodeInfo): ClickResult = try {
+        val bounds = Rect()
+        node.getBoundsInScreen(bounds)
 
-            val path = Path().apply {
-                moveTo(bounds.exactCenterX(), bounds.exactCenterY())
-            }
-
-            val stroke = GestureDescription.StrokeDescription(path, 0, 1)
-            val gesture = GestureDescription.Builder().addStroke(stroke).build()
-
-            val callback = object : AccessibilityService.GestureResultCallback() {
-                override fun onCompleted(gestureDescription: GestureDescription?) {
-                    super.onCompleted(gestureDescription)
-                    WhatsAppAccessibilityLogger.debug("Click por coordenadas completado")
-                }
-
-                override fun onCancelled(gestureDescription: GestureDescription?) {
-                    super.onCancelled(gestureDescription)
-                    WhatsAppAccessibilityLogger.warning("Click por coordenadas cancelado")
-                }
-            }
-
-            val success = service.dispatchGesture(gesture, callback, null)
-            if (success) {
-                ClickResult.Success(ClickResult.ClickMethod.COORDINATE_TAP)
-            } else {
-                ClickResult.Failure("dispatchGesture por coordenadas falló", ClickResult.ClickMethod.COORDINATE_TAP)
-            }
-        } catch (e: Exception) {
-            ClickResult.Failure("Error en click por coordenadas: ${e.message}", ClickResult.ClickMethod.COORDINATE_TAP)
+        val path = Path().apply {
+            moveTo(bounds.exactCenterX(), bounds.exactCenterY())
         }
+
+        val stroke = GestureDescription.StrokeDescription(path, 0, 1)
+        val gesture = GestureDescription.Builder().addStroke(stroke).build()
+
+        val callback = object : AccessibilityService.GestureResultCallback() {
+            override fun onCompleted(gestureDescription: GestureDescription?) {
+                super.onCompleted(gestureDescription)
+                WhatsAppAccessibilityLogger.debug("Click por coordenadas completado")
+            }
+
+            override fun onCancelled(gestureDescription: GestureDescription?) {
+                super.onCancelled(gestureDescription)
+                WhatsAppAccessibilityLogger.warning("Click por coordenadas cancelado")
+            }
+        }
+
+        val success = service.dispatchGesture(gesture, callback, null)
+        if (success) {
+            ClickResult.Success(ClickResult.ClickMethod.COORDINATE_TAP)
+        } else {
+            ClickResult.Failure("dispatchGesture por coordenadas falló", ClickResult.ClickMethod.COORDINATE_TAP)
+        }
+    } catch (e: Exception) {
+        ClickResult.Failure("Error en click por coordenadas: ${e.message}", ClickResult.ClickMethod.COORDINATE_TAP)
     }
 
     /**

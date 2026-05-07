@@ -239,8 +239,8 @@ class IntentEntryActivity : Activity() {
     private fun startTour(identifier: String) {
         // Intenta iniciar Tour de Temi Center por nombre (o id). Si no, fallback al NLU.
         if (identifier.isNotBlank()) {
-            val started = TemiController.playTourByName(identifier)
-                || TemiController.playTourById(identifier)
+            val started = TemiController.playTourByName(identifier) ||
+                TemiController.playTourById(identifier)
             if (started) {
                 TemiController.speak("Iniciando tour $identifier")
             } else {

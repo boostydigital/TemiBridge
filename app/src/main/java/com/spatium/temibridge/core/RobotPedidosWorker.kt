@@ -2,6 +2,7 @@ package com.spatium.deamon.db.temi.core
 
 import android.content.Context
 import android.util.Log
+import androidx.annotation.VisibleForTesting
 import com.spatium.deamon.db.temi.BuildConfig
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.postgrest.from
@@ -9,8 +10,8 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
-import kotlinx.coroutines.isActive
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.util.concurrent.atomic.AtomicBoolean
@@ -21,7 +22,7 @@ object RobotPedidosWorker {
 
     @Volatile
     private var scope: CoroutineScope? = null
-    
+
     // Flag para bloquear polling mientras se procesa un registro
     private val isProcessing = AtomicBoolean(false)
 
@@ -54,6 +55,9 @@ object RobotPedidosWorker {
             }
         }
     }
+
+    @VisibleForTesting
+    fun isProcessingForTest(): Boolean = isProcessing.get()
 
     fun stop() {
         val currentScope = scope
@@ -127,7 +131,7 @@ object RobotPedidosWorker {
                 .update(
                     {
                         set("realizado", true)
-                    }
+                    },
                 ) {
                     filter {
                         eq("id", pedido.id)
@@ -155,15 +159,14 @@ object RobotPedidosWorker {
                 // Esperar a que la secuencia cargue e inicie
                 delay(5000)
             }
-            
+
             // 2. Abrir MenuActivity con el place del registro
             Log.d(TAG, "Paso 2: Abriendo MenuActivity con place=${pedido.place}")
             withContext(Dispatchers.Main) {
                 openMenuActivity(context, pedido.place ?: "")
             }
-            
+
             Log.d(TAG, "Pedido id=${pedido.id} procesado: secuencia ejecutada y MenuActivity abierta")
-            
         } catch (t: Throwable) {
             Log.e(TAG, "Error al procesar pedido id=${pedido.id}: ${t.message}", t)
         } finally {
@@ -174,15 +177,15 @@ object RobotPedidosWorker {
             Log.d(TAG, "========================================")
         }
     }
-    
+
     private fun openMenuActivity(context: Context, place: String) {
         try {
             val intent = android.content.Intent(context, com.spatium.deamon.db.temi.ui.MenuActivity::class.java).apply {
                 putExtra(com.spatium.deamon.db.temi.ui.MenuActivity.EXTRA_PLACE, place)
                 addFlags(
                     android.content.Intent.FLAG_ACTIVITY_NEW_TASK or
-                    android.content.Intent.FLAG_ACTIVITY_CLEAR_TOP or
-                    android.content.Intent.FLAG_ACTIVITY_SINGLE_TOP
+                        android.content.Intent.FLAG_ACTIVITY_CLEAR_TOP or
+                        android.content.Intent.FLAG_ACTIVITY_SINGLE_TOP,
                 )
             }
             context.startActivity(intent)

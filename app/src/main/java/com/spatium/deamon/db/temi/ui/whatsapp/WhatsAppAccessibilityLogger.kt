@@ -13,8 +13,8 @@ import java.util.Locale
 object WhatsAppAccessibilityLogger {
 
     private const val TAG = "WhatsAppA11y"
-    private const val ENABLE_VERBOSE_LOGGING = true  // Desactivar en producción si es necesario
-    private const val ENABLE_NODE_DUMPING = true      // Para debugging avanzado
+    private const val ENABLE_VERBOSE_LOGGING = true // Desactivar en producción si es necesario
+    private const val ENABLE_NODE_DUMPING = true // Para debugging avanzado
 
     private val dateFormat = SimpleDateFormat("HH:mm:ss.SSS", Locale.US)
 
@@ -70,8 +70,10 @@ object WhatsAppAccessibilityLogger {
      * Log cuando se encuentra un nodo candidato.
      */
     fun logNodeFound(node: FoundNode) {
-        info("✓ Nodo encontrado: ${node.metadata.className} " +
-             "(estrategia: ${node.strategy}, confianza: ${(node.confidence * 100).toInt()}%)")
+        info(
+            "✓ Nodo encontrado: ${node.metadata.className} " +
+                "(estrategia: ${node.strategy}, confianza: ${(node.confidence * 100).toInt()}%)",
+        )
         debug("  - ID: ${node.metadata.viewId}")
         debug("  - Texto: ${node.metadata.text}")
         debug("  - ContentDescription: ${node.metadata.contentDescription}")
@@ -142,12 +144,14 @@ object WhatsAppAccessibilityLogger {
         val bounds = android.graphics.Rect()
         node.getBoundsInScreen(bounds)
 
-        debug("$indent├─ [Depth $depth] " +
-              "ID: ${node.viewIdResourceName ?: "null"}, " +
-              "Class: ${node.className?.takeLast(20) ?: "null"}, " +
-              "Text: ${node.text?.take(20) ?: "null"}, " +
-              "Clickable: ${node.isClickable}, " +
-              "Bounds: [$bounds]")
+        debug(
+            "$indent├─ [Depth $depth] " +
+                "ID: ${node.viewIdResourceName ?: "null"}, " +
+                "Class: ${node.className?.takeLast(20) ?: "null"}, " +
+                "Text: ${node.text?.take(20) ?: "null"}, " +
+                "Clickable: ${node.isClickable}, " +
+                "Bounds: [$bounds]",
+        )
 
         for (i in 0 until node.childCount) {
             node.getChild(i)?.let { child ->
@@ -180,9 +184,7 @@ object WhatsAppAccessibilityLogger {
         debug("Métricas reseteadas")
     }
 
-    private fun getTimestamp(): String {
-        return dateFormat.format(Date())
-    }
+    private fun getTimestamp(): String = dateFormat.format(Date())
 
     /**
      * Log de información de pantalla para debugging.

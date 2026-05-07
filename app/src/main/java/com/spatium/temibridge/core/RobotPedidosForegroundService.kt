@@ -55,7 +55,7 @@ class RobotPedidosForegroundService : Service() {
             val channel = NotificationChannel(
                 CHANNEL_ID,
                 "Robot Pedidos Service",
-                NotificationManager.IMPORTANCE_LOW
+                NotificationManager.IMPORTANCE_LOW,
             ).apply {
                 description = "Mantiene activa la sincronización de pedidos"
                 setShowBadge(false)
@@ -71,7 +71,7 @@ class RobotPedidosForegroundService : Service() {
             this,
             0,
             Intent(this, MainActivity::class.java),
-            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
+            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
         )
 
         return NotificationCompat.Builder(this, CHANNEL_ID)
@@ -90,7 +90,7 @@ class RobotPedidosForegroundService : Service() {
             val powerManager = getSystemService(Context.POWER_SERVICE) as PowerManager
             wakeLock = powerManager.newWakeLock(
                 PowerManager.PARTIAL_WAKE_LOCK,
-                "TemiDaemon::PedidosWakeLock"
+                "TemiDaemon::PedidosWakeLock",
             ).apply {
                 acquire(10 * 60 * 1000L) // 10 minutos máximo, se renueva automáticamente
             }

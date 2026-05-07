@@ -2,10 +2,10 @@ package com.spatium.deamon.db.temi.skills.impl
 
 import android.content.Context
 import android.content.Intent
-import com.spatium.deamon.db.temi.ui.MenuActivity
 import com.spatium.deamon.db.temi.skills.base.BaseTemiSkill
 import com.spatium.deamon.db.temi.skills.base.SkillCategory
 import com.spatium.deamon.db.temi.skills.base.SkillResult
+import com.spatium.deamon.db.temi.ui.MenuActivity
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
@@ -19,12 +19,13 @@ import kotlinx.coroutines.withContext
  * Ejemplo uso via SkillManager:
  *   SkillManager.execute(context, "order", mapOf("place" to "Sala A"))
  */
-class OrderSkill : BaseTemiSkill(
-    skillId = "order",
-    skillName = "Order",
-    description = "Abre la pantalla de menú interactiva (MenuActivity)",
-    category = SkillCategory.INTERACTION
-) {
+class OrderSkill :
+    BaseTemiSkill(
+        skillId = "order",
+        skillName = "Order",
+        description = "Abre la pantalla de menú interactiva (MenuActivity)",
+        category = SkillCategory.INTERACTION,
+    ) {
 
     override suspend fun executeSkill(context: Context, params: Map<String, Any>): SkillResult {
         val place = params["place"] as? String ?: ""
@@ -42,7 +43,7 @@ class OrderSkill : BaseTemiSkill(
                     addFlags(
                         Intent.FLAG_ACTIVITY_NEW_TASK or
                             Intent.FLAG_ACTIVITY_CLEAR_TOP or
-                            Intent.FLAG_ACTIVITY_SINGLE_TOP
+                            Intent.FLAG_ACTIVITY_SINGLE_TOP,
                     )
                 }
                 context.startActivity(intent)

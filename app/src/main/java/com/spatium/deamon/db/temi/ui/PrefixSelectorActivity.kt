@@ -31,7 +31,9 @@ class PrefixSelectorActivity : AppCompatActivity() {
 
         setupFullscreen()
 
-        robot = try { Robot.getInstance() } catch (t: Throwable) {
+        robot = try {
+            Robot.getInstance()
+        } catch (t: Throwable) {
             Log.e(TAG, "[ROBOT] Error obteniendo instancia: ${t.message}")
             null
         }
@@ -76,7 +78,7 @@ class PrefixSelectorActivity : AppCompatActivity() {
             // Ej: spatiumfotoentrada, spatiumfotocentro → prefijo "spatiumfoto"
             //     hackathonentrada, hackathonsala → prefijo "hackathon"
             prefixGroups.clear()
-            
+
             // Detectar prefijos por longitud común y patrones
             val prefixMap = mutableMapOf<String, MutableList<String>>()
             allLocations.forEach { location ->
@@ -91,12 +93,12 @@ class PrefixSelectorActivity : AppCompatActivity() {
                         }
                     }
                 }
-                
+
                 if (foundPrefix != null && foundPrefix.isNotEmpty()) {
                     prefixMap.getOrPut(foundPrefix) { mutableListOf() }.add(location)
                 }
             }
-            
+
             prefixGroups.putAll(prefixMap)
 
             // Filtrar solo grupos con 2+ puntos
@@ -106,15 +108,14 @@ class PrefixSelectorActivity : AppCompatActivity() {
             if (validGroups.isEmpty()) {
                 updateStatusText(
                     "⚠️ No hay eventos configurados.\n\n" +
-                    "Necesitas al menos 2 puntos por evento.\n" +
-                    "Ejemplo: spatiumfotoentrada, spatiumfotocentro"
+                        "Necesitas al menos 2 puntos por evento.\n" +
+                        "Ejemplo: spatiumfotoentrada, spatiumfotocentro",
                 )
                 return
             }
 
             updateStatusText("Selecciona un evento:")
             displayPrefixButtons(validGroups)
-
         } catch (t: Throwable) {
             Log.e(TAG, "[LOCATIONS] Error cargando ubicaciones: ${t.message}", t)
             updateStatusText("⚠️ Error cargando ubicaciones: ${t.message}")
@@ -129,7 +130,7 @@ class PrefixSelectorActivity : AppCompatActivity() {
             val button = FrameLayout(this).apply {
                 layoutParams = LinearLayout.LayoutParams(
                     LinearLayout.LayoutParams.MATCH_PARENT,
-                    120
+                    120,
                 ).apply { setMargins(0, 0, 0, 16) }
                 background = resources.getDrawable(R.drawable.bg_glass_panel_rounded, null)
                 isClickable = true
@@ -139,7 +140,7 @@ class PrefixSelectorActivity : AppCompatActivity() {
             val content = LinearLayout(this).apply {
                 layoutParams = FrameLayout.LayoutParams(
                     FrameLayout.LayoutParams.MATCH_PARENT,
-                    FrameLayout.LayoutParams.MATCH_PARENT
+                    FrameLayout.LayoutParams.MATCH_PARENT,
                 )
                 orientation = LinearLayout.VERTICAL
                 gravity = android.view.Gravity.CENTER_VERTICAL
@@ -159,7 +160,7 @@ class PrefixSelectorActivity : AppCompatActivity() {
                 setTextColor(resources.getColor(android.R.color.darker_gray, null))
                 layoutParams = LinearLayout.LayoutParams(
                     LinearLayout.LayoutParams.WRAP_CONTENT,
-                    LinearLayout.LayoutParams.WRAP_CONTENT
+                    LinearLayout.LayoutParams.WRAP_CONTENT,
                 ).apply { topMargin = 4 }
             }
 

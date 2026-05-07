@@ -26,7 +26,7 @@ class WhatsAppNodeFinder {
             WhatsAppConstants.SearchStrategyPriority.CONTENT_DESCRIPTION,
             WhatsAppConstants.SearchStrategyPriority.TEXT_MATCH,
             WhatsAppConstants.SearchStrategyPriority.CLASS_NAME_WITH_POSITION,
-            WhatsAppConstants.SearchStrategyPriority.VISUAL_HEURISTIC
+            WhatsAppConstants.SearchStrategyPriority.VISUAL_HEURISTIC,
         )
 
         for (strategy in strategies) {
@@ -63,7 +63,7 @@ class WhatsAppNodeFinder {
                         node = node,
                         strategy = WhatsAppConstants.SearchStrategyPriority.VIEW_ID,
                         confidence = 0.95f,
-                        metadata = NodeMetadata.fromNodeInfo(node, 0)
+                        metadata = NodeMetadata.fromNodeInfo(node, 0),
                     )
                 }
             }
@@ -87,7 +87,7 @@ class WhatsAppNodeFinder {
                 node = node,
                 strategy = WhatsAppConstants.SearchStrategyPriority.CONTENT_DESCRIPTION,
                 confidence = 0.85f,
-                metadata = NodeMetadata.fromNodeInfo(node, 0)
+                metadata = NodeMetadata.fromNodeInfo(node, 0),
             )
         }
     }
@@ -108,7 +108,7 @@ class WhatsAppNodeFinder {
                 node = node,
                 strategy = WhatsAppConstants.SearchStrategyPriority.TEXT_MATCH,
                 confidence = 0.80f,
-                metadata = NodeMetadata.fromNodeInfo(node, 0)
+                metadata = NodeMetadata.fromNodeInfo(node, 0),
             )
         }
     }
@@ -129,7 +129,7 @@ class WhatsAppNodeFinder {
             node.getBoundsInScreen(bounds)
 
             val isInBottomRight = bounds.bottom > screenHeight * 0.7f &&
-                                  bounds.right > screenWidth * 0.7f
+                bounds.right > screenWidth * 0.7f
 
             isValidSendButton(node) && isInBottomRight
         }
@@ -139,7 +139,7 @@ class WhatsAppNodeFinder {
                 node = node,
                 strategy = WhatsAppConstants.SearchStrategyPriority.CLASS_NAME_WITH_POSITION,
                 confidence = 0.65f,
-                metadata = NodeMetadata.fromNodeInfo(node, 0)
+                metadata = NodeMetadata.fromNodeInfo(node, 0),
             )
         }
     }
@@ -154,7 +154,7 @@ class WhatsAppNodeFinder {
 
             val area = bounds.width() * bounds.height()
             val isInBottomRight = bounds.bottom > screenHeight * 0.6f &&
-                                  bounds.right > screenWidth * 0.6f
+                bounds.right > screenWidth * 0.6f
 
             // Calcular confianza basada en múltiples factores
             val validArea = area >= WhatsAppConstants.MIN_CLICKABLE_AREA
@@ -175,7 +175,7 @@ class WhatsAppNodeFinder {
                 node = node,
                 strategy = WhatsAppConstants.SearchStrategyPriority.VISUAL_HEURISTIC,
                 confidence = 0.50f,
-                metadata = NodeMetadata.fromNodeInfo(node, 0)
+                metadata = NodeMetadata.fromNodeInfo(node, 0),
             )
         }
     }
@@ -187,7 +187,7 @@ class WhatsAppNodeFinder {
         node: AccessibilityNodeInfo,
         depth: Int = 0,
         maxDepth: Int = WhatsAppConstants.MAX_SEARCH_DEPTH,
-        predicate: (AccessibilityNodeInfo) -> Boolean
+        predicate: (AccessibilityNodeInfo) -> Boolean,
     ): AccessibilityNodeInfo? {
         if (depth > maxDepth) return null
 

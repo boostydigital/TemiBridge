@@ -20,12 +20,13 @@ import kotlinx.coroutines.withContext
  * Ejemplo uso via SkillManager:
  *   SkillManager.execute(context, "navigation", mapOf("place" to "Sala_Reuniones"))
  */
-class NavigationSkill : BaseTemiSkill(
-    skillId = "navigation",
-    skillName = "Navigation",
-    description = "Navega a waypoints guardados en el mapa del robot Temi",
-    category = SkillCategory.NAVIGATION
-) {
+class NavigationSkill :
+    BaseTemiSkill(
+        skillId = "navigation",
+        skillName = "Navigation",
+        description = "Navega a waypoints guardados en el mapa del robot Temi",
+        category = SkillCategory.NAVIGATION,
+    ) {
 
     override suspend fun executeSkill(context: Context, params: Map<String, Any>): SkillResult {
         val place = params["place"] as? String
@@ -37,8 +38,10 @@ class NavigationSkill : BaseTemiSkill(
         val returnTo = params["returnTo"] as? String
         val returnDelayMs = (params["returnDelayMs"] as? Number)?.toLong() ?: 10_000L
 
-        logInfo("Navegando a: '$place'" +
-            (if (returnTo != null) " (regresar a '$returnTo' en ${returnDelayMs}ms)" else ""))
+        logInfo(
+            "Navegando a: '$place'" +
+                (if (returnTo != null) " (regresar a '$returnTo' en ${returnDelayMs}ms)" else ""),
+        )
 
         return withContext(Dispatchers.Main) {
             if (returnTo != null) {

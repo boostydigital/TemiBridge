@@ -4,7 +4,7 @@ import android.util.Log
 
 class LocationManager(
     private val onLocationsReady: (List<String>) -> Unit,
-    private val onLocationsEmpty: () -> Unit
+    private val onLocationsEmpty: () -> Unit,
 ) {
 
     companion object {
@@ -52,13 +52,11 @@ class LocationManager(
 
     fun isEmpty() = eventLocations.isEmpty()
 
-    fun extractEventPrefixes(locations: List<String>): Map<String, List<String>> {
-        return locations
-            .filter { it.contains("_") }
-            .groupBy { loc ->
-                val parts = loc.split("_")
-                parts.dropLast(1).joinToString("_")
-            }
-            .filter { (_, points) -> points.size >= 2 }
-    }
+    fun extractEventPrefixes(locations: List<String>): Map<String, List<String>> = locations
+        .filter { it.contains("_") }
+        .groupBy { loc ->
+            val parts = loc.split("_")
+            parts.dropLast(1).joinToString("_")
+        }
+        .filter { (_, points) -> points.size >= 2 }
 }

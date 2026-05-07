@@ -30,21 +30,21 @@ class WhatsAppAccessibilityService : AccessibilityService() {
             "com.whatsapp:id/confirmation_send",
             "com.whatsapp.w4b:id/send",
             "com.whatsapp.w4b:id/send_button",
-            "com.whatsapp.w4b:id/fab_send"
+            "com.whatsapp.w4b:id/fab_send",
         )
 
         // Textos del botón en múltiples idiomas
         private val SEND_BUTTON_TEXTS = listOf(
             "Enviar", "Send", "ENVIAR", "SEND",
-            "➤", "▶", "✓", "send", "enviar"
+            "➤", "▶", "✓", "send", "enviar",
         )
 
         // Configuración de timing
-        private const val INITIAL_DELAY_MS = 3000L    // Esperar 3s después de abrir WhatsApp (WhatsApp tarda en cargar)
-        private const val RETRY_DELAY_MS = 600L       // 600ms entre reintentos
-        private const val MAX_RETRIES = 12            // Más reintentos
-        private const val GESTURE_DURATION_MS = 150L  // Duración del gesto de click
-        private const val CLICK_DELAY_MS = 200L       // Delay entre intentos de click
+        private const val INITIAL_DELAY_MS = 3000L // Esperar 3s después de abrir WhatsApp (WhatsApp tarda en cargar)
+        private const val RETRY_DELAY_MS = 600L // 600ms entre reintentos
+        private const val MAX_RETRIES = 12 // Más reintentos
+        private const val GESTURE_DURATION_MS = 150L // Duración del gesto de click
+        private const val CLICK_DELAY_MS = 200L // Delay entre intentos de click
     }
 
     private val mainHandler = Handler(Looper.getMainLooper())
@@ -58,16 +58,16 @@ class WhatsAppAccessibilityService : AccessibilityService() {
         Log.d(TAG, "✓ Paquetes monitoreados: $WHATSAPP_PACKAGE, $WHATSAPP_BUSINESS_PACKAGE")
         Log.d(TAG, "✓ Esperando eventos de accesibilidad...")
         Log.d(TAG, "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
-        
+
         // Configurar el servicio programáticamente como fallback
         try {
             val info = AccessibilityServiceInfo().apply {
                 eventTypes = AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED or
-                            AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED or
-                            AccessibilityEvent.TYPE_VIEW_CLICKED
+                    AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED or
+                    AccessibilityEvent.TYPE_VIEW_CLICKED
                 feedbackType = AccessibilityServiceInfo.FEEDBACK_GENERIC
                 flags = AccessibilityServiceInfo.FLAG_REPORT_VIEW_IDS or
-                        AccessibilityServiceInfo.FLAG_INCLUDE_NOT_IMPORTANT_VIEWS
+                    AccessibilityServiceInfo.FLAG_INCLUDE_NOT_IMPORTANT_VIEWS
                 packageNames = arrayOf(WHATSAPP_PACKAGE, WHATSAPP_BUSINESS_PACKAGE)
                 notificationTimeout = 100
             }
@@ -106,7 +106,8 @@ class WhatsAppAccessibilityService : AccessibilityService() {
                 }, INITIAL_DELAY_MS)
             }
             SharedData.SendState.WAITING_FOR_SEND_BUTTON,
-            SharedData.SendState.CLICK_FAILED_RETRYING -> {
+            SharedData.SendState.CLICK_FAILED_RETRYING,
+            -> {
                 // Si la búsqueda aún no se ha iniciado, iniciarla
                 if (searchRunnable == null) {
                     Log.d(TAG, "🔁 Iniciando búsqueda de botón (evento recibido)...")
@@ -134,7 +135,8 @@ class WhatsAppAccessibilityService : AccessibilityService() {
 
                 when (SharedData.sendState) {
                     SharedData.SendState.WAITING_FOR_SEND_BUTTON,
-                    SharedData.SendState.CLICK_FAILED_RETRYING -> {
+                    SharedData.SendState.CLICK_FAILED_RETRYING,
+                    -> {
                         if (currentRetryCount >= MAX_RETRIES) {
                             Log.e(TAG, "❌ Máximo de reintentos alcanzado: $MAX_RETRIES")
                             SharedData.setError("No se encontró el botón después de $MAX_RETRIES intentos", SharedData.SendState.ERROR_MAX_RETRIES)
@@ -215,7 +217,6 @@ class WhatsAppAccessibilityService : AccessibilityService() {
 
             Log.w(TAG, "❌ No se encontró el botón con ninguna estrategia")
             return false
-
         } catch (e: Exception) {
             Log.e(TAG, "❌ Error en tryFindAndClickSendButton: ${e.message}", e)
             return false
@@ -226,7 +227,7 @@ class WhatsAppAccessibilityService : AccessibilityService() {
 
     private fun performClickOnNode(node: AccessibilityNodeInfo, source: String): Boolean {
         Log.d(TAG, "🖱️ Intentando click en nodo encontrado por: $source")
-        
+
         // Logging detallado de propiedades del nodo
         val bounds = Rect()
         node.getBoundsInScreen(bounds)
@@ -252,7 +253,7 @@ class WhatsAppAccessibilityService : AccessibilityService() {
         val centerX = bounds.exactCenterX()
         val centerY = bounds.exactCenterY()
         Log.d(TAG, "� Método 2: GestureDescription en ($centerX, $centerY)...")
-        
+
         if (performGestureClick(centerX, centerY)) {
             Log.d(TAG, "✅ GestureClick exitoso")
             return true
@@ -298,10 +299,10 @@ class WhatsAppAccessibilityService : AccessibilityService() {
 
             val result = dispatchGesture(gesture, callback, null)
             Log.d(TAG, "🎯 dispatchGesture retornó: $result")
-            
+
             // Esperar a que el callback se ejecute
             Thread.sleep(GESTURE_DURATION_MS + 100)
-            
+
             if (gestureCompleted) {
                 Log.d(TAG, "✅ Gesture se completó correctamente")
                 return true
@@ -319,7 +320,7 @@ class WhatsAppAccessibilityService : AccessibilityService() {
         node: AccessibilityNodeInfo,
         texts: List<String>,
         maxDepth: Int = 15,
-        currentDepth: Int = 0
+        currentDepth: Int = 0,
     ): AccessibilityNodeInfo? {
         if (currentDepth > maxDepth) return null
 
@@ -345,7 +346,7 @@ class WhatsAppAccessibilityService : AccessibilityService() {
         node: AccessibilityNodeInfo,
         texts: List<String>,
         maxDepth: Int = 15,
-        currentDepth: Int = 0
+        currentDepth: Int = 0,
     ): AccessibilityNodeInfo? {
         if (currentDepth > maxDepth) return null
 
@@ -379,7 +380,7 @@ class WhatsAppAccessibilityService : AccessibilityService() {
 
             // Buscar en la esquina inferior derecha (donde suele estar el botón de enviar)
             val isInBottomRight = bounds.bottom > screenHeight * 0.75f &&
-                                  bounds.right > screenWidth * 0.6f
+                bounds.right > screenWidth * 0.6f
 
             // Tamaño mínimo razonable para un botón
             val hasValidSize = bounds.width() > 50 && bounds.height() > 50
@@ -392,7 +393,7 @@ class WhatsAppAccessibilityService : AccessibilityService() {
         node: AccessibilityNodeInfo,
         maxDepth: Int = 15,
         currentDepth: Int = 0,
-        predicate: (AccessibilityNodeInfo) -> Boolean
+        predicate: (AccessibilityNodeInfo) -> Boolean,
     ): AccessibilityNodeInfo? {
         if (currentDepth > maxDepth) return null
 
@@ -433,7 +434,7 @@ class WhatsAppAccessibilityService : AccessibilityService() {
         node: AccessibilityNodeInfo,
         maxDepth: Int = 15,
         currentDepth: Int = 0,
-        prefix: String = ""
+        prefix: String = "",
     ) {
         if (currentDepth > maxDepth) return
 
@@ -456,13 +457,11 @@ class WhatsAppAccessibilityService : AccessibilityService() {
         }
     }
 
-    private fun getEventTypeName(eventType: Int): String {
-        return when (eventType) {
-            AccessibilityEvent.TYPE_VIEW_CLICKED -> "VIEW_CLICKED"
-            AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED -> "CONTENT_CHANGED"
-            AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED -> "WINDOW_STATE_CHANGED"
-            else -> "UNKNOWN($eventType)"
-        }
+    private fun getEventTypeName(eventType: Int): String = when (eventType) {
+        AccessibilityEvent.TYPE_VIEW_CLICKED -> "VIEW_CLICKED"
+        AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED -> "CONTENT_CHANGED"
+        AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED -> "WINDOW_STATE_CHANGED"
+        else -> "UNKNOWN($eventType)"
     }
 
     override fun onInterrupt() {
