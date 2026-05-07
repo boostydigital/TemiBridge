@@ -26,6 +26,8 @@ val supabaseAnonKey: String = rawSupabaseAnonKey.substringBefore("#").trim()
 val rawTemiEdgeBaseUrl: String = localProps.getProperty("TEMI_EDGE_BASE_URL", "").trim()
 val temiEdgeBaseUrl: String = rawTemiEdgeBaseUrl.substringBefore("#").trim()
 val tourRecepcionId: String = localProps.getProperty("TOUR_RECEPCION_ID", "").trim()
+val telegramBotToken: String = localProps.getProperty("TELEGRAM_BOT_TOKEN", "").trim()
+val telegramChatId: String = localProps.getProperty("TELEGRAM_CHAT_ID", "").trim()
 
 // Mover el directorio de build del mГіdulo fuera de OneDrive para evitar bloqueos en Windows
 buildDir = File(System.getProperty("user.home"), "TemiDeamonDBBuild/app")
@@ -51,6 +53,8 @@ android {
         buildConfigField("String", "TOUR_RECEPCION_ID", "\"$tourRecepcionId\"")
         // Feature flag para activar/desactivar el worker de Supabase en runtime
         buildConfigField("boolean", "ENABLE_SUPABASE_WORKER", "true")
+        buildConfigField("String", "TELEGRAM_BOT_TOKEN", "\"$telegramBotToken\"")
+        buildConfigField("String", "TELEGRAM_CHAT_ID", "\"$telegramChatId\"")
     }
 
     buildTypes {

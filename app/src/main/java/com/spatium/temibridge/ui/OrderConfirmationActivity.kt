@@ -109,9 +109,6 @@ class OrderConfirmationActivity : AppCompatActivity() {
     }
 
     private fun confirmOrder() {
-        val farewellSequenceId = prefs.getString(KEY_FAREWELL_SEQUENCE_ID, DEFAULT_FAREWELL_SEQUENCE_ID)
-            ?: DEFAULT_FAREWELL_SEQUENCE_ID
-
         Log.d(TAG, "=== USUARIO CONFIRMÓ PEDIDO - DESACTIVANDO FACE TRACKING ===")
         disableFaceTracking()
 
@@ -119,14 +116,24 @@ class OrderConfirmationActivity : AppCompatActivity() {
 
         CoroutineScope(Dispatchers.IO).launch {
             try {
-                val comida = productName.split(" ")[0].lowercase()
+                val pedido = productName.lowercase()
                 val lugar = lastPlace.ifEmpty { "sin_lugar" }
-                val jsonBody = """{"lugar":"$lugar","comida":"$comida"}"""
-                val webhookUrl = "https://hook.us1.make.com/ei3fb5lpstgw8s8sygvyvnda9klzq0y3"
 
-                Log.d(TAG, "=== ENVIANDO WEBHOOK === URL: $webhookUrl | Body: $jsonBody")
+                val text = """
+🔔 Nueva Orden - Maxi Bot
 
-                val connection = java.net.URL(webhookUrl).openConnection() as java.net.HttpURLConnection
+🍔 Pedido: $pedido
+📍 Lugar: $lugar
+
+⚠️ Por favor, atender de inmediato.
+                """.trimIndent()
+
+                val jsonBody = """{"chat_id":${com.spatium.deamon.db.temi.BuildConfig.TELEGRAM_CHAT_ID},"text":"${text.replace("\"", "\\\"").replace("\n", "\\n")}"}"""
+                val telegramUrl = "https://api.telegram.org/bot${com.spatium.deamon.db.temi.BuildConfig.TELEGRAM_BOT_TOKEN}/sendMessage"
+
+                Log.d(TAG, "=== ENVIANDO TELEGRAM === lugar=$lugar pedido=$pedido")
+
+                val connection = java.net.URL(telegramUrl).openConnection() as java.net.HttpURLConnection
                 connection.requestMethod = "POST"
                 connection.setRequestProperty("Content-Type", "application/json")
                 connection.doOutput = true
@@ -134,7 +141,7 @@ class OrderConfirmationActivity : AppCompatActivity() {
                 connection.readTimeout = 10000
                 connection.outputStream.use { it.write(jsonBody.toByteArray(Charsets.UTF_8)) }
                 val responseCode = connection.responseCode
-                Log.d(TAG, "Webhook response: $responseCode")
+                Log.d(TAG, "Telegram response: $responseCode")
                 connection.disconnect()
 
                 withContext(Dispatchers.Main) {
