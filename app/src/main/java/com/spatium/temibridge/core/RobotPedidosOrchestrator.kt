@@ -7,7 +7,7 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 data class RobotPedido(
-    val id: Long,
+    val id: String,
     val secuencia: String?,
     val comida: String?,
     val say: String?,
